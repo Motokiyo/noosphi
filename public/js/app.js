@@ -83,7 +83,7 @@ function updateDotDisplay() {
   // Build sublabel from enabled sources
   const names = [];
   if (state.enabled.gcp) names.push('Princeton');
-  if (state.enabled.local) names.push('MacBook');
+  if (state.enabled.local) names.push(state.deviceName || 'Local');
   if (state.enabled.qrng) names.push('Australie');
   sublabel.textContent = names.length > 0
     ? `Combine : ${names.join(' + ')}`
@@ -225,6 +225,17 @@ async function fetchLocalRNG() {
 
     state.zLocal = parseFloat(data.zScore);
     updateSourceCard('local', 'up', { lat: `${data.latency}ms`, count: data.count, mean: data.mean });
+
+    // Update device name dynamically
+    if (data.device && !state.deviceName) state.deviceName = data.device;
+    if (data.device) {
+      const devLabel = document.getElementById('local-device-name');
+      if (devLabel) devLabel.textContent = `(${data.device})`;
+      const cardName = document.getElementById('card-local-name');
+      if (cardName) cardName.textContent = data.device;
+      const cardDesc = document.getElementById('card-local-desc');
+      if (cardDesc) cardDesc.textContent = `RNG de ${data.hostname || 'cet appareil'} (bruit thermique)`;
+    }
 
     if (data.data) updateDistribution(data.data);
     recalcCombined();

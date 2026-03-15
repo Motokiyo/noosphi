@@ -255,6 +255,36 @@ app.get('/api/nist-beacon', async (req, res) => {
 });
 
 // 4. Local RNG (Node.js crypto)
+function getDeviceName() {
+  const os = require('os');
+  const p = process.platform;
+  const a = process.arch;
+  const hostname = os.hostname().replace(/\.local$/, '');
+
+  let type;
+  if (p === 'darwin') {
+    type = a === 'arm64' ? 'Mac Apple Silicon' : 'Mac Intel';
+  } else if (p === 'win32') {
+    type = 'PC Windows';
+  } else if (p === 'linux') {
+    // Check for Android (Termux) or common SBC
+    if (a === 'arm64' || a === 'arm') {
+      const model = os.cpus()[0]?.model || '';
+      if (process.env.ANDROID_ROOT || process.env.TERMUX_VERSION) type = 'Android';
+      else if (model.toLowerCase().includes('raspberry')) type = 'Raspberry Pi';
+      else type = 'Linux ARM';
+    } else {
+      type = 'PC Linux';
+    }
+  } else if (p === 'android') {
+    type = 'Android';
+  } else {
+    type = p + ' ' + a;
+  }
+
+  return { type, hostname, platform: p, arch: a };
+}
+
 app.get('/api/local-rng', (req, res) => {
   const t0 = Date.now();
   const count = 1000;
@@ -277,9 +307,12 @@ app.get('/api/local-rng', (req, res) => {
   const k = 255;
   const chiZ = (Math.pow(chiSq / k, 1/3) - (1 - 2/(9*k))) / Math.sqrt(2/(9*k));
 
+  const device = getDeviceName();
   res.json({
-    source: 'Local RNG (Node.js crypto)',
-    platform: process.platform + ' ' + process.arch,
+    source: 'Local RNG (crypto)',
+    device: device.type,
+    hostname: device.hostname,
+    platform: device.platform + ' ' + device.arch,
     count,
     data: bytes.slice(0, 100), // Send first 100 for visualization
     mean,

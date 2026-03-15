@@ -12,5 +12,6 @@ final-report.js
 .DS_Store
 Thumbs.db
 
-# Screenshots from verification
-*.png
+# Screenshots from verification (but keep docs/ logos)
+/tmp-*.png
+*.screenshot.png

@@ -80,9 +80,9 @@
         <div class="source-row" data-curve="1" data-source="local">
           <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
           <span class="row-swatch" style="background:#00E5FF"></span>
-          <span class="row-name">Ma machine <span class="row-origin">(ce MacBook)</span></span>
+          <span class="row-name">Ma machine <span class="row-origin" id="local-device-name">(...)</span></span>
           <span class="row-z" id="z-row-local">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="Le g&eacute;n&eacute;rateur de nombres al&eacute;atoires int&eacute;gr&eacute; dans votre MacBook. Utilise le bruit thermique de la puce Apple Silicon — c'est votre capteur personnel.">i</span>
+          <span class="info-btn info-btn-xs" data-tooltip="Le g&eacute;n&eacute;rateur de nombres al&eacute;atoires int&eacute;gr&eacute; dans votre appareil. Utilise le bruit thermique des composants &eacute;lectroniques — c'est votre capteur personnel.">i</span>
         </div>
 
         <div class="source-row" data-curve="2" data-source="qrng">
@@ -206,15 +206,15 @@
       <div class="source-card" id="card-local">
         <div class="source-header">
           <span class="source-name">
-            Votre machine
-            <span class="info-btn info-btn-sm" data-tooltip="C'est le g&eacute;n&eacute;rateur de votre propre ordinateur. Votre MacBook contient une puce qui produit des nombres al&eacute;atoires &agrave; partir du bruit thermique de ses composants &eacute;lectroniques. C'est votre 'capteur personnel' de conscience.">i</span>
+            <span id="card-local-name">Votre machine</span>
+            <span class="info-btn info-btn-sm" data-tooltip="C'est le g&eacute;n&eacute;rateur de votre propre appareil. Il contient une puce qui produit des nombres al&eacute;atoires &agrave; partir du bruit thermique de ses composants &eacute;lectroniques. C'est votre capteur personnel.">i</span>
           </span>
           <div class="source-status" id="status-local">
             <div class="indicator"></div>
             <span>--</span>
           </div>
         </div>
-        <div class="source-desc">RNG de ce MacBook (bruit thermique)</div>
+        <div class="source-desc" id="card-local-desc">RNG de cet appareil (bruit thermique)</div>
         <div class="source-stats">
           <div class="source-stat">
             <span class="label">Latence</span>
