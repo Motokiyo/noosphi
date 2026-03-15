@@ -1,0 +1,16 @@
+{
+  "name": "noosphi-proto",
+  "version": "0.1.0",
+  "description": "noosphi prototype - API cumulation dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.39.1"
+  }
+}

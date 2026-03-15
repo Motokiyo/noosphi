@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+*.log
+
+# Test/verification scripts (not project code)
+check-html.js
+verify.js
+final-report.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Screenshots from verification
+*.png

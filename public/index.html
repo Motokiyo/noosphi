@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>noos&phi; — Dashboard Prototype</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      noos<span class="phi">&phi;</span>
+      <span class="logo-tagline">Conscience collective en temps r&eacute;el</span>
+    </div>
+    <div class="status-badge" id="global-status">
+      <div class="dot-mini"></div>
+      <span id="status-text">Connexion...</span>
+      <span class="info-btn" data-tooltip="Nombre de sources de donn&eacute;es connect&eacute;es. 4/4 = tout fonctionne. Si une source tombe, l'app continue avec les autres.">i</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left: GCP Dot -->
+    <div class="card dot-panel">
+
+      <div class="gcp-dot-container">
+        <div class="gcp-dot" id="gcp-dot"></div>
+        <div class="gcp-dot-ring" id="gcp-ring"></div>
+      </div>
+
+      <div class="z-value" id="z-main-value">--</div>
+      <div class="z-label" id="z-label">Chargement...</div>
+      <div class="z-sublabel" id="z-sublabel">Score combin&eacute; de toutes les sources</div>
+      <div class="eggs-badge" id="eggs-count">
+        -- EGGs
+        <span class="info-btn info-btn-sm" data-tooltip="Nombre de secondes de donn&eacute;es re&ccedil;ues du r&eacute;seau Princeton. Chaque seconde combine l'ensemble des capteurs EGG actifs dans le monde.">i</span>
+      </div>
+
+      <!-- Color legend -->
+      <div class="color-legend">
+        <div class="legend-title">
+          Que signifient les couleurs ?
+          <span class="info-btn info-btn-sm" data-tooltip="Ces seuils sont ceux utilis&eacute;s par le Global Consciousness Project de Princeton depuis 1998. Ils correspondent &agrave; des niveaux de probabilit&eacute; statistique.">i</span>
+        </div>
+        <div class="legend-item"><span class="legend-dot" style="background:#00CC66"></span> Vert : al&eacute;atoire normal, rien de sp&eacute;cial</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#CCCC00"></span> Jaune : l&eacute;g&egrave;re coh&eacute;rence d&eacute;tect&eacute;e</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#FF8800"></span> Orange : coh&eacute;rence significative</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#FF2200"></span> Rouge : anomalie forte (tr&egrave;s rare)</div>
+      </div>
+
+      <div class="update-time" id="update-time">--</div>
+    </div>
+
+    <!-- Right: Chart -->
+    <div class="card chart-panel">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">
+            Historique en temps r&eacute;el
+            <span class="info-btn info-btn-sm" data-tooltip="Ce graphique montre l'&eacute;volution des Z-Index au fil du temps. Cochez ou d&eacute;cochez les sources pour choisir ce que vous voulez voir. Quand plusieurs courbes bougent ensemble, c'est int&eacute;ressant.">i</span>
+          </div>
+        </div>
+        <div class="chart-subtitle" id="chart-points">0 points</div>
+      </div>
+
+      <!-- Source rows: toggle + color + name + z-value -->
+      <div class="source-rows">
+
+        <div class="source-row" data-curve="0" data-source="gcp">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#6C63FF"></span>
+          <span class="row-name">Mondial <span class="row-origin">(Princeton, USA)</span></span>
+          <span class="row-z" id="z-row-gcp">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="R&eacute;seau mondial du Global Consciousness Project. ~60 capteurs quantiques r&eacute;partis sur toute la plan&egrave;te, g&eacute;r&eacute;s par l'Universit&eacute; de Princeton depuis 1998.">i</span>
+        </div>
+
+        <div class="source-row" data-curve="1" data-source="local">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#00E5FF"></span>
+          <span class="row-name">Ma machine <span class="row-origin">(ce MacBook)</span></span>
+          <span class="row-z" id="z-row-local">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="Le g&eacute;n&eacute;rateur de nombres al&eacute;atoires int&eacute;gr&eacute; dans votre MacBook. Utilise le bruit thermique de la puce Apple Silicon — c'est votre capteur personnel.">i</span>
+        </div>
+
+        <div class="source-row" data-curve="2" data-source="qrng">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#FF8800"></span>
+          <span class="row-name">Quantique <span class="row-origin">(ANU, Australie)</span></span>
+          <span class="row-z" id="z-row-qrng">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="G&eacute;n&eacute;rateur quantique photonique de l'Australian National University &agrave; Canberra. Produit de l'al&eacute;atoire pur en mesurant le bruit quantique du vide avec des photons.">i</span>
+        </div>
+
+        <div class="source-row" data-curve="3" data-source="combined">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#CC44FF"></span>
+          <span class="row-name">Combin&eacute; <span class="row-origin">(toutes sources)</span></span>
+          <span class="row-z" id="z-row-combined">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="Fusion de toutes les sources activ&eacute;es ci-dessus en un seul score, via la m&eacute;thode statistique de Stouffer. Plus il y a de sources, plus la mesure est fiable.">i</span>
+        </div>
+
+      </div>
+
+      <div class="chart-container">
+        <canvas id="chart-24h"></canvas>
+      </div>
+    </div>
+
+    <!-- Source status cards -->
+    <div class="status-panel">
+      <div class="status-panel-header">
+        <span class="chart-title">Sources de donn&eacute;es</span>
+        <span class="info-btn" data-tooltip="L'app utilise 4 sources de nombres al&eacute;atoires diff&eacute;rentes. Certaines viennent de capteurs physiques dans le monde, d'autres du cloud, et une vient directement de votre ordinateur. Chaque carte montre si la source est connect&eacute;e et fonctionne.">i</span>
+      </div>
+
+      <!-- GCP -->
+      <div class="source-card" id="card-gcp">
+        <div class="source-header">
+          <span class="source-name">
+            GCP 1.0 (Princeton)
+            <span class="info-btn info-btn-sm" data-tooltip="Le Global Consciousness Project de l'Universit&eacute; de Princeton. Depuis 1998, ~60 capteurs quantiques r&eacute;partis dans le monde g&eacute;n&egrave;rent des nombres al&eacute;atoires en permanence. Quand un &eacute;v&eacute;nement mondial synchronise les &eacute;motions de millions de personnes, ces capteurs d&eacute;vient de l'al&eacute;atoire pur.">i</span>
+          </span>
+          <div class="source-status" id="status-gcp">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">R&eacute;seau mondial de capteurs quantiques</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">Latence <span class="info-btn info-btn-xs" data-tooltip="Temps de r&eacute;ponse du serveur de Princeton. Plus c'est bas, mieux c'est.">i</span></span>
+            <span class="value" id="lat-gcp">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">EGGs <span class="info-btn info-btn-xs" data-tooltip="Nombre de capteurs actifs dans le r&eacute;seau mondial. G&eacute;n&eacute;ralement entre 60 et 70.">i</span></span>
+            <span class="value" id="eggs-gcp">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">p-moy <span class="info-btn info-btn-xs" data-tooltip="Moyenne des p-values. Proche de 0.5 = al&eacute;atoire normal. Plus &ccedil;a s'&eacute;loigne de 0.5, plus c'est inhabituel.">i</span></span>
+            <span class="value" id="pmean-gcp">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANU QRNG -->
+      <div class="source-card" id="card-anu">
+        <div class="source-header">
+          <span class="source-name">
+            ANU QRNG
+            <span class="info-btn info-btn-sm" data-tooltip="G&eacute;n&eacute;rateur quantique de l'Australian National University. Il utilise des photons (particules de lumi&egrave;re) pour produire des nombres v&eacute;ritablement al&eacute;atoires. C'est de la physique quantique pure, pas un algorithme.">i</span>
+          </span>
+          <div class="source-status" id="status-anu">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">Nombres quantiques via photons (Australie)</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">Latence</span>
+            <span class="value" id="lat-anu">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Octets <span class="info-btn info-btn-xs" data-tooltip="Nombre d'octets al&eacute;atoires re&ccedil;us. Un octet = un nombre entre 0 et 255.">i</span></span>
+            <span class="value" id="count-anu">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Moyenne <span class="info-btn info-btn-xs" data-tooltip="Moyenne des octets re&ccedil;us. Devrait &ecirc;tre proche de 127.5 si c'est parfaitement al&eacute;atoire.">i</span></span>
+            <span class="value" id="mean-anu">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- NIST Beacon -->
+      <div class="source-card" id="card-nist">
+        <div class="source-header">
+          <span class="source-name">
+            NIST Beacon
+            <span class="info-btn info-btn-sm" data-tooltip="Service du gouvernement am&eacute;ricain (National Institute of Standards and Technology). Chaque minute, il publie un 'pulse' contenant 512 bits d'al&eacute;atoire v&eacute;rifiable. C'est comme une horloge d'al&eacute;atoire publique et infalsifiable.">i</span>
+          </span>
+          <div class="source-status" id="status-nist">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">Balise d'al&eacute;atoire gouvernementale (USA)</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">Latence</span>
+            <span class="value" id="lat-nist">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Pulse <span class="info-btn info-btn-xs" data-tooltip="Num&eacute;ro du dernier pulse re&ccedil;u. Le NIST en &eacute;met un par minute depuis 2013.">i</span></span>
+            <span class="value" id="pulse-nist">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Moyenne</span>
+            <span class="value" id="mean-nist">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Local RNG -->
+      <div class="source-card" id="card-local">
+        <div class="source-header">
+          <span class="source-name">
+            Votre machine
+            <span class="info-btn info-btn-sm" data-tooltip="C'est le g&eacute;n&eacute;rateur de votre propre ordinateur. Votre MacBook contient une puce qui produit des nombres al&eacute;atoires &agrave; partir du bruit thermique de ses composants &eacute;lectroniques. C'est votre 'capteur personnel' de conscience.">i</span>
+          </span>
+          <div class="source-status" id="status-local">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">RNG de ce MacBook (bruit thermique)</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">Latence</span>
+            <span class="value" id="lat-local">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Octets</span>
+            <span class="value" id="count-local">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Moyenne</span>
+            <span class="value" id="mean-local">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Combined Z + Distribution -->
+    <div class="combined-panel">
+      <div class="card formula-card">
+        <div class="chart-title">
+          Score global combin&eacute;
+          <span class="info-btn info-btn-sm" data-tooltip="Ce score combine toutes les sources en un seul chiffre. C'est comme prendre la temp&eacute;rature de la conscience collective en utilisant tous les thermom&egrave;tres disponibles &agrave; la fois. Plus on a de sources, plus la mesure est pr&eacute;cise.">i</span>
+        </div>
+        <div class="chart-subtitle">Fusion de toutes les sources actives (m&eacute;thode Stouffer)</div>
+        <div class="formula" id="formula-display">
+          Z<sub>combin&eacute;</sub> = (z<sub>mondial</sub> + z<sub>quantique</sub> + z<sub>local</sub>) / &radic;3
+        </div>
+        <div class="z-details">
+          <div class="z-detail-row">
+            <span class="z-detail-label">
+              z<sub>mondial</sub>
+              <span class="info-btn info-btn-xs" data-tooltip="Score du r&eacute;seau mondial Princeton (les ~60 capteurs sur la plan&egrave;te).">i</span>
+            </span>
+            <span class="z-detail-value" id="z-src-gcp">--</span>
+          </div>
+          <div class="z-detail-row">
+            <span class="z-detail-label">
+              z<sub>quantique</sub>
+              <span class="info-btn info-btn-xs" data-tooltip="Score du g&eacute;n&eacute;rateur quantique cloud (ANU, Australie).">i</span>
+            </span>
+            <span class="z-detail-value" id="z-src-qrng">--</span>
+          </div>
+          <div class="z-detail-row">
+            <span class="z-detail-label">
+              z<sub>local</sub>
+              <span class="info-btn info-btn-xs" data-tooltip="Score du g&eacute;n&eacute;rateur de votre MacBook.">i</span>
+            </span>
+            <span class="z-detail-value" id="z-src-local">--</span>
+          </div>
+          <div class="z-detail-row" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+            <span class="z-detail-label" style="font-weight:600">Score final</span>
+            <span class="z-detail-value" id="z-combined-final" style="font-size: 24px; color: var(--accent)">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-title">
+          Distribution locale
+          <span class="info-btn info-btn-sm" data-tooltip="Cet histogramme montre la r&eacute;partition des nombres g&eacute;n&eacute;r&eacute;s par votre MacBook. Si tout est bien al&eacute;atoire, toutes les barres devraient &ecirc;tre &agrave; peu pr&egrave;s &agrave; la m&ecirc;me hauteur (distribution uniforme). Si certaines barres sont nettement plus hautes, quelque chose d'inhabituel se passe.">i</span>
+        </div>
+        <div class="chart-subtitle">R&eacute;partition des 1000 derniers nombres de votre machine</div>
+        <div class="distribution-container">
+          <canvas id="chart-distribution"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    noos&phi; prototype v0.1 &mdash; EIFFEL AI &mdash; Mesurer la conscience collective en temps r&eacute;el
+  </footer>
+
+  <script src="js/zindex.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
