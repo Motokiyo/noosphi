@@ -8,6 +8,9 @@ check-html.js
 verify.js
 final-report.js
 
+# Private docs (not for repo)
+docs/email-commanditaire.md
+
 # OS files
 .DS_Store
 Thumbs.db
