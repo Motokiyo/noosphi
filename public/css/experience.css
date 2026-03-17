@@ -531,7 +531,9 @@ html, body {
 
 .modal-glass {
   position: relative;
-  max-width: 400px;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
   margin: 20px;
   padding: 32px;
   background: rgba(255, 255, 255, 0.06);
@@ -548,6 +550,16 @@ html, body {
   text-transform: uppercase;
   color: var(--text-primary);
   margin-bottom: 16px;
+}
+
+.modal-glass h3 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-top: 20px;
+  margin-bottom: 10px;
 }
 
 .modal-glass p {

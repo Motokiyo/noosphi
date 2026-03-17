@@ -581,16 +581,37 @@ function createHelpModal() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
-    <div class="modal-glass">
-      <h2>Noosfeerique</h2>
-      <p>Cette experience visualise en temps reel l'impact de la conscience collective
-      sur des generateurs de nombres aleatoires quantiques a travers le monde.</p>
-      <p>La sphere reagit au z-score combine de ${Object.keys(apiZScores).length + 1} sources :</p>
+    <div class="modal-glass modal-glass-scroll">
+      <h2>Que revele cette sphere ?</h2>
+      <p>Depuis 1998, le <strong>Global Consciousness Project</strong> de l'Universite
+      de Princeton deploie un reseau de generateurs de nombres aleatoires quantiques
+      (EGGs) a travers le monde. Ces appareils produisent en permanence des sequences
+      qui devraient etre parfaitement aleatoires.</p>
+      <p>Or, lors d'evenements qui synchronisent l'attention ou l'emotion de millions
+      de personnes — attentats, elections, ceremonies mondiales — les donnees
+      de ces capteurs deviennent statistiquement moins aleatoires.
+      Comme si une coherence invisible emergait.</p>
+      <p>Apres 25 ans de donnees, la probabilite que ce resultat soit du au
+      hasard est de l'ordre de <strong>1 sur 1 000 milliards</strong>.</p>
+      <p>Cette experience ne pretend rien prouver. Elle vous propose d'observer,
+      en temps reel, ce que mesurent ces capteurs — et d'interroger ce que
+      cela pourrait signifier.</p>
+      <h3>Le z-score</h3>
+      <p>Le z-score mesure l'ecart entre ce qu'on observe et ce que le hasard
+      pur devrait produire. Plus il est eleve (en valeur absolue), plus
+      l'anomalie est marquee :</p>
       <ul>
-        <li>Votre navigateur (RNG local)</li>
-        <li>GCP — ~60 EGGs quantiques (Princeton)</li>
+        <li><strong>|z| < 1</strong> — aleatoire normal</li>
+        <li><strong>|z| > 1.5</strong> — coherence notable</li>
+        <li><strong>|z| > 2</strong> — statistiquement significatif</li>
+        <li><strong>|z| > 3</strong> — anomalie rare</li>
+      </ul>
+      <h3>Les sources</h3>
+      <ul>
+        <li>~60 EGGs quantiques mondiaux (Princeton, USA)</li>
         <li>ANU QRNG — photonique (Australie)</li>
-        <li>NIST Beacon 2.0 (USA)</li>
+        <li>NIST Beacon 2.0 (gouvernement US)</li>
+        <li>Le generateur de votre propre appareil</li>
       </ul>
       <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
       <button class="modal-close" aria-label="Fermer">&times;</button>
