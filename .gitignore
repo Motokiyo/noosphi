@@ -6,15 +6,20 @@ node_modules/
 # Test/verification scripts (not project code)
 check-html.js
 verify.js
+verify-*.js
 final-report.js
+VERIFICATION_*
 
 # Private docs (not for repo)
 docs/email-commanditaire.md
+BRIEF_NOOSFEERIQUE.md
+
+# Screenshots from agents/testing
+screenshot-*.png
+verify-final*.png
+/tmp-*.png
+*.screenshot.png
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Screenshots from verification (but keep docs/ logos)
-/tmp-*.png
-*.screenshot.png

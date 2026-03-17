@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0B0E14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Noosfeerique</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/experience.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <span class="header-title">Noosfeerique</span>
+    <nav class="header-icons">
+      <!-- Hamburger -->
+      <button class="header-icon" id="btn-menu" aria-label="Menu">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <!-- Settings -->
+      <button class="header-icon" id="btn-settings" aria-label="Parametres">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <!-- Help -->
+      <button class="header-icon" id="btn-help" aria-label="A propos">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Sources</span>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="sidebar-sources">
+      <label class="source-option active" data-source="combined">
+        <input type="radio" name="source" value="combined" checked>
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">Combine</span>
+          <span class="source-origin">Toutes sources (Stouffer)</span>
+        </span>
+        <span class="source-z" id="sidebar-z-combined">--</span>
+      </label>
+      <label class="source-option" data-source="local">
+        <input type="radio" name="source" value="local">
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">Mon appareil</span>
+          <span class="source-origin">RNG local (navigateur)</span>
+        </span>
+        <span class="source-z" id="sidebar-z-local">--</span>
+      </label>
+      <label class="source-option" data-source="gcp">
+        <input type="radio" name="source" value="gcp">
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">Mondial</span>
+          <span class="source-origin">Princeton, USA (~60 EGGs)</span>
+        </span>
+        <span class="source-z" id="sidebar-z-gcp">--</span>
+      </label>
+      <label class="source-option" data-source="qrng">
+        <input type="radio" name="source" value="qrng">
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">Quantique</span>
+          <span class="source-origin">ANU, Australie (photonique)</span>
+        </span>
+        <span class="source-z" id="sidebar-z-qrng">--</span>
+      </label>
+      <label class="source-option" data-source="nist">
+        <input type="radio" name="source" value="nist">
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">NIST Beacon</span>
+          <span class="source-origin">Gouvernement US</span>
+        </span>
+        <span class="source-z" id="sidebar-z-nist">--</span>
+      </label>
+      <label class="source-option" data-source="qci">
+        <input type="radio" name="source" value="qci">
+        <span class="source-radio"></span>
+        <span class="source-info">
+          <span class="source-name">QCI uQRNG</span>
+          <span class="source-origin">Photonique cloud (USA)</span>
+        </span>
+        <span class="source-z" id="sidebar-z-qci">--</span>
+      </label>
+    </div>
+    <div class="sidebar-footer">
+      <a href="/" class="sidebar-link">Dashboard</a>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <!-- Settings panel -->
+  <aside class="settings-panel" id="settings-panel">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Parametres</span>
+      <button class="sidebar-close" id="settings-close" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Gamme sonore</div>
+      <div class="settings-section-subtitle">Accordage La = 432 Hz</div>
+      <div class="scale-options">
+        <label class="scale-option active" data-scale="free">
+          <input type="radio" name="scale" value="free" checked>
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Libre</span>
+            <span class="scale-desc">Balayage continu, tous les Hz</span>
+          </span>
+        </label>
+        <label class="scale-option" data-scale="pentatonic">
+          <input type="radio" name="scale" value="pentatonic">
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Pentatonique</span>
+            <span class="scale-desc">5 notes — universelle, meditative</span>
+          </span>
+        </label>
+        <label class="scale-option" data-scale="major">
+          <input type="radio" name="scale" value="major">
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Majeure</span>
+            <span class="scale-desc">7 notes — lumineuse</span>
+          </span>
+        </label>
+        <label class="scale-option" data-scale="minor">
+          <input type="radio" name="scale" value="minor">
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Mineure</span>
+            <span class="scale-desc">7 notes — contemplative</span>
+          </span>
+        </label>
+        <label class="scale-option" data-scale="dorian">
+          <input type="radio" name="scale" value="dorian">
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Dorienne</span>
+            <span class="scale-desc">7 notes — modale, mystique</span>
+          </span>
+        </label>
+        <label class="scale-option" data-scale="chromatic">
+          <input type="radio" name="scale" value="chromatic">
+          <span class="source-radio"></span>
+          <span class="scale-info">
+            <span class="scale-name">Chromatique</span>
+            <span class="scale-desc">12 notes — toutes les demi-tons</span>
+          </span>
+        </label>
+      </div>
+    </div>
+  </aside>
+  <div class="settings-backdrop" id="settings-backdrop"></div>
+
+  <!-- Three.js canvas -->
+  <canvas id="sphere-canvas"></canvas>
+
+  <!-- Z-score display -->
+  <div class="z-indicator">
+    <span class="z-value" id="z-display">--</span>
+    <span class="z-label">z-score</span>
+  </div>
+
+  <!-- Audio state -->
+  <div class="audio-indicator" id="audio-indicator">
+    <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+  </div>
+
+  <!-- Source dots -->
+  <div class="sources-status" id="sources-status">
+    <div class="source-dot" title="Local RNG"></div>
+    <div class="source-dot" title="GCP"></div>
+    <div class="source-dot" title="ANU QRNG"></div>
+    <div class="source-dot" title="NIST Beacon"></div>
+    <div class="source-dot" title="QCI uQRNG"></div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-text" id="loading-text">Initialisation...</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script src="js/zindex.js"></script>
+  <script type="module" src="js/experience.js"></script>
+</body>
+</html>

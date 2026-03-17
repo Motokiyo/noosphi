@@ -12,8 +12,13 @@ const MAX_HISTORY = 1440; // 24h at 1 point/min
 // --- Cache for rate-limited APIs ---
 let anuCache = { data: null, ts: 0 };
 let nistCache = { data: null, ts: 0 };
+let qciCache = { data: null, ts: 0 };
+let qciAccessToken = null;
+let qciTokenExpiry = 0;
 const ANU_CACHE_TTL = 300_000;  // 5 min (ANU rate limit: 1 req/min)
 const NIST_CACHE_TTL = 60_000;  // 1 min
+const QCI_CACHE_TTL = 60_000;   // 1 min
+const QCI_API_TOKEN = process.env.QCI_TOKEN || '';  // set via QCI_TOKEN env var
 
 // --- Static files ---
 app.use(express.static(path.join(__dirname, 'public')));
@@ -254,7 +259,79 @@ app.get('/api/nist-beacon', async (req, res) => {
   }
 });
 
-// 4. Local RNG (Node.js crypto)
+// 4. QCI uQRNG (Quantum photonic, cloud API)
+async function getQciAccessToken() {
+  if (qciAccessToken && Date.now() < qciTokenExpiry) return qciAccessToken;
+  if (!QCI_API_TOKEN) return null;
+
+  const response = await fetch('https://api.qci-prod.com/auth/v1/access-tokens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: QCI_API_TOKEN }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const data = await response.json();
+  if (data.access_token) {
+    qciAccessToken = data.access_token;
+    qciTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000 - 60000; // refresh 1min early
+    return qciAccessToken;
+  }
+  throw new Error('QCI auth failed');
+}
+
+app.get('/api/qci', async (req, res) => {
+  const t0 = Date.now();
+
+  if (!QCI_API_TOKEN) {
+    return res.status(503).json({ error: 'QCI_TOKEN not configured', status: 'unconfigured' });
+  }
+
+  // Check cache
+  if (qciCache.data && (Date.now() - qciCache.ts) < QCI_CACHE_TTL) {
+    return res.json({ ...qciCache.data, cached: true, latency: 0 });
+  }
+
+  try {
+    const token = await getQciAccessToken();
+    const response = await fetch('https://api.qci-prod.com/qrng/random_numbers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        distribution: 'uniform_discrete',
+        n_samples: 100,
+        n_bits: 8,
+        output_type: 'decimal',
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const numbers = await response.json();
+    const latency = Date.now() - t0;
+
+    if (!Array.isArray(numbers)) throw new Error('Unexpected QCI response');
+
+    const bytes = numbers.map(n => n & 0xFF); // ensure 0-255
+    const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
+    const result = {
+      source: 'QCI uQRNG (Photonic Cloud)',
+      count: bytes.length,
+      data: bytes,
+      mean,
+      status: 'ok',
+      latency,
+      cached: false,
+    };
+
+    qciCache = { data: result, ts: Date.now() };
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message, source: 'QCI uQRNG', status: 'down', latency: Date.now() - t0 });
+  }
+});
+
+// 5. Local RNG (Node.js crypto)
 function getDeviceName() {
   const os = require('os');
   const p = process.platform;
@@ -355,11 +432,26 @@ app.get('/api/status', async (req, res) => {
     sources.nist = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'NIST Beacon 2.0' };
   } catch { sources.nist = { status: 'down', latency: -1, name: 'NIST Beacon 2.0' }; }
 
+  // QCI
+  if (QCI_API_TOKEN) {
+    try {
+      const t0 = Date.now();
+      const token = await getQciAccessToken();
+      const r = await fetch('https://api.qci-prod.com/qrng/health', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: AbortSignal.timeout(5000)
+      });
+      sources.qci = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'QCI uQRNG (Photonic Cloud)' };
+    } catch { sources.qci = { status: 'down', latency: -1, name: 'QCI uQRNG (Photonic Cloud)' }; }
+  } else {
+    sources.qci = { status: 'unconfigured', latency: -1, name: 'QCI uQRNG (non configure)' };
+  }
+
   // Local is always up
   sources.local = { status: 'up', latency: 0, name: 'Local RNG (crypto)' };
 
   const upCount = Object.values(sources).filter(s => s.status === 'up').length;
-  res.json({ sources, upCount, total: 4 });
+  res.json({ sources, upCount, total: Object.keys(sources).length });
 });
 
 // === START ===
