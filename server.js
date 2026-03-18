@@ -27,26 +27,67 @@ app.use(express.static(path.join(__dirname, 'public')));
 // === HELPERS ===
 
 function parseGCPData(text) {
-  // GCP returns XML: <gcpstats><serverTime>UNIX</serverTime><ss><s t='TS'>P_VALUE</s>...</ss></gcpstats>
+  // GCP returns proportions (trial_sum/200) for each EGG, ~60 values per second
+  // Format: either XML <s t='TS'>proportion</s> or plain text "timestamp 0.49 0.50 ..."
   const timeMatch = text.match(/<serverTime>(\d+)<\/serverTime>/);
   const serverTime = timeMatch ? parseInt(timeMatch[1]) : null;
 
-  const pValues = [];
+  const proportions = [];
   const regex = /<s t='(\d+)'>([\d.]+)<\/s>/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
-    pValues.push(parseFloat(match[2]));
+    proportions.push(parseFloat(match[2]));
   }
 
-  // Fallback: try plain text format (timestamp + concatenated floats)
-  if (pValues.length === 0) {
+  // Fallback: plain text format
+  if (proportions.length === 0) {
     const floatRegex = /0\.\d+/g;
     while ((match = floatRegex.exec(text)) !== null) {
-      pValues.push(parseFloat(match[0]));
+      proportions.push(parseFloat(match[0]));
     }
   }
 
-  return { serverTime, pValues };
+  return { serverTime, proportions };
+}
+
+// Princeton EGG z-score from proportion (trial_sum / 200 bits)
+// Binomial(200, 0.5): mean=100, stddev=sqrt(50)=7.071
+const SQRT_50 = Math.sqrt(50);
+function proportionToZ(p) {
+  const trialSum = p * 200;
+  if (trialSum < 50 || trialSum > 150) return null; // rotten egg filter
+  return (trialSum - 100) / SQRT_50;
+}
+
+// Stouffer Z: combine independent z-scores
+function stoufferCombine(zScores) {
+  const valid = zScores.filter(z => z != null && isFinite(z));
+  if (valid.length === 0) return 0;
+  return valid.reduce((a, b) => a + b, 0) / Math.sqrt(valid.length);
+}
+
+// Convert bytes to z-score using Princeton EGG method
+// Group bits into trials of 200, compute z per trial, Stouffer combine
+function bytesToEggZ(bytes) {
+  if (!bytes || bytes.length === 0) return null;
+  // Convert bytes to bit string
+  const totalBits = bytes.length * 8;
+  const numTrials = Math.floor(totalBits / 200);
+  if (numTrials === 0) return null;
+
+  const zScores = [];
+  for (let t = 0; t < numTrials; t++) {
+    let sum = 0;
+    const startBit = t * 200;
+    for (let b = 0; b < 200; b++) {
+      const bitIndex = startBit + b;
+      const byteIndex = Math.floor(bitIndex / 8);
+      const bitOffset = 7 - (bitIndex % 8);
+      if ((bytes[byteIndex] >> bitOffset) & 1) sum++;
+    }
+    zScores.push((sum - 100) / SQRT_50);
+  }
+  return stoufferCombine(zScores);
 }
 
 function inverseNormalCDF(p) {
@@ -112,16 +153,14 @@ app.get('/api/gcp', async (req, res) => {
     const parsed = parseGCPData(text);
     if (!parsed) return res.status(502).json({ error: 'Failed to parse GCP data' });
 
-    // Each value from GCP is the network-wide statistic for one second,
-    // already combining all ~60 EGGs. Use the LAST value (most recent)
-    // as the current z-index, NOT a Stouffer combination of all seconds.
-    const lastP = parsed.pValues[parsed.pValues.length - 1];
+    // GCP returns one p-value per SECOND (not per EGG).
+    // Each p-value is the network-wide Stouffer Z already combined by GCP.
+    // Use the LAST value (most recent second) and convert p-value → z.
+    const lastP = parsed.proportions[parsed.proportions.length - 1];
     const z = inverseNormalCDF(lastP);
     const result = {
       serverTime: parsed.serverTime,
-      eggsCount: parsed.pValues.length,
-      pValues: parsed.pValues,
-      lastPValue: lastP,
+      eggsCount: parsed.proportions.length,
       zIndex: parseFloat(z.toFixed(4)),
       color: zToColor(z),
       label: zToLabel(z),
@@ -168,12 +207,14 @@ app.get('/api/qrng', async (req, res) => {
 
     const bytes = data.data;
     const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
+    const z = bytesToEggZ(bytes);
     const result = {
       source: 'ANU QRNG (Photonic)',
       type: data.type,
       count: data.length,
       data: bytes,
       mean,
+      zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
       status: 'ok',
       latency,
       cached: false
@@ -194,12 +235,14 @@ app.get('/api/qrng', async (req, res) => {
         bytes.push(parseInt(hexStr.substring(i, i + 2), 16));
       }
       const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
+      const z = bytesToEggZ(bytes);
       const result = {
         source: 'NIST Beacon (fallback)',
         type: 'uint8',
         count: bytes.length,
         data: bytes,
         mean,
+        zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
         status: 'ok',
         latency: Date.now() - t0,
         cached: false,
@@ -241,6 +284,7 @@ app.get('/api/nist-beacon', async (req, res) => {
     }
     const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
 
+    const z = bytesToEggZ(bytes);
     const result = {
       source: 'NIST Beacon 2.0',
       pulseIndex: pulse.pulseIndex,
@@ -248,6 +292,7 @@ app.get('/api/nist-beacon', async (req, res) => {
       count: bytes.length,
       data: bytes,
       mean,
+      zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
       status: 'ok',
       latency,
       cached: false
@@ -315,11 +360,13 @@ app.get('/api/qci', async (req, res) => {
 
     const bytes = numbers.map(n => n & 0xFF); // ensure 0-255
     const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
+    const z = bytesToEggZ(bytes);
     const result = {
       source: 'QCI uQRNG (Photonic Cloud)',
       count: bytes.length,
       data: bytes,
       mean,
+      zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
       status: 'ok',
       latency,
       cached: false,
@@ -385,6 +432,9 @@ app.get('/api/local-rng', (req, res) => {
   const k = 255;
   const chiZ = (Math.pow(chiSq / k, 1/3) - (1 - 2/(9*k))) / Math.sqrt(2/(9*k));
 
+  // EGG-method z-score (same as Princeton)
+  const eggZ = bytesToEggZ(bytes);
+
   const device = getDeviceName();
   res.json({
     source: 'Local RNG (crypto)',
@@ -392,11 +442,10 @@ app.get('/api/local-rng', (req, res) => {
     hostname: device.hostname,
     platform: device.platform + ' ' + device.arch,
     count,
-    data: bytes.slice(0, 100), // Send first 100 for visualization
+    data: bytes.slice(0, 100),
     mean,
     stddev,
-    chiSquare: chiSq.toFixed(2),
-    zScore: chiZ.toFixed(4),
+    zIndex: eggZ != null ? parseFloat(eggZ.toFixed(4)) : null,
     status: 'ok',
     latency: Date.now() - t0
   });

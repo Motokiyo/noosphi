@@ -6,9 +6,7 @@
 import * as THREE from 'three';
 
 // ---- Constants ----
-const DRAW_RATE = 12000;       // bits per second (12000 bits/s)
-const WINDOW_SIZE = 60;        // sliding window in seconds
-const Z_MAX = 3;               // z-score ceiling for normalization (practical range)
+const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
 const VIBRATO_RATE = 5;        // Hz — bow vibrato
 const VIBRATO_DEPTH = 3;       // Hz — subtle pitch wobble
 const DETUNE_CENTS = 4;        // slight chorus between two strings
@@ -82,50 +80,24 @@ const sidebarZQci      = document.getElementById('sidebar-z-qci');
 const sidebarZCombined = document.getElementById('sidebar-z-combined');
 
 // ============================================================
-// Z-Score Calculator (sliding window, from NAP v1 pattern)
+// EGG-method z-score (identical to Princeton methodology)
+// 200 random bits → count 1s → z = (sum - 100) / sqrt(50)
+// This produces a proper N(0,1) z-score by construction.
 // ============================================================
-class ZScoreCalculator {
-  constructor(windowSize) {
-    this.windowSize = windowSize;
-    this.sums = [];
-  }
+const SQRT_50 = Math.sqrt(50);
 
-  update(sum) {
-    this.sums.push(sum);
-    if (this.sums.length > this.windowSize) this.sums.shift();
-    if (this.sums.length < 2) return 0;
-    const n = this.sums.length;
-    const mean = this.sums.reduce((a, b) => a + b, 0) / n;
-    const variance = this.sums.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
-    const stdDev = Math.sqrt(variance);
-    return stdDev > 0 ? (sum - mean) / stdDev : 0;
-  }
-
-  get ready() {
-    return this.sums.length >= 5;
-  }
-}
-
-function getRandomBits(count) {
-  const bytes = new Uint8Array(Math.ceil(count / 8));
+function localEggZ() {
+  // Generate 200 random bits, count the 1s
+  const bytes = new Uint8Array(25); // 25 bytes = 200 bits
   crypto.getRandomValues(bytes);
   let sum = 0;
-  for (let i = 0; i < bytes.length; i++) {
-    // Count set bits using bit manipulation
+  for (let i = 0; i < 25; i++) {
     let b = bytes[i];
     b = b - ((b >> 1) & 0x55);
     b = (b & 0x33) + ((b >> 2) & 0x33);
     sum += (b + (b >> 4)) & 0x0F;
   }
-  // Only count up to 'count' bits
-  const extraBits = bytes.length * 8 - count;
-  if (extraBits > 0) {
-    const lastByte = bytes[bytes.length - 1];
-    for (let i = 0; i < extraBits; i++) {
-      if ((lastByte >> i) & 1) sum--;
-    }
-  }
-  return sum;
+  return (sum - 100) / SQRT_50;
 }
 
 // ============================================================
@@ -415,7 +387,7 @@ function lerpVisuals(dt) {
   }
 
   // Update z-display
-  if (calculator.ready) {
+  if (localReady) {
     zDisplay.textContent = smoothZ.toFixed(2);
     // Color the z value text subtly
     if (absZ > 2) {
@@ -446,55 +418,15 @@ function animate() {
 }
 
 // ============================================================
-// Adaptive z-score normalizer
-// Tracks running stddev per source, rescales so variance ≈ 1
-// (aligned with Princeton which is the reference standard).
-// Princeton (gcp) is NOT normalized — it's the reference.
+// Z-Score Engine (local RNG, 1 calc/second, EGG method)
 // ============================================================
-class ZNormalizer {
-  constructor(warmup = 30) {
-    this.warmup = warmup; // min samples before normalizing
-    this.values = [];
-    this.maxWindow = 300;  // rolling window
-  }
-  push(z) {
-    this.values.push(z);
-    if (this.values.length > this.maxWindow) this.values.shift();
-  }
-  normalize(z) {
-    if (this.values.length < this.warmup) return z; // not enough data yet
-    const n = this.values.length;
-    const mean = this.values.reduce((a, b) => a + b, 0) / n;
-    const variance = this.values.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
-    const stddev = Math.sqrt(variance);
-    if (stddev < 0.01) return z; // avoid division by near-zero
-    return (z - mean) / stddev;  // rescale to unit variance, zero mean
-  }
-}
-
-const normalizers = {
-  local: new ZNormalizer(10),    // warms up fast (1/sec)
-  qrng: new ZNormalizer(5),      // slower (1/min)
-  nist: new ZNormalizer(5),
-  qci: new ZNormalizer(5),
-  local_server: new ZNormalizer(5),
-};
-// gcp (Princeton) is NOT in normalizers — it's already calibrated
-
-// ============================================================
-// Z-Score Engine (local RNG, 1 calc/second)
-// ============================================================
-const calculator = new ZScoreCalculator(WINDOW_SIZE);
+let localReady = false;
 
 function tickLocalZ() {
-  const bitSum = getRandomBits(DRAW_RATE);
-  const z = calculator.update(bitSum);
-  if (calculator.ready) {
-    normalizers.local.push(z);
-    currentZ = normalizers.local.normalize(z);
-    combineAndUpdate();
-    loadingText.classList.add('hidden');
-  }
+  currentZ = localEggZ();
+  localReady = true;
+  combineAndUpdate();
+  loadingText.classList.add('hidden');
 }
 
 // ============================================================
@@ -510,10 +442,6 @@ const apiZScores = {
 
 function processApiResult(key, dotIndex, z) {
   if (z != null && isFinite(z)) {
-    if (normalizers[key]) {
-      normalizers[key].push(z);
-      z = normalizers[key].normalize(z);
-    }
     apiZScores[key] = z;
     sourceDots[dotIndex]?.classList.add('active');
   } else {
@@ -533,22 +461,18 @@ async function fetchGCP() {
 
 // Other APIs — polled every 60s (rate-limited)
 async function fetchOtherAPIs() {
-  const chiExtract = d => {
-    if (d.data && typeof chiSquareFromBytes === 'function') return chiSquareFromBytes(d.data);
-    return null;
-  };
   const endpoints = [
-    { key: 'qrng', dot: 2, url: '/api/qrng', extract: chiExtract },
-    { key: 'nist', dot: 3, url: '/api/nist-beacon', extract: chiExtract },
-    { key: 'qci', dot: 4, url: '/api/qci', extract: chiExtract },
-    { key: 'local_server', dot: 5, url: '/api/local-rng', extract: d => parseFloat(d.zScore) },
+    { key: 'qrng', dot: 2, url: '/api/qrng' },
+    { key: 'nist', dot: 3, url: '/api/nist-beacon' },
+    { key: 'qci', dot: 4, url: '/api/qci' },
+    { key: 'local_server', dot: 5, url: '/api/local-rng' },
   ];
 
   const results = await Promise.allSettled(
     endpoints.map(ep =>
       fetch(ep.url)
         .then(r => r.json())
-        .then(d => ({ key: ep.key, dot: ep.dot, z: ep.extract(d), ok: d.status === 'ok' }))
+        .then(d => ({ key: ep.key, dot: ep.dot, z: d.zIndex, ok: d.status === 'ok' }))
     )
   );
 
@@ -584,11 +508,11 @@ function computeStoufferZ(zArray) {
 
 function combineAndUpdate() {
   // Local browser RNG is always source #0
-  sourceDots[0]?.classList.toggle('active', calculator.ready);
+  sourceDots[0]?.classList.toggle('active', localReady);
 
   // Collect all available z-scores
   const allZ = [];
-  if (calculator.ready) allZ.push(currentZ);
+  if (localReady) allZ.push(currentZ);
   Object.values(apiZScores).forEach(z => {
     if (z != null && isFinite(z)) allZ.push(z);
   });
@@ -597,7 +521,7 @@ function combineAndUpdate() {
   const fullCombinedZ = computeStoufferZ(allZ);
 
   // Update sidebar z-score displays
-  if (calculator.ready) sidebarZLocal.textContent = currentZ.toFixed(2);
+  if (localReady) sidebarZLocal.textContent = currentZ.toFixed(2);
   if (apiZScores.gcp != null) sidebarZGcp.textContent = apiZScores.gcp.toFixed(2);
   if (apiZScores.qrng != null) sidebarZQrng.textContent = apiZScores.qrng.toFixed(2);
   if (apiZScores.nist != null) sidebarZNist.textContent = apiZScores.nist.toFixed(2);
@@ -608,7 +532,7 @@ function combineAndUpdate() {
   let displayZ;
   switch (selectedSource) {
     case 'local':
-      displayZ = calculator.ready ? currentZ : null;
+      displayZ = localReady ? currentZ : null;
       break;
     case 'gcp':
       displayZ = apiZScores.gcp;
@@ -782,12 +706,12 @@ function recordHistory() {
   const now = Date.now();
   // Combined
   const allZ = [];
-  if (calculator.ready) allZ.push(currentZ);
+  if (localReady) allZ.push(currentZ);
   Object.values(apiZScores).forEach(z => { if (z != null && isFinite(z)) allZ.push(z); });
   const cz = computeStoufferZ(allZ);
   if (cz != null) pushHistory('combined', now, cz);
   // Individual
-  if (calculator.ready) pushHistory('local', now, currentZ);
+  if (localReady) pushHistory('local', now, currentZ);
   if (apiZScores.gcp != null) pushHistory('gcp', now, apiZScores.gcp);
   if (apiZScores.qrng != null) pushHistory('qrng', now, apiZScores.qrng);
   if (apiZScores.nist != null) pushHistory('nist', now, apiZScores.nist);
