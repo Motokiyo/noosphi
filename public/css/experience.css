@@ -228,10 +228,13 @@ html, body {
   background: var(--bg-cosmic);
 }
 
-.session-overlay,
+.session-overlay {
+  background: rgba(11, 14, 20, 0.55);
+}
+
 .sessions-list-overlay,
 .session-detail-overlay {
-  background: rgba(11, 14, 20, 0.85);
+  background: rgba(11, 14, 20, 0.92);
 }
 
 /* ---- Shared overlay header (graph + session) ---- */
@@ -523,6 +526,67 @@ html, body {
   border-color: var(--accent-cyan);
 }
 
+.collective-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.collective-divider::before,
+.collective-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border);
+}
+
+.collective-btn {
+  border-color: rgba(78, 201, 198, 0.3);
+}
+
+.collective-btn:hover {
+  border-color: rgba(78, 201, 198, 0.5);
+  background: rgba(78, 201, 198, 0.1);
+}
+
+.collective-join {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  align-items: center;
+}
+
+.collective-join .session-name-input {
+  flex: 1;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.collective-join .session-record-btn {
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+
+.collective-status {
+  font-size: 12px;
+  color: var(--accent-cyan);
+  text-align: center;
+  padding: 8px;
+}
+
+.session-participants {
+  font-size: 11px;
+  color: var(--accent-cyan);
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(78, 201, 198, 0.1);
+}
+
 .session-record-btn,
 .session-stop-btn {
   display: flex;
@@ -605,15 +669,15 @@ html, body {
 
 .session-live-z {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 4px 20px 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 20px 12px;
 }
 
 .session-z-max {
   font-size: 11px;
   color: var(--accent-gold);
-  margin-left: auto;
 }
 
 .session-toggles {

@@ -497,8 +497,85 @@ app.get('/api/status', async (req, res) => {
   res.json({ sources, upCount, total: Object.keys(sources).length });
 });
 
+// === WEBSOCKET — Collective sessions ===
+const http = require('http');
+const { Server } = require('socket.io');
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, { cors: { origin: '*' } });
+
+const collectiveSessions = new Map();
+
+function generateCode() {
+  return 'NOOS-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
+io.on('connection', (socket) => {
+  let currentRoom = null;
+
+  socket.on('collective:create', ({ name, hostName }) => {
+    const code = generateCode();
+    collectiveSessions.set(code, {
+      host: socket.id, name,
+      participants: new Map([[socket.id, { name: hostName || 'Hote', z: 0 }]]),
+      created: Date.now(),
+    });
+    currentRoom = code;
+    socket.join(code);
+    socket.emit('collective:created', { code, name });
+    io.to(code).emit('collective:update', getCollectiveState(code));
+  });
+
+  socket.on('collective:join', ({ code, userName }) => {
+    const session = collectiveSessions.get(code);
+    if (!session) return socket.emit('collective:error', 'Session introuvable');
+    session.participants.set(socket.id, { name: userName || 'Participant', z: 0 });
+    currentRoom = code;
+    socket.join(code);
+    socket.emit('collective:joined', { code, name: session.name });
+    io.to(code).emit('collective:update', getCollectiveState(code));
+  });
+
+  socket.on('collective:z', ({ z }) => {
+    if (!currentRoom) return;
+    const session = collectiveSessions.get(currentRoom);
+    if (!session) return;
+    const p = session.participants.get(socket.id);
+    if (p) p.z = z;
+    const allZ = [...session.participants.values()].map(p => p.z).filter(v => v != null && isFinite(v));
+    const collectiveZ = allZ.length > 0 ? allZ.reduce((a, b) => a + b, 0) / Math.sqrt(allZ.length) : 0;
+    io.to(currentRoom).emit('collective:z-update', {
+      collectiveZ,
+      participantCount: session.participants.size,
+      participants: [...session.participants.entries()].map(([id, p]) => ({
+        name: p.name, z: p.z, isYou: id === socket.id,
+      })),
+    });
+  });
+
+  socket.on('collective:leave', () => leaveRoom(socket));
+  socket.on('disconnect', () => leaveRoom(socket));
+
+  function leaveRoom(sock) {
+    if (!currentRoom) return;
+    const session = collectiveSessions.get(currentRoom);
+    if (session) {
+      session.participants.delete(sock.id);
+      if (session.participants.size === 0) collectiveSessions.delete(currentRoom);
+      else io.to(currentRoom).emit('collective:update', getCollectiveState(currentRoom));
+    }
+    sock.leave(currentRoom);
+    currentRoom = null;
+  }
+});
+
+function getCollectiveState(code) {
+  const s = collectiveSessions.get(code);
+  if (!s) return null;
+  return { code, name: s.name, participantCount: s.participants.size, participants: [...s.participants.values()].map(p => p.name) };
+}
+
 // === START ===
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════╗
   ║         noos\u03C6 — Prototype Dashboard       ║

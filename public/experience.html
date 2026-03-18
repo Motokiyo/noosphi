@@ -203,8 +203,20 @@
       <input type="text" class="session-name-input" id="session-name" placeholder="Nommez votre session..." maxlength="100">
       <button class="session-record-btn" id="btn-start-session">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#FF4444"/></svg>
-        <span>Enregistrer</span>
+        <span>Session solo</span>
       </button>
+      <div class="collective-divider"><span>ou</span></div>
+      <button class="session-record-btn collective-btn" id="btn-create-collective">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Session collective</span>
+      </button>
+      <div class="collective-join">
+        <input type="text" class="session-name-input" id="collective-code" placeholder="Code de session (ex: NOOS-ABCD)" maxlength="9" style="text-transform:uppercase">
+        <button class="session-record-btn" id="btn-join-collective">
+          <span>Rejoindre</span>
+        </button>
+      </div>
+      <div class="collective-status hidden" id="collective-status"></div>
     </div>
 
     <!-- Session recording (during) -->
@@ -212,6 +224,7 @@
       <div class="session-info-bar">
         <span class="session-rec-dot"></span>
         <span class="session-rec-name" id="session-rec-name"></span>
+        <span class="session-participants hidden" id="session-participants"></span>
         <span class="session-rec-timer" id="session-rec-timer">00:00</span>
       </div>
       <div class="session-live-z">
@@ -361,6 +374,7 @@
   }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="js/zindex.js"></script>
   <script type="module" src="js/experience.js"></script>
 </body>

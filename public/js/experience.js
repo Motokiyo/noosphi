@@ -1045,8 +1045,15 @@ const sessionDetailOverlay = document.getElementById('session-detail-overlay');
 const sessionDetailClose = document.getElementById('session-detail-close');
 const sessionDetailContent = document.getElementById('session-detail-content');
 const detailTitle = document.getElementById('detail-title');
+const btnCreateCollective = document.getElementById('btn-create-collective');
+const btnJoinCollective = document.getElementById('btn-join-collective');
+const collectiveCodeInput = document.getElementById('collective-code');
+const collectiveStatus = document.getElementById('collective-status');
+const sessionParticipants = document.getElementById('session-participants');
 
 let sessionActive = false;
+let isCollective = false;
+let collectiveZ = null;
 let sessionStartTime = null;
 let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
@@ -1306,6 +1313,106 @@ function openSessionDetail(id) {
     });
   }, 100);
 }
+
+// ============================================================
+// WebSocket — Collective sessions
+// ============================================================
+const socket = (typeof io !== 'undefined') ? io() : null;
+
+function startCollectiveSession(mode) {
+  const name = sessionNameInput.value.trim() || 'Session collective';
+  const userName = 'Participant'; // TODO: ask user name
+
+  if (mode === 'create') {
+    socket.emit('collective:create', { name, hostName: userName });
+  } else {
+    const code = collectiveCodeInput.value.trim().toUpperCase();
+    if (!code) return;
+    socket.emit('collective:join', { code, userName });
+  }
+}
+
+btnCreateCollective.addEventListener('click', () => {
+  if (!socket) return;
+  isCollective = true;
+  startCollectiveSession('create');
+});
+
+btnJoinCollective.addEventListener('click', () => {
+  if (!socket) return;
+  isCollective = true;
+  startCollectiveSession('join');
+});
+
+if (socket) {
+  socket.on('collective:created', ({ code, name }) => {
+    collectiveStatus.textContent = `Session creee : ${code}`;
+    collectiveStatus.classList.remove('hidden');
+    // Auto-start recording
+    sessionRecName.textContent = `${name} (${code})`;
+    sessionSetup.classList.add('hidden');
+    sessionRecording.classList.remove('hidden');
+    sessionParticipants.classList.remove('hidden');
+    sessionActive = true;
+    sessionStartTime = Date.now();
+    sessionData = [];
+    sessionMaxZ = 0;
+    sessionTimerInterval = setInterval(() => {
+      sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
+    }, 1000);
+    if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+  });
+
+  socket.on('collective:joined', ({ code, name }) => {
+    collectiveStatus.textContent = `Rejoint : ${code}`;
+    collectiveStatus.classList.remove('hidden');
+    sessionRecName.textContent = `${name} (${code})`;
+    sessionSetup.classList.add('hidden');
+    sessionRecording.classList.remove('hidden');
+    sessionParticipants.classList.remove('hidden');
+    sessionActive = true;
+    sessionStartTime = Date.now();
+    sessionData = [];
+    sessionMaxZ = 0;
+    sessionTimerInterval = setInterval(() => {
+      sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
+    }, 1000);
+    if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+  });
+
+  socket.on('collective:error', (msg) => {
+    collectiveStatus.textContent = msg;
+    collectiveStatus.classList.remove('hidden');
+  });
+
+  socket.on('collective:update', (state) => {
+    if (state) sessionParticipants.textContent = `${state.participantCount} connecte${state.participantCount > 1 ? 's' : ''}`;
+  });
+
+  socket.on('collective:z-update', ({ collectiveZ: cz, participantCount }) => {
+    collectiveZ = cz;
+    sessionParticipants.textContent = `${participantCount} connecte${participantCount > 1 ? 's' : ''}`;
+  });
+
+  // Send local z-score to collective every second
+  setInterval(() => {
+    if (sessionActive && isCollective && localReady) {
+      socket.emit('collective:z', { z: currentZ });
+    }
+  }, 1000);
+}
+
+// Override stop to also leave collective
+const originalStopHandler = btnStopSession.onclick;
+btnStopSession.addEventListener('click', () => {
+  if (isCollective && socket) {
+    socket.emit('collective:leave');
+    isCollective = false;
+    collectiveZ = null;
+    sessionParticipants.classList.add('hidden');
+    collectiveStatus.classList.add('hidden');
+  }
+});
 
 // ============================================================
 // Bootstrap
