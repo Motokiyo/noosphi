@@ -483,8 +483,9 @@ function updateAudio(zScore) {
   padFilter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
   let padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
   padFreq = quantizeFreq(padFreq, currentScaleFreqs);
-  padOsc1.frequency.setTargetAtTime(padFreq, t, 0.8);
-  padOsc2.frequency.setTargetAtTime(padFreq, t, 0.8);
+  const padTc = currentScaleFreqs ? 0.05 : 0.8; // snap in scale mode, glide in free
+  padOsc1.frequency.setTargetAtTime(padFreq, t, padTc);
+  padOsc2.frequency.setTargetAtTime(padFreq, t, padTc);
 
   // === Cello melody (|z|>0.7): follows scale ===
   const celloT = Math.max(0, (absZ - 0.7) / 1.0);
