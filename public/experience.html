@@ -173,6 +173,9 @@
 
   <!-- Bottom-right controls -->
   <div class="bottom-controls">
+    <button class="control-btn" id="btn-session-history-main" aria-label="Sessions enregistrees">
+      <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+    </button>
     <button class="control-btn" id="btn-session" aria-label="Session">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
     </button>
@@ -189,9 +192,6 @@
     <div class="session-header">
       <span class="session-title">Session</span>
       <div class="session-header-right">
-        <button class="graph-toggle-btn" id="btn-session-history" aria-label="Sessions enregistrees">
-          <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-        </button>
         <button class="graph-close" id="session-close" aria-label="Fermer">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         </button>
@@ -200,10 +200,6 @@
 
     <!-- Session setup (before recording) -->
     <div class="session-setup" id="session-setup">
-      <button class="session-history-btn" id="btn-session-history-main">
-        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 3h18v18H3z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="1.5"/></svg>
-        <span>Sessions enregistrees</span>
-      </button>
       <input type="text" class="session-name-input" id="session-name" placeholder="Nommez votre session..." maxlength="100">
       <button class="session-record-btn" id="btn-start-session">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#FF4444"/></svg>

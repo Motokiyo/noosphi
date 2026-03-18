@@ -1059,7 +1059,6 @@ const sessionZValue = document.getElementById('session-z-value');
 const sessionZMax = document.getElementById('session-z-max');
 const sessionsListOverlay = document.getElementById('sessions-list-overlay');
 const sessionsList = document.getElementById('sessions-list');
-const btnSessionHistory = document.getElementById('btn-session-history');
 const sessionsListClose = document.getElementById('sessions-list-close');
 const sessionDetailOverlay = document.getElementById('session-detail-overlay');
 const sessionDetailClose = document.getElementById('session-detail-close');
@@ -1314,12 +1313,7 @@ document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
 // ============================================================
 // Saved Sessions List
 // ============================================================
-if (btnSessionHistory) {
-  btnSessionHistory.addEventListener('click', () => {
-    renderSessionsList();
-    sessionsListOverlay.classList.add('open');
-  });
-}
+// btn-session-history-main is in the main page bottom controls
 
 if (sessionsListClose) {
   sessionsListClose.addEventListener('click', () => {
