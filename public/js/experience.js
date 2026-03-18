@@ -1065,6 +1065,12 @@ let sessionChart = null;
 let currentCollectiveCode = null;
 const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
 
+// Sessions history from main setup screen
+document.getElementById('btn-session-history-main').addEventListener('click', () => {
+  renderSessionsList();
+  sessionsListOverlay.classList.add('open');
+});
+
 // Audio toggle in session
 btnSessionAudio.addEventListener('click', () => {
   toggleAudio();
