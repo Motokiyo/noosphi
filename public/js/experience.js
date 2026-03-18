@@ -1131,7 +1131,15 @@ btnStopSession.addEventListener('click', () => {
 function recordSessionTick(displayZ) {
   if (!sessionActive) return;
 
-  const point = { t: Date.now(), z: displayZ };
+  const point = {
+    t: Date.now(),
+    z: displayZ,
+    local: localReady ? currentZ : null,
+    gcp: apiZScores.gcp,
+    qrng: apiZScores.qrng,
+    nist: apiZScores.nist,
+    qci: apiZScores.qci,
+  };
   sessionData.push(point);
 
   if (Math.abs(displayZ) > Math.abs(sessionMaxZ)) {
@@ -1259,6 +1267,15 @@ function openSessionDetail(id) {
   const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const durStr = formatDuration(session.duration);
 
+  const DETAIL_SOURCES = [
+    { key: 'z', label: 'Combine', color: '#CC44FF' },
+    { key: 'local', label: 'Local', color: '#00E5FF' },
+    { key: 'gcp', label: 'Princeton', color: '#6C63FF' },
+    { key: 'qrng', label: 'ANU', color: '#FF8800' },
+    { key: 'nist', label: 'NIST', color: '#00CC66' },
+    { key: 'qci', label: 'QCI', color: '#C9A24D' },
+  ];
+
   sessionDetailContent.innerHTML = `
     <div class="detail-meta">
       <span>${dateStr}</span>
@@ -1267,6 +1284,15 @@ function openSessionDetail(id) {
       <span style="color:var(--accent-gold)">z max = ${session.maxZ.toFixed(2)}</span>
     </div>
     <textarea class="detail-comment" placeholder="Ajoutez un commentaire..." data-id="${id}">${session.comment || ''}</textarea>
+    <div class="detail-toggles">
+      ${DETAIL_SOURCES.map(s => `
+        <label class="graph-toggle active" data-key="${s.key}">
+          <input type="checkbox" checked>
+          <span class="toggle-swatch" style="background:${s.color}"></span>
+          <span>${s.label}</span>
+        </label>
+      `).join('')}
+    </div>
     <div class="detail-chart-container">
       <canvas id="chart-detail"></canvas>
     </div>
@@ -1289,29 +1315,49 @@ function openSessionDetail(id) {
     renderSessionsList();
   });
 
-  // Build chart from saved data
-  sessionDetailOverlay.classList.add('open');
-  setTimeout(() => {
+  // Detail toggles
+  const detailVisibility = { z: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+
+  function buildDetailChart() {
     if (detailChart) { detailChart.destroy(); detailChart = null; }
     const ctx = document.getElementById('chart-detail');
     if (!ctx || !session.data || session.data.length === 0) return;
 
+    const datasets = DETAIL_SOURCES
+      .filter(s => detailVisibility[s.key])
+      .filter(s => session.data.some(p => p[s.key] != null))
+      .map(s => ({
+        label: s.label,
+        data: session.data.filter(p => p[s.key] != null).map(p => ({ x: p.t, y: p[s.key] })),
+        borderColor: s.color,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+      }));
+
     detailChart = new Chart(ctx, {
       type: 'line',
-      data: {
-        datasets: [{
-          label: 'z-score',
-          data: session.data.map(p => ({ x: p.t, y: p.z })),
-          borderColor: '#CC44FF',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.3,
-          fill: false,
-        }],
-      },
-      options: makeChartOptions(item => `z = ${item.parsed.y.toFixed(3)}`),
+      data: { datasets },
+      options: makeChartOptions(item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`),
     });
-  }, 100);
+  }
+
+  // Toggle handlers for detail view
+  sessionDetailContent.querySelectorAll('.detail-toggles .graph-toggle').forEach(label => {
+    label.addEventListener('click', (e) => {
+      e.preventDefault();
+      const key = label.dataset.key;
+      const nowActive = !label.classList.contains('active');
+      label.classList.toggle('active', nowActive);
+      label.querySelector('input').checked = nowActive;
+      detailVisibility[key] = nowActive;
+      buildDetailChart();
+    });
+  });
+
+  sessionDetailOverlay.classList.add('open');
+  setTimeout(buildDetailChart, 100);
 }
 
 // ============================================================

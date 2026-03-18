@@ -758,6 +758,12 @@ html, body {
   color: var(--text-tertiary);
 }
 
+.detail-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .detail-comment {
   width: 100%;
   min-height: 60px;
