@@ -340,7 +340,7 @@ app.get('/api/qci', async (req, res) => {
       },
       body: JSON.stringify({
         distribution: 'uniform_discrete',
-        n_samples: 25,
+        n_samples: 50,
         n_bits: 8,
         output_type: 'decimal',
       }),

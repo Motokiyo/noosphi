@@ -569,6 +569,28 @@ function combineAndUpdate() {
 
   updateVisuals(displayZ);
   updateAudio(displayZ);
+
+  // Update live z-score in graph overlay
+  const graphZValue = document.getElementById('graph-z-value');
+  const graphZSources = document.getElementById('graph-z-sources');
+  if (graphZValue) {
+    graphZValue.textContent = displayZ.toFixed(2);
+    const absZ = Math.abs(displayZ);
+    graphZValue.style.color = absZ > 2 ? '#C9A24D' : absZ > 1.5 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)';
+  }
+  if (graphZSources) {
+    const SOURCE_DOTS = [
+      { key: 'local', color: '#00E5FF', label: 'Local' },
+      { key: 'gcp', color: '#6C63FF', label: 'Princeton' },
+      { key: 'qrng', color: '#FF8800', label: 'ANU' },
+      { key: 'nist', color: '#00CC66', label: 'NIST' },
+      { key: 'qci', color: '#C9A24D', label: 'QCI' },
+    ];
+    graphZSources.innerHTML = SOURCE_DOTS.map(s => {
+      const active = (s.key === 'local' ? localReady : apiZScores[s.key] != null);
+      return `<span class="live-z-source-dot ${active ? 'active' : ''}" style="background:${s.color}" title="${s.label}"></span>`;
+    }).join('');
+  }
 }
 
 // ============================================================

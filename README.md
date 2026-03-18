@@ -39,16 +39,17 @@ Un cercle lumineux au centre qui change de couleur selon l'&eacute;tat de la con
 | Orange | Coh&eacute;rence significative | 1.5 &le; |z| < 2 |
 | Rouge | Anomalie forte (tr&egrave;s rare) | |z| &ge; 2 |
 
-### Les 4 sources de donn&eacute;es
+### Les 5 sources de donn&eacute;es
 
-Le dashboard combine **4 sources** de nombres al&eacute;atoires, chacune activable/d&eacute;sactivable :
+L'app combine **5 sources** de nombres al&eacute;atoires, chacune activable/d&eacute;sactivable :
 
-| Source | Origine | Ce qu'elle mesure |
-|--------|---------|-------------------|
-| **Mondial** (Princeton, USA) | ~60 capteurs quantiques r&eacute;partis sur la plan&egrave;te | La coh&eacute;rence du r&eacute;seau mondial depuis 1998 |
-| **Quantique** (ANU, Australie) | G&eacute;n&eacute;rateur photonique de l'Australian National University | Al&eacute;atoire quantique pur via des photons |
-| **NIST Beacon** (USA) | Service gouvernemental am&eacute;ricain | 512 bits d'entropie v&eacute;rifiable chaque minute |
-| **Votre machine** | Le processeur de l'appareil qui fait tourner l'app | Bruit thermique local (d&eacute;tection automatique : Mac, PC, Linux, etc.) |
+| Source | Origine | Frequence | Ce qu'elle mesure |
+|--------|---------|-----------|-------------------|
+| **Mondial** (Princeton, USA) | ~60 capteurs quantiques r&eacute;partis sur la plan&egrave;te | 1/min | La coh&eacute;rence du r&eacute;seau mondial depuis 1998 |
+| **QCI uQRNG** (USA) | G&eacute;n&eacute;rateur photonique quantique cloud | 1/sec | Al&eacute;atoire quantique photonique en temps r&eacute;el |
+| **Quantique** (ANU, Australie) | G&eacute;n&eacute;rateur photonique de l'Australian National University | 1/min | Al&eacute;atoire quantique pur via des photons |
+| **NIST Beacon** (USA) | Service gouvernemental am&eacute;ricain | 1/min | 512 bits d'entropie v&eacute;rifiable chaque minute |
+| **Votre machine** | Le processeur de l'appareil qui fait tourner l'app | 1/sec | Bruit thermique local (10 trials de 200 bits) |
 
 ### Le graphique temps r&eacute;el
 
@@ -82,9 +83,17 @@ cd noosphi
 # 2. Installer les d&eacute;pendances
 npm install
 
-# 3. Lancer le dashboard
+# 3. (Optionnel) Configurer QCI uQRNG
+# Cr&eacute;er un fichier .env avec votre token QCI :
+echo "QCI_TOKEN=votre_token_ici" > .env
+
+# 4. Lancer le serveur
 npm start
 ```
+
+Ouvrez :
+- **http://localhost:3000/experience.html** — Experience Noosfeerique (sphere 3D)
+- **http://localhost:3000/** — Dashboard prototype
 
 Le terminal affichera :
 
@@ -201,7 +210,9 @@ Lors du d&eacute;veloppement, nous avons constat&eacute; que le service **ETH Zu
 - **ANU QRNG** (Australian National University) — g&eacute;n&eacute;rateur photonique, fonctionnel
 - **NIST Beacon 2.0** — service gouvernemental US, gratuit, fiable
 
-Pour l'app finale, la source principale reste **QCI uQRNG** (1 milliard bits/mois gratuit) comme pr&eacute;vu.
+## Remerciements
+
+Nous remercions [**Quantum Computing Inc. (QCI)**](https://www.quantumcomputinginc.com/products/commercial-products/uqrng) de nous avoir aimablement accord&eacute; l'acc&egrave;s &agrave; leur API **uQRNG** avec un quota de 1 milliard de bits quantiques par mois, nous permettant de tester et d&eacute;velopper cette application avec une source photonique quantique en temps r&eacute;el.
 
 ---
 

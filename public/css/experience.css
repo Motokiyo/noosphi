@@ -419,6 +419,48 @@ html, body {
   opacity: 1;
 }
 
+/* ---- Live z-score in graph overlay ---- */
+.graph-live-z {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 20px 12px;
+  flex-shrink: 0;
+}
+
+.live-z-value {
+  font-size: 32px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  transition: color 0.5s ease;
+}
+
+.live-z-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.live-z-sources {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.live-z-source-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.live-z-source-dot.active {
+  opacity: 1;
+}
+
 .graph-container {
   height: 50vh;
   min-height: 180px;
