@@ -60,7 +60,7 @@ Tout trial avec trialsum < 50 ou > 150 (soit |z| > 7) est rejete comme aberrant.
 | **Trials par seconde** | 1 par EGG |
 | **Nombre d'EGGs actifs** | ~60 (repartis dans le monde) |
 | **Correction de biais** | XOR avec masque fixe (cote appareil) |
-| **Frequence de rafraichissement** | 10 secondes (polling) |
+| **Frequence de rafraichissement** | **1 seconde** (pas de rate limit) |
 | **Endpoint** | `https://global-mind.org/gcpdot/gcpindex.php` |
 | **Format de reponse** | XML : 60 p-values (une par seconde d'historique) |
 
@@ -84,23 +84,25 @@ Nous utilisons la derniere p-value (seconde la plus recente).
 | **Type de generateur** | Photonique quantique (detection de photons uniques) |
 | **Technologie** | Source de photons → detection → distribution de Poisson |
 | **Localisation** | Cloud (serveurs QCI, USA) |
-| **Donnees recues** | 100 octets (800 bits) par requete |
-| **Nombre de trials** | 800 / 200 = **4 trials** |
-| **Frequence de rafraichissement** | 60 secondes |
+| **Donnees recues** | 25 octets (200 bits) par requete = exactement 1 trial EGG |
+| **Nombre de trials** | 200 / 200 = **1 trial** |
+| **Frequence de rafraichissement** | **1 seconde** |
 | **Quota gratuit** | 1 milliard de bits / mois |
+| **Consommation** | 200 bits/s × 86400 s/jour × 30 jours ≈ 518M bits/mois (**52% du quota**) |
 | **Endpoint** | `POST https://api.qci-prod.com/qrng/random_numbers` |
 | **Authentification** | Bearer token OAuth2 (refresh token → access token) |
-| **Format de requete** | `{"distribution": "uniform_discrete", "n_samples": 100, "n_bits": 8}` |
+| **Format de requete** | `{"distribution": "uniform_discrete", "n_samples": 25, "n_bits": 8}` |
 | **Format de reponse** | Array JSON d'entiers [0-255] |
 
 **Calcul cote noosphi :**
 
 ```
-1. Recevoir 100 octets = 800 bits
-2. Grouper en 4 trials de 200 bits
-3. Pour chaque trial : z_i = (sum_bits_a_1 - 100) / √50
-4. Stouffer : Z = (z_1 + z_2 + z_3 + z_4) / √4
+1. Recevoir 25 octets = 200 bits = exactement 1 trial EGG Princeton
+2. Compter les bits a 1 → trialsum
+3. z = (trialsum - 100) / √50
 ```
+
+Pas de Stouffer necessaire : un seul trial, comme un EGG individuel de Princeton.
 
 ---
 
@@ -213,20 +215,22 @@ Ces seuils sont les memes que ceux utilises par le GCP depuis 1998.
 
 ### Qualite statistique par source
 
-| Source | Trials/requete | Robustesse | Notes |
-|--------|---------------|------------|-------|
-| GCP Princeton | ~60 EGGs × 1 trial | **Excellente** | Stouffer sur 60 appareils independants |
-| Local serveur | 40 trials | **Bonne** | Grand echantillon, mais CSPRNG pas quantique |
-| ANU QRNG | 4 trials | **Moderee** | Peu de trials, mais source vraiment quantique |
-| QCI uQRNG | 4 trials | **Moderee** | Peu de trials, source photonique quantique |
-| NIST Beacon | 2 trials | **Limitee** | Seulement 512 bits/pulse |
-| Local navigateur | 1 trial | **Volatile** | Un seul trial = variance maximale |
+### Qualite statistique et frequence par source
 
-### Pourquoi le local fluctue plus
+| Source | Trials/requete | Frequence | Robustesse | Notes |
+|--------|---------------|-----------|------------|-------|
+| GCP Princeton | ~60 EGGs × 1 trial | **1s** | **Excellente** | Stouffer sur 60 appareils independants |
+| QCI uQRNG | 1 trial (25 octets) | **1s** | **Standard** | 1 trial quantique photonique, identique a 1 EGG |
+| Local navigateur | 1 trial (25 octets) | **1s** | **Standard** | 1 trial CSPRNG, identique a 1 EGG (pas quantique) |
+| Local serveur | 40 trials (1000 octets) | 60s | **Bonne** | Grand echantillon, CSPRNG |
+| ANU QRNG | 4 trials (100 octets) | 60s | **Moderee** | Rate-limite, source quantique photonique |
+| NIST Beacon | 2 trials (64 octets) | 60s | **Limitee** | 512 bits/pulse, 1 pulse/min |
 
-Un seul trial de 200 bits produit un z-score qui fluctue naturellement entre -2 et +2 (95% du temps). Princeton, avec 60 EGGs combines, a une variance effective reduite par √60 ≈ 7.7×. C'est pourquoi Princeton est beaucoup plus stable.
+### Pourquoi Princeton est plus stable
 
-Le local n'est pas "faux" — il est simplement plus bruyant. C'est normal et attendu. La combinaison Stouffer multi-sources reduit ce bruit.
+Princeton combine ~60 EGGs independants via Stouffer : `Z = Σ(z_i) / √60`. La variance effective est reduite par √60 ≈ 7.7×. Un EGG seul (ou QCI, ou le local) fluctue naturellement entre -2 et +2 (95% du temps).
+
+Les sources a 1 trial (QCI, local) ne sont pas "fausses" — elles sont plus bruyantes. C'est normal et attendu. La combinaison Stouffer multi-sources reduit ce bruit.
 
 ---
 
