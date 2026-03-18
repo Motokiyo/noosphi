@@ -1109,12 +1109,13 @@ if (btnSessionAudio) {
   });
 }
 
-// Click on session overlay background also toggles audio (like clicking the sphere)
+// Click on session overlay background toggles audio (like clicking the sphere)
+// Only triggers on empty space — not on buttons, inputs, labels, or charts
 sessionOverlay.addEventListener('click', (e) => {
-  if (e.target === sessionOverlay) {
-    toggleAudio();
-    btnSessionAudio.classList.toggle('active', audioActive);
-  }
+  const interactive = e.target.closest('button, input, label, canvas, a, .session-controls, .session-info-bar, .session-toggles');
+  if (interactive) return;
+  toggleAudio();
+  btnSessionAudio.classList.toggle('active', audioActive);
 });
 
 
