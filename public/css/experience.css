@@ -825,6 +825,7 @@ html, body {
   gap: 6px;
   flex: 1;
   min-height: 80px;
+  cursor: pointer;
 }
 
 .session-center-z-value {
