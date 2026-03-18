@@ -224,25 +224,39 @@ onResize(); // apply immediately
 // ============================================================
 // Audio Engine — Meditative soundscape
 //
-// Two elements:
-// 1. CONTINUOUS: Very soft drone (tanpura) — always present, very quiet
-// 2. PERCUSSIVE: Struck sounds (bowls, bells) that ring out and fade
-//    Triggered by z-score changes. More intense z = more frequent,
-//    richer strikes. Always with silence between them.
+// Three elements:
+// 1. DRONE: Very soft tanpura — always present
+// 2. CONTINUOUS LAYERS: Pad strings + cello — fade in with |z|
+// 3. PERCUSSIVE: Struck bowls, bells, gongs — triggered by z changes
 //
+// All melodic elements quantized to the chosen scale (432 Hz).
 // Designed for meditation: soothing, spacious, never aggressive.
 // ============================================================
 let audioCtx = null;
 let masterGain = null;
 let audioActive = false;
-let droneOsc1 = null, droneOsc2 = null, droneGain = null, droneFilter = null;
 let lastStrikeTime = 0;
 let prevQuantizedFreq = 0;
 
-// Tanpura-like wave
+// Continuous layers
+let droneOsc1, droneOsc2, droneGain, droneFilter;
+let padOsc1, padOsc2, padGain, padFilter;
+let celloOsc1, celloOsc2, celloGain, celloFilter, celloLFO, celloVibGain;
+
+// Custom waves
 function waveTanpura(ctx) {
   const r = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]);
   const i = new Float32Array([0, 1, 0, 0.12, 0, 0.04, 0, 0.02, 0]);
+  return ctx.createPeriodicWave(r, i);
+}
+function wavePad(ctx) {
+  const r = new Float32Array([0, 0, 0.3, 0, 0.1, 0, 0.03]);
+  const i = new Float32Array([0, 1, 0, 0.2, 0, 0.08, 0]);
+  return ctx.createPeriodicWave(r, i);
+}
+function waveCello(ctx) {
+  const r = new Float32Array([0, 0, 0.4, 0.2, 0.1, 0.05]);
+  const i = new Float32Array([0, 1, 0, 0.3, 0, 0.12]);
   return ctx.createPeriodicWave(r, i);
 }
 
@@ -295,9 +309,63 @@ function initAudio() {
   droneOsc2.connect(droneFilter);
   droneFilter.connect(droneGain);
   droneGain.connect(masterGain);
-
   droneOsc1.start();
   droneOsc2.start();
+
+  // Pad: warm strings — appears at |z|>0.3
+  const padW = wavePad(audioCtx);
+  padOsc1 = audioCtx.createOscillator();
+  padOsc2 = audioCtx.createOscillator();
+  padOsc1.setPeriodicWave(padW);
+  padOsc2.setPeriodicWave(padW);
+  padOsc1.frequency.value = midiToFreq(48);
+  padOsc2.frequency.value = midiToFreq(48);
+  padOsc2.detune.value = 6;
+  padFilter = audioCtx.createBiquadFilter();
+  padFilter.type = 'lowpass';
+  padFilter.frequency.value = 400;
+  padFilter.Q.value = 0.3;
+  padGain = audioCtx.createGain();
+  padGain.gain.value = 0;
+  padOsc1.connect(padFilter);
+  padOsc2.connect(padFilter);
+  padFilter.connect(padGain);
+  padGain.connect(masterGain);
+  padOsc1.start();
+  padOsc2.start();
+
+  // Cello: melodic voice — appears at |z|>0.7
+  const celloW = waveCello(audioCtx);
+  celloOsc1 = audioCtx.createOscillator();
+  celloOsc2 = audioCtx.createOscillator();
+  celloOsc1.setPeriodicWave(celloW);
+  celloOsc2.setPeriodicWave(celloW);
+  celloOsc1.frequency.value = midiToFreq(48);
+  celloOsc2.frequency.value = midiToFreq(48);
+  celloOsc2.detune.value = 4;
+  celloFilter = audioCtx.createBiquadFilter();
+  celloFilter.type = 'lowpass';
+  celloFilter.frequency.value = 800;
+  celloFilter.Q.value = 0.5;
+  celloGain = audioCtx.createGain();
+  celloGain.gain.value = 0;
+  celloOsc1.connect(celloFilter);
+  celloOsc2.connect(celloFilter);
+  celloFilter.connect(celloGain);
+  celloGain.connect(masterGain);
+  celloOsc1.start();
+  celloOsc2.start();
+
+  // Cello vibrato
+  celloLFO = audioCtx.createOscillator();
+  celloLFO.type = 'sine';
+  celloLFO.frequency.value = 4.5;
+  celloVibGain = audioCtx.createGain();
+  celloVibGain.gain.value = 1.5;
+  celloLFO.connect(celloVibGain);
+  celloVibGain.connect(celloOsc1.frequency);
+  celloVibGain.connect(celloOsc2.frequency);
+  celloLFO.start();
 }
 
 // Strike a bowl/bell — creates a one-shot sound that decays naturally
@@ -403,53 +471,68 @@ function updateAudio(zScore) {
   const now = Date.now();
 
   // === Master volume ===
-  masterGain.gain.setTargetAtTime(0.05 + intensity * 0.05, t, 1.0);
+  masterGain.gain.setTargetAtTime(0.05 + intensity * 0.04, t, 1.0);
 
   // === Drone: always, very quiet ===
   droneGain.gain.setTargetAtTime(0.02 + intensity * 0.01, t, 2.0);
   droneFilter.frequency.setTargetAtTime(120 + intensity * 120, t, 1.0);
 
-  // === Percussive strikes ===
-  // Frequency depends on z-score, quantized to scale
+  // === Pad strings (|z|>0.3): warm continuous layer ===
+  const padT = Math.max(0, (absZ - 0.3) / 0.7);
+  padGain.gain.setTargetAtTime(Math.min(padT, 1) * 0.025, t, 1.2);
+  padFilter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
+  let padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
+  padFreq = quantizeFreq(padFreq, currentScaleFreqs);
+  padOsc1.frequency.setTargetAtTime(padFreq, t, 0.8);
+  padOsc2.frequency.setTargetAtTime(padFreq, t, 0.8);
+
+  // === Cello melody (|z|>0.7): follows scale ===
+  const celloT = Math.max(0, (absZ - 0.7) / 1.0);
+  celloGain.gain.setTargetAtTime(Math.min(celloT, 1) * 0.03, t, 0.6);
+  celloFilter.frequency.setTargetAtTime(300 + celloT * 700, t, 0.5);
+  celloVibGain.gain.setTargetAtTime(1 + celloT * 3, t, 0.5);
+
   const pitchT = Math.pow(intensity, 0.6);
   let freq = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
   freq = quantizeFreq(freq, currentScaleFreqs);
 
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
+  if (noteChanged) {
+    const tc = currentScaleFreqs ? 0.05 : 0.4;
+    celloOsc1.frequency.setTargetAtTime(freq, t, tc);
+    celloOsc2.frequency.setTargetAtTime(freq, t, tc);
+  }
 
-  // Minimum time between strikes depends on intensity:
-  // z~0: strike every ~8s (rare)  z~1: every ~3s  z~2+: every ~1.5s
-  const minInterval = 8000 - intensity * 6500; // 8000ms → 1500ms
+  // === Percussive strikes (all frequencies quantized) ===
+  const minInterval = 8000 - intensity * 6500;
   const timeSinceStrike = now - lastStrikeTime;
 
   if (noteChanged && timeSinceStrike > minInterval) {
     prevQuantizedFreq = freq;
     lastStrikeTime = now;
 
-    // Volume of strike: very soft at z~0, gentle at high z
-    const strikeVol = 0.01 + intensity * 0.025;
+    const strikeVol = 0.008 + intensity * 0.02;
+
+    // All strike frequencies quantized to the scale
+    const bowlFreq = quantizeFreq(freq * 2, currentScaleFreqs) || freq * 2;
+    const bellFreq = quantizeFreq(freq * 4, currentScaleFreqs) || freq * 4;
+    const gongFreq = quantizeFreq(freq * 0.5, currentScaleFreqs) || freq * 0.5;
 
     if (absZ < 0.5) {
-      // Very low z: occasional soft bowl, distant
-      strikeSound(freq * 2, strikeVol * 0.5, 4, 'bowl');
+      strikeSound(bowlFreq, strikeVol * 0.4, 4, 'bowl');
     } else if (absZ < 1.0) {
-      // Moderate: bowl strike
-      strikeSound(freq * 2, strikeVol, 5, 'bowl');
+      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
     } else if (absZ < 1.5) {
-      // Notable: bowl + bell
-      strikeSound(freq * 2, strikeVol, 5, 'bowl');
-      strikeSound(freq * 4, strikeVol * 0.4, 3, 'bell');
+      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
+      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
     } else if (absZ < 2.0) {
-      // Significant: bowl + bell + gong
-      strikeSound(freq, strikeVol * 0.8, 8, 'gong');
-      strikeSound(freq * 2, strikeVol, 5, 'bowl');
-      strikeSound(freq * 4, strikeVol * 0.4, 3, 'bell');
+      strikeSound(gongFreq, strikeVol * 0.7, 8, 'gong');
+      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
+      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
     } else {
-      // Rare anomaly: full ensemble
-      strikeSound(freq * 0.5, strikeVol, 10, 'gong');
-      strikeSound(freq * 2, strikeVol, 6, 'bowl');
-      strikeSound(freq * 3, strikeVol * 0.5, 4, 'bowl');
-      strikeSound(freq * 4, strikeVol * 0.3, 3, 'bell');
+      strikeSound(gongFreq, strikeVol * 0.8, 10, 'gong');
+      strikeSound(bowlFreq, strikeVol, 6, 'bowl');
+      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
     }
   } else if (!noteChanged) {
     prevQuantizedFreq = freq;
