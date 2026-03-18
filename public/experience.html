@@ -265,10 +265,16 @@
       <div class="graph-container session-chart-container">
         <canvas id="chart-session"></canvas>
       </div>
-      <button class="session-stop-btn" id="btn-stop-session">
-        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-        <span>Arreter la session</span>
-      </button>
+      <div class="session-controls">
+        <button class="session-pause-btn" id="btn-pause-session">
+          <svg viewBox="0 0 24 24" id="pause-icon"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span id="pause-label">Pause</span>
+        </button>
+        <button class="session-stop-btn" id="btn-stop-session">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          <span>Arreter</span>
+        </button>
+      </div>
     </div>
     <div class="session-audio-fixed" id="btn-session-audio">
       <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>

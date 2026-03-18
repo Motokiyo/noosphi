@@ -638,8 +638,46 @@ html, body {
   background: rgba(255, 68, 68, 0.1);
 }
 
+.session-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+.session-pause-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 30px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.session-pause-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: currentColor;
+}
+
+.session-pause-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.session-pause-btn.paused {
+  border-color: rgba(78, 201, 198, 0.4);
+  color: var(--accent-cyan);
+}
+
 .session-stop-btn {
-  margin: 12px auto;
   border-color: rgba(255, 68, 68, 0.3);
 }
 

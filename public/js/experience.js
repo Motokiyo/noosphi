@@ -636,7 +636,9 @@ function createHelpModal() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 }
 
-btnHelp.addEventListener('click', createHelpModal);
+if (btnHelp) {
+  btnHelp.addEventListener('click', createHelpModal);
+}
 
 // ============================================================
 // Settings panel — scale selector
@@ -655,9 +657,15 @@ function closeSettings() {
   settingsBackdrop.classList.remove('open');
 }
 
-btnSettings.addEventListener('click', openSettings);
-settingsClose.addEventListener('click', closeSettings);
-settingsBackdrop.addEventListener('click', closeSettings);
+if (btnSettings) {
+  btnSettings.addEventListener('click', openSettings);
+}
+if (settingsClose) {
+  settingsClose.addEventListener('click', closeSettings);
+}
+if (settingsBackdrop) {
+  settingsBackdrop.addEventListener('click', closeSettings);
+}
 
 // Scale radio buttons
 const scaleOptions = document.querySelectorAll('.scale-option');
@@ -688,9 +696,15 @@ function closeSidebar() {
   sidebarBackdrop.classList.remove('open');
 }
 
-btnMenu.addEventListener('click', openSidebar);
-sidebarClose.addEventListener('click', closeSidebar);
-sidebarBackdrop.addEventListener('click', closeSidebar);
+if (btnMenu) {
+  btnMenu.addEventListener('click', openSidebar);
+}
+if (sidebarClose) {
+  sidebarClose.addEventListener('click', closeSidebar);
+}
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+}
 
 // Source radio buttons
 const sourceOptions = document.querySelectorAll('.source-option');
@@ -921,8 +935,12 @@ function closeGraph() {
   graphOverlay.classList.remove('open');
 }
 
-btnGraph.addEventListener('click', openGraph);
-graphClose.addEventListener('click', closeGraph);
+if (btnGraph) {
+  btnGraph.addEventListener('click', openGraph);
+}
+if (graphClose) {
+  graphClose.addEventListener('click', closeGraph);
+}
 
 // Clear history
 document.getElementById('btn-clear-history').addEventListener('click', () => {
@@ -1057,6 +1075,9 @@ const btnCopyCode = document.getElementById('btn-copy-code');
 const btnShareCode = document.getElementById('btn-share-code');
 
 let sessionActive = false;
+let sessionPaused = false;
+let sessionPausedTotal = 0;
+let sessionPauseStart = 0;
 let isCollective = false;
 let collectiveZ = null;
 let sessionStartTime = null;
@@ -1065,6 +1086,8 @@ let sessionData = [];   // { t, z, sources }
 let sessionMaxZ = 0;
 let sessionChart = null;
 let currentCollectiveCode = null;
+const btnPauseSession = document.getElementById("btn-pause-session");
+const pauseLabel = document.getElementById("pause-label");
 const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
 
 // Sessions history from main setup screen
@@ -1080,10 +1103,12 @@ function flashCopied(btn) {
 }
 
 // Audio toggle in session — fixed button bottom-right
-btnSessionAudio.addEventListener('click', () => {
-  toggleAudio();
-  btnSessionAudio.classList.toggle('active', audioActive);
-});
+if (btnSessionAudio) {
+  btnSessionAudio.addEventListener('click', () => {
+    toggleAudio();
+    btnSessionAudio.classList.toggle('active', audioActive);
+  });
+}
 
 // Click on session overlay background also toggles audio (like clicking the sphere)
 sessionOverlay.addEventListener('click', (e) => {
@@ -1092,6 +1117,24 @@ sessionOverlay.addEventListener('click', (e) => {
     btnSessionAudio.classList.toggle('active', audioActive);
   }
 });
+
+
+// Pause/resume session
+if (btnPauseSession) {
+  btnPauseSession.addEventListener('click', () => {
+    if (!sessionActive) return;
+    sessionPaused = !sessionPaused;
+    if (sessionPaused) {
+      sessionPauseStart = Date.now();
+      pauseLabel.textContent = 'Reprendre';
+      btnPauseSession.classList.add('paused');
+    } else {
+      sessionPausedTotal += Date.now() - sessionPauseStart;
+      pauseLabel.textContent = 'Pause';
+      btnPauseSession.classList.remove('paused');
+    }
+  });
+}
 
 // Copy collective code to clipboard
 if (btnCopyCode) {
@@ -1115,21 +1158,28 @@ if (btnShareCode) {
 }
 
 // Open/close session overlay
-btnSession.addEventListener('click', () => {
-  sessionOverlay.classList.add('open');
-  btnSessionAudio.classList.toggle('active', audioActive);
-  if (!sessionActive) {
-    sessionSetup.classList.remove('hidden');
-    sessionRecording.classList.add('hidden');
-  }
-});
+if (btnSession) {
+  btnSession.addEventListener('click', () => {
+    sessionOverlay.classList.add('open');
+    if (btnSessionAudio) {
+      btnSessionAudio.classList.toggle('active', audioActive);
+    }
+    if (!sessionActive) {
+      sessionSetup.classList.remove('hidden');
+      sessionRecording.classList.add('hidden');
+    }
+  });
+}
 
-sessionClose.addEventListener('click', () => {
-  if (!sessionActive) sessionOverlay.classList.remove('open');
-});
+if (sessionClose) {
+  sessionClose.addEventListener('click', () => {
+    if (!sessionActive) sessionOverlay.classList.remove('open');
+  });
+}
 
 // Start recording
-btnStartSession.addEventListener('click', () => {
+if (btnStartSession) {
+  btnStartSession.addEventListener('click', () => {
   const name = sessionNameInput.value.trim() || 'Session sans nom';
   sessionRecName.textContent = name;
   sessionSetup.classList.add('hidden');
@@ -1143,16 +1193,18 @@ btnStartSession.addEventListener('click', () => {
 
   // Timer
   sessionTimerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const elapsed = Math.floor((Date.now() - sessionStartTime - sessionPausedTotal - (sessionPaused ? Date.now() - sessionPauseStart : 0)) / 1000);
     sessionRecTimer.textContent = formatTimer(elapsed);
   }, 1000);
 
   // Init chart
   if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
-});
+  });
+}
 
 // Stop recording and save
-btnStopSession.addEventListener('click', () => {
+if (btnStopSession) {
+  btnStopSession.addEventListener('click', () => {
   sessionActive = false;
   clearInterval(sessionTimerInterval);
 
@@ -1179,11 +1231,12 @@ btnStopSession.addEventListener('click', () => {
   sessionRecording.classList.add('hidden');
   sessionNameInput.value = '';
   if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
-});
+  });
+}
 
 // Record data point during session (called from combineAndUpdate)
 function recordSessionTick(displayZ) {
-  if (!sessionActive) return;
+  if (!sessionActive || sessionPaused) return;
 
   const point = {
     t: Date.now(),
@@ -1261,17 +1314,22 @@ document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
 // ============================================================
 // Saved Sessions List
 // ============================================================
-btnSessionHistory.addEventListener('click', () => {
-  renderSessionsList();
-  sessionsListOverlay.classList.add('open');
-});
+if (btnSessionHistory) {
+  btnSessionHistory.addEventListener('click', () => {
+    renderSessionsList();
+    sessionsListOverlay.classList.add('open');
+  });
+}
 
-sessionsListClose.addEventListener('click', () => {
-  sessionsListOverlay.classList.remove('open');
-});
+if (sessionsListClose) {
+  sessionsListClose.addEventListener('click', () => {
+    sessionsListOverlay.classList.remove('open');
+  });
+}
 
 // Delegate clicks on session list — cards, rename, delete
-sessionsList.addEventListener('click', (e) => {
+if (sessionsList) {
+  sessionsList.addEventListener('click', (e) => {
   const deleteBtn = e.target.closest('.saved-session-delete');
   if (deleteBtn) {
     e.stopPropagation();
@@ -1283,10 +1341,10 @@ sessionsList.addEventListener('click', (e) => {
   }
   const card = e.target.closest('.saved-session-card');
   if (card && !e.target.closest('.saved-session-name-input')) openSessionDetail(card.dataset.id);
-});
+  });
 
-// Delegate blur on rename inputs
-sessionsList.addEventListener('focusout', (e) => {
+  // Delegate blur on rename inputs
+  sessionsList.addEventListener('focusout', (e) => {
   if (!e.target.classList.contains('saved-session-name-input')) return;
   const id = e.target.dataset.id;
   const newName = e.target.value.trim();
@@ -1294,7 +1352,8 @@ sessionsList.addEventListener('focusout', (e) => {
   const sessions = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
   const s = sessions.find(s => s.id === id);
   if (s) { s.name = newName; localStorage.setItem('noosphi_sessions', JSON.stringify(sessions)); }
-});
+  });
+}
 
 function renderSessionsList() {
   const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
@@ -1457,17 +1516,21 @@ function startCollectiveSession(mode) {
   }
 }
 
-btnCreateCollective.addEventListener('click', () => {
-  if (!socket) return;
-  isCollective = true;
-  startCollectiveSession('create');
-});
+if (btnCreateCollective) {
+  btnCreateCollective.addEventListener('click', () => {
+    if (!socket) return;
+    isCollective = true;
+    startCollectiveSession('create');
+  });
+}
 
-btnJoinCollective.addEventListener('click', () => {
-  if (!socket) return;
-  isCollective = true;
-  startCollectiveSession('join');
-});
+if (btnJoinCollective) {
+  btnJoinCollective.addEventListener('click', () => {
+    if (!socket) return;
+    isCollective = true;
+    startCollectiveSession('join');
+  });
+}
 
 // Shared setup for both collective:created and collective:joined
 function onCollectiveSessionStart({ code, name, statusText }) {
