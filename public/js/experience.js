@@ -477,15 +477,30 @@ function updateAudio(zScore) {
   droneGain.gain.setTargetAtTime(0.02 + intensity * 0.01, t, 2.0);
   droneFilter.frequency.setTargetAtTime(120 + intensity * 120, t, 1.0);
 
-  // === Pad strings (|z|>0.3): warm continuous layer ===
+  // === Pad strings (|z|>0.3): one octave below cello ===
+  // Plays harmonic intervals that evolve with intensity:
+  // z low: unison/octave below. z mid: adds fifth. z high: varies between intervals.
   const padT = Math.max(0, (absZ - 0.3) / 0.7);
   padGain.gain.setTargetAtTime(Math.min(padT, 1) * 0.025, t, 1.2);
   padFilter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
-  let padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
-  padFreq = quantizeFreq(padFreq, currentScaleFreqs);
-  const padTc = currentScaleFreqs ? 0.05 : 0.8; // snap in scale mode, glide in free
+
+  // Cello frequency (computed early for pad to reference)
+  const pitchT = Math.pow(intensity, 0.6);
+  let celloFreqRaw = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
+  const celloFreqQ = quantizeFreq(celloFreqRaw, currentScaleFreqs);
+
+  // Pad: octave below as base, osc2 plays a harmonic interval
+  // Intervals cycle slowly based on elapsed time for organic movement
+  const elapsed = audioCtx.currentTime;
+  const INTERVALS = [0.5, 0.5, 0.667, 0.5, 0.75, 0.5]; // octave, octave, fifth below, octave, fourth below, octave
+  const intervalIdx = Math.floor(elapsed / 8) % INTERVALS.length; // changes every ~8s
+  const padBase = celloFreqQ * INTERVALS[intervalIdx];
+  let padFreq = quantizeFreq(padBase, currentScaleFreqs) || padBase;
+  const padTc = currentScaleFreqs ? 0.05 : 0.8;
   padOsc1.frequency.setTargetAtTime(padFreq, t, padTc);
-  padOsc2.frequency.setTargetAtTime(padFreq, t, padTc);
+  // Second oscillator on a neighboring note for richness
+  const padFreq2 = quantizeFreq(celloFreqQ * 0.5, currentScaleFreqs) || celloFreqQ * 0.5;
+  padOsc2.frequency.setTargetAtTime(padFreq2, t, padTc);
 
   // === Cello melody (|z|>0.7): follows scale ===
   const celloT = Math.max(0, (absZ - 0.7) / 1.0);
@@ -493,10 +508,7 @@ function updateAudio(zScore) {
   celloFilter.frequency.setTargetAtTime(300 + celloT * 700, t, 0.5);
   celloVibGain.gain.setTargetAtTime(1 + celloT * 3, t, 0.5);
 
-  const pitchT = Math.pow(intensity, 0.6);
-  let freq = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
-  freq = quantizeFreq(freq, currentScaleFreqs);
-
+  let freq = celloFreqQ; // already quantized above for pad reference
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
   if (noteChanged) {
     const tc = currentScaleFreqs ? 0.05 : 0.4;
