@@ -136,62 +136,39 @@ function zToLabel(z) {
 
 // === API ROUTES ===
 
-// 1. GCP Proxy — fetches 60 p-values (1 per second), serves them one at a time
-let gcpBuffer = [];    // array of z-scores, one per second
-let gcpBufferIdx = 0;  // which one to serve next
-let gcpFetching = false;
-
-async function refreshGCPBuffer() {
-  if (gcpFetching) return;
-  gcpFetching = true;
+// 1. GCP Proxy — Princeton updates every ~60s, we fetch and serve the latest
+app.get('/api/gcp', async (req, res) => {
+  const t0 = Date.now();
   try {
     const response = await fetch('https://global-mind.org/gcpdot/gcpindex.php', {
       signal: AbortSignal.timeout(8000),
       headers: { 'User-Agent': 'noosphi-proto/0.1' }
     });
     const text = await response.text();
+    const latency = Date.now() - t0;
+
     const parsed = parseGCPData(text);
-    if (parsed && parsed.proportions.length > 0) {
-      gcpBuffer = parsed.proportions.map(p => parseFloat(inverseNormalCDF(p).toFixed(4)));
-      gcpBufferIdx = 0;
-    }
-  } catch (e) { /* will retry next interval */ }
-  gcpFetching = false;
-}
+    if (!parsed) return res.status(502).json({ error: 'Failed to parse GCP data' });
 
-// Refresh GCP data every 60s (matches their update cycle)
-refreshGCPBuffer();
-setInterval(refreshGCPBuffer, 60000);
+    const lastP = parsed.proportions[parsed.proportions.length - 1];
+    const z = inverseNormalCDF(lastP);
+    const result = {
+      serverTime: parsed.serverTime,
+      eggsCount: parsed.proportions.length,
+      zIndex: parseFloat(z.toFixed(4)),
+      color: zToColor(z),
+      label: zToLabel(z),
+      status: 'ok',
+      latency
+    };
 
-// Advance the buffer index every second so each request gets a fresh value
-setInterval(() => {
-  if (gcpBuffer.length > 0) {
-    gcpBufferIdx = (gcpBufferIdx + 1) % gcpBuffer.length;
+    gcpHistory.push({ t: Date.now(), z: result.zIndex });
+    if (gcpHistory.length > MAX_HISTORY) gcpHistory.shift();
+
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message, status: 'down', latency: Date.now() - t0 });
   }
-}, 1000);
-
-app.get('/api/gcp', (req, res) => {
-  if (gcpBuffer.length === 0) {
-    return res.status(502).json({ error: 'No GCP data yet', status: 'down' });
-  }
-
-  const z = gcpBuffer[gcpBufferIdx];
-  const result = {
-    serverTime: Math.floor(Date.now() / 1000),
-    eggsCount: gcpBuffer.length,
-    secondIndex: gcpBufferIdx,
-    zIndex: z,
-    color: zToColor(z),
-    label: zToLabel(z),
-    status: 'ok',
-    latency: 0
-  };
-
-  // Store in history
-  gcpHistory.push({ t: Date.now(), z });
-  if (gcpHistory.length > MAX_HISTORY) gcpHistory.shift();
-
-  res.json(result);
 });
 
 // GCP 24h history

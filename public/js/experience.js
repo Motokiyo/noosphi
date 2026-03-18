@@ -86,18 +86,25 @@ const sidebarZCombined = document.getElementById('sidebar-z-combined');
 // ============================================================
 const SQRT_50 = Math.sqrt(50);
 
+const LOCAL_TRIALS = 10; // 10 trials per tick → Stouffer smoothing like a 10-EGG network
+
 function localEggZ() {
-  // Generate 200 random bits, count the 1s
-  const bytes = new Uint8Array(25); // 25 bytes = 200 bits
+  // 10 independent trials of 200 bits each, Stouffer combined
+  const bytes = new Uint8Array(25 * LOCAL_TRIALS); // 250 bytes = 2000 bits
   crypto.getRandomValues(bytes);
-  let sum = 0;
-  for (let i = 0; i < 25; i++) {
-    let b = bytes[i];
-    b = b - ((b >> 1) & 0x55);
-    b = (b & 0x33) + ((b >> 2) & 0x33);
-    sum += (b + (b >> 4)) & 0x0F;
+  let zSum = 0;
+  for (let t = 0; t < LOCAL_TRIALS; t++) {
+    let sum = 0;
+    const offset = t * 25;
+    for (let i = 0; i < 25; i++) {
+      let b = bytes[offset + i];
+      b = b - ((b >> 1) & 0x55);
+      b = (b & 0x33) + ((b >> 2) & 0x33);
+      sum += (b + (b >> 4)) & 0x0F;
+    }
+    zSum += (sum - 100) / SQRT_50;
   }
-  return (sum - 100) / SQRT_50;
+  return zSum / Math.sqrt(LOCAL_TRIALS);
 }
 
 // ============================================================
@@ -994,9 +1001,9 @@ function init() {
   tickLocalZ();
   setInterval(tickLocalZ, 1000);
 
-  // GCP every 1s (no rate limit)
+  // GCP every 60s (Princeton updates data every ~60s)
   fetchGCP();
-  setInterval(fetchGCP, 1000);
+  setInterval(fetchGCP, 60000);
 
   // QCI every 1s (25 bytes/req = ~52% of 1B free quota)
   fetchQCI();
