@@ -443,7 +443,8 @@ function updateAudio(zScore) {
   const padT = Math.max(0, (absZ - 0.3) / 0.7); // 0→1 over z 0.3→1.0
   layers.pad.gain.gain.setTargetAtTime(Math.min(padT, 1) * 0.025, t, 1.2);
   layers.pad.filter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
-  const padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
+  let padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
+  padFreq = quantizeFreq(padFreq, currentScaleFreqs);
   layers.pad.osc1.frequency.setTargetAtTime(padFreq, t, 0.8);
   layers.pad.osc2.frequency.setTargetAtTime(padFreq, t, 0.8);
 
