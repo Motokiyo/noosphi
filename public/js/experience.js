@@ -503,8 +503,15 @@ function updateAudio(zScore) {
     celloOsc2.frequency.setTargetAtTime(freq, t, tc);
   }
 
-  // === Percussive strikes (all frequencies quantized) ===
-  const minInterval = 8000 - intensity * 6500;
+  // === Percussive strikes (all quantized, humanized with randomness) ===
+  // Random variation helpers: ±30% on volume, ±40% on decay
+  const rVol = () => 0.7 + Math.random() * 0.6;   // 0.7 — 1.3
+  const rDec = () => 0.6 + Math.random() * 0.8;   // 0.6 — 1.4
+  const rDelay = () => Math.random() * 0.15;       // 0 — 150ms stagger
+
+  // Interval between strikes: randomized ±25%
+  const baseInterval = 8000 - intensity * 6500;
+  const minInterval = baseInterval * (0.75 + Math.random() * 0.5);
   const timeSinceStrike = now - lastStrikeTime;
 
   if (noteChanged && timeSinceStrike > minInterval) {
@@ -513,26 +520,25 @@ function updateAudio(zScore) {
 
     const strikeVol = 0.008 + intensity * 0.02;
 
-    // All strike frequencies quantized to the scale
     const bowlFreq = quantizeFreq(freq * 2, currentScaleFreqs) || freq * 2;
     const bellFreq = quantizeFreq(freq * 4, currentScaleFreqs) || freq * 4;
     const gongFreq = quantizeFreq(freq * 0.5, currentScaleFreqs) || freq * 0.5;
 
     if (absZ < 0.5) {
-      strikeSound(bowlFreq, strikeVol * 0.4, 4, 'bowl');
+      strikeSound(bowlFreq, strikeVol * 0.4 * rVol(), 4 * rDec(), 'bowl');
     } else if (absZ < 1.0) {
-      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
+      strikeSound(bowlFreq, strikeVol * rVol(), 5 * rDec(), 'bowl');
     } else if (absZ < 1.5) {
-      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
-      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
+      strikeSound(bowlFreq, strikeVol * rVol(), 5 * rDec(), 'bowl');
+      setTimeout(() => strikeSound(bellFreq, strikeVol * 0.3 * rVol(), 3 * rDec(), 'bell'), rDelay() * 1000);
     } else if (absZ < 2.0) {
-      strikeSound(gongFreq, strikeVol * 0.7, 8, 'gong');
-      strikeSound(bowlFreq, strikeVol, 5, 'bowl');
-      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
+      strikeSound(gongFreq, strikeVol * 0.7 * rVol(), 8 * rDec(), 'gong');
+      setTimeout(() => strikeSound(bowlFreq, strikeVol * rVol(), 5 * rDec(), 'bowl'), rDelay() * 1000);
+      setTimeout(() => strikeSound(bellFreq, strikeVol * 0.3 * rVol(), 3 * rDec(), 'bell'), rDelay() * 1000);
     } else {
-      strikeSound(gongFreq, strikeVol * 0.8, 10, 'gong');
-      strikeSound(bowlFreq, strikeVol, 6, 'bowl');
-      strikeSound(bellFreq, strikeVol * 0.3, 3, 'bell');
+      strikeSound(gongFreq, strikeVol * 0.8 * rVol(), 10 * rDec(), 'gong');
+      setTimeout(() => strikeSound(bowlFreq, strikeVol * rVol(), 6 * rDec(), 'bowl'), rDelay() * 1000);
+      setTimeout(() => strikeSound(bellFreq, strikeVol * 0.3 * rVol(), 3 * rDec(), 'bell'), rDelay() * 1000);
     }
   } else if (!noteChanged) {
     prevQuantizedFreq = freq;
