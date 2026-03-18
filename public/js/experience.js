@@ -962,10 +962,10 @@ if (btnToggleSources && graphTogglesPanel) {
   });
 }
 
-// Toggle source visibility in graph
-document.querySelectorAll('.graph-toggle').forEach(label => {
+// Toggle source visibility in graph (only graph-overlay toggles, not session toggles)
+document.querySelectorAll('#graph-toggles .graph-toggle').forEach(label => {
   label.addEventListener('click', (e) => {
-    e.preventDefault(); // prevent checkbox from double-toggling
+    e.preventDefault();
     const key = label.dataset.key;
     const nowActive = !label.classList.contains('active');
     label.classList.toggle('active', nowActive);
