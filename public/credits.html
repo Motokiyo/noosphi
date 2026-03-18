@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B0E14">
+  <title>Noosfeerique — Credits</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: #0B0E14;
+      color: rgba(255,255,255,0.9);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .credits {
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .logo img {
+      width: 180px;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.05em;
+      margin-top: -20px;
+    }
+
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .credit-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .credit-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .credit-name {
+      font-size: 16px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .credit-name a {
+      color: #4EC9C6;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .credit-name a:hover {
+      color: #C9A24D;
+    }
+
+    .credit-role {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .tech-tag {
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.03em;
+    }
+
+    .date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.1em;
+    }
+
+    .back-link {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 8px 20px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: rgba(255,255,255,0.7);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .sources-credit {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.6;
+      max-width: 360px;
+    }
+
+    .sources-credit a {
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+    }
+
+    .sources-credit a:hover {
+      color: #4EC9C6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="credits">
+
+    <div class="logo">
+      <img src="docs/eiffel-ai-logo.png" alt="EIFFEL AI">
+    </div>
+
+    <h1>Noosfeerique</h1>
+    <p class="tagline">Conscience collective en temps reel</p>
+
+    <div class="divider"></div>
+
+    <div class="credit-block">
+      <span class="credit-label">Idee originale &amp; direction artistique</span>
+      <span class="credit-name"><a href="https://linktr.ee/franck.laharrague" target="_blank" rel="noopener">Franck Laharrague</a></span>
+    </div>
+
+    <div class="credit-block">
+      <span class="credit-label">Developpement</span>
+      <span class="credit-name"><a href="https://chantdesplantes.leparede.org" target="_blank" rel="noopener">Alexandre Ferran</a></span>
+      <span class="credit-role">EIFFEL AI</span>
+    </div>
+
+    <div class="credit-block">
+      <span class="credit-label">Ingenierie assistee par</span>
+      <span class="credit-name">Claude Code</span>
+      <span class="credit-role">Anthropic — Claude Opus</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="credit-block">
+      <span class="credit-label">Sources de donnees</span>
+      <div class="sources-credit">
+        <a href="https://global-mind.org" target="_blank" rel="noopener">Global Consciousness Project</a> — Princeton University<br>
+        <a href="https://www.quantumcomputinginc.com/products/commercial-products/uqrng" target="_blank" rel="noopener">QCI uQRNG</a> — Quantum Computing Inc.<br>
+        <a href="https://qrng.anu.edu.au" target="_blank" rel="noopener">ANU QRNG</a> — Australian National University<br>
+        <a href="https://beacon.nist.gov" target="_blank" rel="noopener">NIST Beacon 2.0</a> — National Institute of Standards and Technology
+      </div>
+    </div>
+
+    <div class="credit-block">
+      <span class="credit-label">Remerciements</span>
+      <div class="sources-credit">
+        Merci a <a href="https://www.quantumcomputinginc.com" target="_blank" rel="noopener">Quantum Computing Inc.</a>
+        pour l'acces gracieux a leur API uQRNG (1 milliard de bits quantiques par mois).
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tech-stack">
+      <span class="tech-tag">Three.js</span>
+      <span class="tech-tag">Web Audio API</span>
+      <span class="tech-tag">Chart.js</span>
+      <span class="tech-tag">Socket.io</span>
+      <span class="tech-tag">Node.js</span>
+      <span class="tech-tag">432 Hz</span>
+    </div>
+
+    <span class="date">Mars 2026</span>
+
+    <a href="experience.html" class="back-link">Retour a l'experience</a>
+
+  </div>
+
+</body>
+</html>
