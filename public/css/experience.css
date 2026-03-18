@@ -59,6 +59,16 @@ html, body {
   justify-content: space-between;
   padding: 16px 20px;
   pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Hide header when any full-screen overlay is open */
+body:has(.graph-overlay.open) .header,
+body:has(.session-overlay.open) .header,
+body:has(.sessions-list-overlay.open) .header,
+body:has(.session-detail-overlay.open) .header {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .header-title {
