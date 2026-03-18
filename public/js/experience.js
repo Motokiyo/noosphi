@@ -912,6 +912,16 @@ function closeGraph() {
 btnGraph.addEventListener('click', openGraph);
 graphClose.addEventListener('click', closeGraph);
 
+// Clear history
+document.getElementById('btn-clear-history').addEventListener('click', () => {
+  Object.keys(zHistory).forEach(key => { zHistory[key] = []; });
+  highlightsList.innerHTML = '<div class="highlight-empty">Historique efface</div>';
+  if (historyChart) {
+    historyChart.data.datasets = [];
+    historyChart.update('none');
+  }
+});
+
 // Toggle sources drawer
 const btnToggleSources = document.getElementById('btn-toggle-sources');
 const graphTogglesPanel = document.getElementById('graph-toggles');
