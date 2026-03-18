@@ -222,109 +222,28 @@ window.addEventListener('resize', onResize);
 onResize(); // apply immediately
 
 // ============================================================
-// Audio Engine — Meditative layered soundscape
+// Audio Engine — Meditative soundscape
 //
-// Designed for meditation: always soothing, never jarring.
-// z~0:   Very soft deep drone (tanpura), barely there
-// |z|↑:  Layers add progressively — warmth, not volume
+// Two elements:
+// 1. CONTINUOUS: Very soft drone (tanpura) — always present, very quiet
+// 2. PERCUSSIVE: Struck sounds (bowls, bells) that ring out and fade
+//    Triggered by z-score changes. More intense z = more frequent,
+//    richer strikes. Always with silence between them.
 //
-// Layer 1 (always):  Tanpura drone — deep warm fundamental
-// Layer 2 (|z|>0.3): Soft pad — warm strings, like a distant choir
-// Layer 3 (|z|>0.7): Singing bowl — resonant sine with slow shimmer
-// Layer 4 (|z|>1.0): Cello voice — melodic, follows scale
-// Layer 5 (|z|>1.5): Gong wash — low resonant swell
-// Layer 6 (|z|>2.0): Celestial harmonics — high pure overtones
-//
-// Reverb: long feedback delay for spacious, cathedral-like warmth
-// Velocity: always soft attack, long release times
+// Designed for meditation: soothing, spacious, never aggressive.
 // ============================================================
 let audioCtx = null;
 let masterGain = null;
 let audioActive = false;
-let layers = {};
+let droneOsc1 = null, droneOsc2 = null, droneGain = null, droneFilter = null;
+let lastStrikeTime = 0;
+let prevQuantizedFreq = 0;
 
-// Tanpura-like wave: strong fundamental + quiet odd harmonics
+// Tanpura-like wave
 function waveTanpura(ctx) {
   const r = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  const i = new Float32Array([0, 1, 0, 0.15, 0, 0.06, 0, 0.03, 0]);
+  const i = new Float32Array([0, 1, 0, 0.12, 0, 0.04, 0, 0.02, 0]);
   return ctx.createPeriodicWave(r, i);
-}
-
-// Warm pad wave: even harmonics for softness
-function wavePad(ctx) {
-  const r = new Float32Array([0, 0, 0.3, 0, 0.1, 0, 0.03, 0]);
-  const i = new Float32Array([0, 1, 0, 0.2, 0, 0.08, 0, 0.02]);
-  return ctx.createPeriodicWave(r, i);
-}
-
-// Cello wave: rich but mellow
-function waveCello(ctx) {
-  const r = new Float32Array([0, 0, 0.4, 0.2, 0.1, 0.05, 0.02]);
-  const i = new Float32Array([0, 1, 0, 0.3, 0, 0.12, 0]);
-  return ctx.createPeriodicWave(r, i);
-}
-
-function createVoice(ctx, options) {
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const filter = ctx.createBiquadFilter();
-  const gain = ctx.createGain();
-
-  if (options.wave) {
-    osc1.setPeriodicWave(options.wave);
-    osc2.setPeriodicWave(options.wave);
-  } else {
-    osc1.type = options.type || 'sine';
-    osc2.type = options.type || 'sine';
-  }
-
-  osc1.frequency.value = options.freq;
-  osc2.frequency.value = options.freq;
-  osc2.detune.value = options.detune || 3;
-
-  filter.type = 'lowpass';
-  filter.frequency.value = options.filterFreq || 600;
-  filter.Q.value = options.filterQ || 0.3;
-
-  gain.gain.value = 0;
-
-  osc1.connect(filter);
-  osc2.connect(filter);
-  filter.connect(gain);
-  osc1.start();
-  osc2.start();
-
-  return { osc1, osc2, filter, gain };
-}
-
-// Singing bowl: sine with slow amplitude LFO (shimmer)
-function createBowl(ctx, freq) {
-  const osc = ctx.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.value = freq;
-
-  const shimmerLFO = ctx.createOscillator();
-  shimmerLFO.type = 'sine';
-  shimmerLFO.frequency.value = 0.3; // very slow shimmer
-  const shimmerGain = ctx.createGain();
-  shimmerGain.gain.value = 0.4;
-  shimmerLFO.connect(shimmerGain);
-
-  const gain = ctx.createGain();
-  gain.gain.value = 0;
-  shimmerGain.connect(gain.gain); // modulate volume
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = freq;
-  filter.Q.value = 8; // resonant, bell-like
-
-  osc.connect(filter);
-  filter.connect(gain);
-  osc.start();
-  shimmerLFO.start();
-
-  return { osc, filter, gain, shimmerGain };
 }
 
 function initAudio() {
@@ -334,16 +253,16 @@ function initAudio() {
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0;
 
-  // Spacious reverb: long delay, heavy filtering, gentle feedback
-  const revDelay1 = audioCtx.createDelay(1);
-  revDelay1.delayTime.value = 0.15;
-  const revDelay2 = audioCtx.createDelay(1);
-  revDelay2.delayTime.value = 0.23;
+  // Spacious reverb
+  const revDelay1 = audioCtx.createDelay(2);
+  revDelay1.delayTime.value = 0.2;
+  const revDelay2 = audioCtx.createDelay(2);
+  revDelay2.delayTime.value = 0.35;
   const revGain = audioCtx.createGain();
-  revGain.gain.value = 0.3;
+  revGain.gain.value = 0.35;
   const revFilter = audioCtx.createBiquadFilter();
   revFilter.type = 'lowpass';
-  revFilter.frequency.value = 1500;
+  revFilter.frequency.value = 1200;
 
   masterGain.connect(audioCtx.destination);
   masterGain.connect(revDelay1);
@@ -354,54 +273,109 @@ function initAudio() {
   revGain.connect(revDelay1);
   revGain.connect(audioCtx.destination);
 
-  // Layer 1: Tanpura drone — C2 (~64 Hz 432)
-  layers.drone = createVoice(audioCtx, {
-    wave: waveTanpura(audioCtx), freq: midiToFreq(36), detune: 2,
-    filterFreq: 200, filterQ: 0.2,
-  });
-  layers.drone.gain.connect(masterGain);
+  // Drone: very soft tanpura — C2 432Hz
+  const tanpura = waveTanpura(audioCtx);
+  droneOsc1 = audioCtx.createOscillator();
+  droneOsc2 = audioCtx.createOscillator();
+  droneOsc1.setPeriodicWave(tanpura);
+  droneOsc2.setPeriodicWave(tanpura);
+  droneOsc1.frequency.value = midiToFreq(36);
+  droneOsc2.frequency.value = midiToFreq(36);
+  droneOsc2.detune.value = 2;
 
-  // Layer 2: Warm pad — C3 (~128 Hz 432)
-  layers.pad = createVoice(audioCtx, {
-    wave: wavePad(audioCtx), freq: midiToFreq(48), detune: 6,
-    filterFreq: 400, filterQ: 0.3,
-  });
-  layers.pad.gain.connect(masterGain);
+  droneFilter = audioCtx.createBiquadFilter();
+  droneFilter.type = 'lowpass';
+  droneFilter.frequency.value = 150;
+  droneFilter.Q.value = 0.2;
 
-  // Layer 3: Singing bowl — E4 (~324 Hz 432)
-  layers.bowl = createBowl(audioCtx, midiToFreq(64));
-  layers.bowl.gain.connect(masterGain);
+  droneGain = audioCtx.createGain();
+  droneGain.gain.value = 0;
 
-  // Layer 4: Cello — melodic, follows scale
-  layers.cello = createVoice(audioCtx, {
-    wave: waveCello(audioCtx), freq: midiToFreq(48), detune: 4,
-    filterFreq: 800, filterQ: 0.5,
-  });
-  // Gentle vibrato
-  layers.celloLFO = audioCtx.createOscillator();
-  layers.celloLFO.type = 'sine';
-  layers.celloLFO.frequency.value = 4.5;
-  layers.celloVibGain = audioCtx.createGain();
-  layers.celloVibGain.gain.value = 1.5;
-  layers.celloLFO.connect(layers.celloVibGain);
-  layers.celloVibGain.connect(layers.cello.osc1.frequency);
-  layers.celloVibGain.connect(layers.cello.osc2.frequency);
-  layers.celloLFO.start();
-  layers.cello.gain.connect(masterGain);
+  droneOsc1.connect(droneFilter);
+  droneOsc2.connect(droneFilter);
+  droneFilter.connect(droneGain);
+  droneGain.connect(masterGain);
 
-  // Layer 5: Gong wash — very low sine with slow swell
-  layers.gong = createVoice(audioCtx, {
-    type: 'sine', freq: midiToFreq(28), detune: 1, // E1 ~38 Hz
-    filterFreq: 150, filterQ: 0.8,
-  });
-  layers.gong.gain.connect(masterGain);
+  droneOsc1.start();
+  droneOsc2.start();
+}
 
-  // Layer 6: Celestial harmonics — high pure tones
-  layers.celestial = createVoice(audioCtx, {
-    type: 'sine', freq: midiToFreq(76), detune: 2, // E5 ~648 Hz
-    filterFreq: 3000, filterQ: 0.2,
-  });
-  layers.celestial.gain.connect(masterGain);
+// Strike a bowl/bell — creates a one-shot sound that decays naturally
+function strikeSound(freq, volume, decay, type) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  if (type === 'bowl') {
+    // Singing bowl: fundamental + slightly inharmonic overtone
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc1.frequency.value = freq;
+    osc2.frequency.value = freq * 2.76; // inharmonic partial (bowl character)
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = freq;
+    filter.Q.value = 12; // very resonant
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+    osc1.connect(filter);
+    osc2.connect(gain);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc1.start(t);
+    osc2.start(t);
+    osc1.stop(t + decay);
+    osc2.stop(t + decay);
+
+  } else if (type === 'bell') {
+    // Small bell: higher, shorter, brighter
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(volume * 0.6, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay * 0.6);
+
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + decay * 0.6);
+
+  } else if (type === 'gong') {
+    // Deep gong: very low, long decay
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc1.frequency.value = freq;
+    osc2.frequency.value = freq * 1.5;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = freq * 3;
+    filter.Q.value = 1;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc1.start(t);
+    osc2.start(t);
+    osc1.stop(t + decay);
+    osc2.stop(t + decay);
+  }
 }
 
 function toggleAudio() {
@@ -412,8 +386,7 @@ function toggleAudio() {
     updateAudio(smoothZ || 0);
   } else if (audioActive) {
     audioActive = false;
-    // Long fadeout for meditation — no abrupt cut
-    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.0);
+    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.5);
   } else {
     audioActive = true;
     audioCtx.resume();
@@ -422,73 +395,65 @@ function toggleAudio() {
   audioIndicator.classList.toggle('active', audioActive);
 }
 
-let prevQuantizedFreq = 0;
-
 function updateAudio(zScore) {
   if (!audioCtx || !audioActive) return;
   const t = audioCtx.currentTime;
   const absZ = Math.abs(zScore);
   const intensity = Math.min(absZ / Z_MAX, 1);
+  const now = Date.now();
 
-  // Master: very gentle. Meditation = quiet. Never loud.
-  masterGain.gain.setTargetAtTime(0.04 + intensity * 0.04, t, 1.0);
+  // === Master volume ===
+  masterGain.gain.setTargetAtTime(0.05 + intensity * 0.05, t, 1.0);
 
-  // === Layer 1: Drone (always) ===
-  // Barely audible hum. The foundation. Very slow attack.
-  layers.drone.gain.gain.setTargetAtTime(0.025 + intensity * 0.015, t, 1.5);
-  layers.drone.filter.frequency.setTargetAtTime(150 + intensity * 150, t, 1.0);
+  // === Drone: always, very quiet ===
+  droneGain.gain.setTargetAtTime(0.02 + intensity * 0.01, t, 2.0);
+  droneFilter.frequency.setTargetAtTime(120 + intensity * 120, t, 1.0);
 
-  // === Layer 2: Pad (|z|>0.3) ===
-  // Warm strings emerging from silence
-  const padT = Math.max(0, (absZ - 0.3) / 0.7); // 0→1 over z 0.3→1.0
-  layers.pad.gain.gain.setTargetAtTime(Math.min(padT, 1) * 0.025, t, 1.2);
-  layers.pad.filter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
-  let padFreq = midiToFreq(48) + intensity * (midiToFreq(53) - midiToFreq(48));
-  padFreq = quantizeFreq(padFreq, currentScaleFreqs);
-  layers.pad.osc1.frequency.setTargetAtTime(padFreq, t, 0.8);
-  layers.pad.osc2.frequency.setTargetAtTime(padFreq, t, 0.8);
-
-  // === Layer 3: Singing bowl (|z|>0.7) ===
-  // Resonant bell tone with slow shimmer
-  const bowlT = Math.max(0, (absZ - 0.7) / 0.8);
-  layers.bowl.gain.gain.setTargetAtTime(Math.min(bowlT, 1) * 0.02, t, 0.8);
-  // Bowl pitch follows scale gently
-  const bowlFreq = midiToFreq(60) + intensity * (midiToFreq(67) - midiToFreq(60));
-  layers.bowl.osc.frequency.setTargetAtTime(quantizeFreq(bowlFreq, currentScaleFreqs), t, 0.5);
-  layers.bowl.filter.frequency.setTargetAtTime(quantizeFreq(bowlFreq, currentScaleFreqs), t, 0.5);
-
-  // === Layer 4: Cello (|z|>1.0) ===
-  // Melodic voice, follows the chosen scale
-  const celloT = Math.max(0, (absZ - 1.0) / 1.0);
-  layers.cello.gain.gain.setTargetAtTime(Math.min(celloT, 1) * 0.03, t, 0.6);
-  layers.cello.filter.frequency.setTargetAtTime(300 + celloT * 700, t, 0.5);
-
+  // === Percussive strikes ===
+  // Frequency depends on z-score, quantized to scale
   const pitchT = Math.pow(intensity, 0.6);
   let freq = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
   freq = quantizeFreq(freq, currentScaleFreqs);
 
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
-  if (noteChanged) {
-    const tc = currentScaleFreqs ? 0.05 : 0.4; // slightly slower snap for meditation
-    layers.cello.osc1.frequency.setTargetAtTime(freq, t, tc);
-    layers.cello.osc2.frequency.setTargetAtTime(freq, t, tc);
+
+  // Minimum time between strikes depends on intensity:
+  // z~0: strike every ~8s (rare)  z~1: every ~3s  z~2+: every ~1.5s
+  const minInterval = 8000 - intensity * 6500; // 8000ms → 1500ms
+  const timeSinceStrike = now - lastStrikeTime;
+
+  if (noteChanged && timeSinceStrike > minInterval) {
+    prevQuantizedFreq = freq;
+    lastStrikeTime = now;
+
+    // Volume of strike: very soft at z~0, gentle at high z
+    const strikeVol = 0.01 + intensity * 0.025;
+
+    if (absZ < 0.5) {
+      // Very low z: occasional soft bowl, distant
+      strikeSound(freq * 2, strikeVol * 0.5, 4, 'bowl');
+    } else if (absZ < 1.0) {
+      // Moderate: bowl strike
+      strikeSound(freq * 2, strikeVol, 5, 'bowl');
+    } else if (absZ < 1.5) {
+      // Notable: bowl + bell
+      strikeSound(freq * 2, strikeVol, 5, 'bowl');
+      strikeSound(freq * 4, strikeVol * 0.4, 3, 'bell');
+    } else if (absZ < 2.0) {
+      // Significant: bowl + bell + gong
+      strikeSound(freq, strikeVol * 0.8, 8, 'gong');
+      strikeSound(freq * 2, strikeVol, 5, 'bowl');
+      strikeSound(freq * 4, strikeVol * 0.4, 3, 'bell');
+    } else {
+      // Rare anomaly: full ensemble
+      strikeSound(freq * 0.5, strikeVol, 10, 'gong');
+      strikeSound(freq * 2, strikeVol, 6, 'bowl');
+      strikeSound(freq * 3, strikeVol * 0.5, 4, 'bowl');
+      strikeSound(freq * 4, strikeVol * 0.3, 3, 'bell');
+    }
+  } else if (!noteChanged) {
+    prevQuantizedFreq = freq;
   }
-  prevQuantizedFreq = freq;
-  layers.celloVibGain.gain.setTargetAtTime(1 + celloT * 3, t, 0.5);
-
-  // === Layer 5: Gong (|z|>1.5) ===
-  // Deep resonant swell
-  const gongT = Math.max(0, (absZ - 1.5) / 1.0);
-  layers.gong.gain.gain.setTargetAtTime(Math.min(gongT, 1) * 0.02, t, 1.5);
-  layers.gong.filter.frequency.setTargetAtTime(80 + gongT * 100, t, 1.0);
-
-  // === Layer 6: Celestial (|z|>2.0) ===
-  // Pure high overtones — the cosmos opening
-  const celestT = Math.max(0, (absZ - 2.0) / 1.0);
-  layers.celestial.gain.gain.setTargetAtTime(Math.min(celestT, 1) * 0.012, t, 1.0);
-  const celestFreq = freq * 4; // two octaves above cello
-  layers.celestial.osc1.frequency.setTargetAtTime(celestFreq, t, 0.3);
-  layers.celestial.osc2.frequency.setTargetAtTime(celestFreq, t, 0.3);
 }
 
 // Click on canvas toggles audio
