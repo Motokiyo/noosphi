@@ -1050,6 +1050,9 @@ const btnJoinCollective = document.getElementById('btn-join-collective');
 const collectiveCodeInput = document.getElementById('collective-code');
 const collectiveStatus = document.getElementById('collective-status');
 const sessionParticipants = document.getElementById('session-participants');
+const btnSessionAudio = document.getElementById('btn-session-audio');
+const btnCopyCode = document.getElementById('btn-copy-code');
+const btnShareCode = document.getElementById('btn-share-code');
 
 let sessionActive = false;
 let isCollective = false;
@@ -1059,11 +1062,46 @@ let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
 let sessionMaxZ = 0;
 let sessionChart = null;
+let currentCollectiveCode = null;
 const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+
+// Audio toggle in session
+btnSessionAudio.addEventListener('click', () => {
+  toggleAudio();
+  btnSessionAudio.classList.toggle('active', audioActive);
+});
+
+// Copy collective code
+btnCopyCode.addEventListener('click', () => {
+  if (!currentCollectiveCode) return;
+  navigator.clipboard.writeText(currentCollectiveCode).then(() => {
+    btnCopyCode.classList.add('copied');
+    setTimeout(() => btnCopyCode.classList.remove('copied'), 1500);
+  });
+});
+
+// Share collective code via native share (Telegram, WhatsApp, Signal, etc.)
+btnShareCode.addEventListener('click', () => {
+  if (!currentCollectiveCode) return;
+  const shareData = {
+    title: 'Noosfeerique — Session collective',
+    text: `Rejoins ma session Noosfeerique !\nCode : ${currentCollectiveCode}`,
+    url: window.location.href,
+  };
+  if (navigator.share) {
+    navigator.share(shareData);
+  } else {
+    navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`).then(() => {
+      btnShareCode.classList.add('copied');
+      setTimeout(() => btnShareCode.classList.remove('copied'), 1500);
+    });
+  }
+});
 
 // Open/close session overlay
 btnSession.addEventListener('click', () => {
   sessionOverlay.classList.add('open');
+  btnSessionAudio.classList.toggle('active', audioActive);
   if (!sessionActive) {
     sessionSetup.classList.remove('hidden');
     sessionRecording.classList.add('hidden');
@@ -1392,9 +1430,11 @@ btnJoinCollective.addEventListener('click', () => {
 
 if (socket) {
   socket.on('collective:created', ({ code, name }) => {
+    currentCollectiveCode = code;
     collectiveStatus.textContent = `Session creee : ${code}`;
     collectiveStatus.classList.remove('hidden');
-    // Auto-start recording
+    btnCopyCode.classList.remove('hidden');
+    btnShareCode.classList.remove('hidden');
     sessionRecName.textContent = `${name} (${code})`;
     sessionSetup.classList.add('hidden');
     sessionRecording.classList.remove('hidden');
@@ -1410,8 +1450,11 @@ if (socket) {
   });
 
   socket.on('collective:joined', ({ code, name }) => {
+    currentCollectiveCode = code;
     collectiveStatus.textContent = `Rejoint : ${code}`;
     collectiveStatus.classList.remove('hidden');
+    btnCopyCode.classList.remove('hidden');
+    btnShareCode.classList.remove('hidden');
     sessionRecName.textContent = `${name} (${code})`;
     sessionSetup.classList.add('hidden');
     sessionRecording.classList.remove('hidden');
@@ -1455,8 +1498,11 @@ btnStopSession.addEventListener('click', () => {
     socket.emit('collective:leave');
     isCollective = false;
     collectiveZ = null;
+    currentCollectiveCode = null;
     sessionParticipants.classList.add('hidden');
     collectiveStatus.classList.add('hidden');
+    btnCopyCode.classList.add('hidden');
+    btnShareCode.classList.add('hidden');
   }
 });
 

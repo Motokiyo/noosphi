@@ -661,6 +661,45 @@ html, body {
   white-space: nowrap;
 }
 
+.session-audio-btn,
+.session-copy-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.session-audio-btn:hover,
+.session-copy-code:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.session-audio-btn.active {
+  color: var(--accent-cyan);
+  border-color: rgba(78, 201, 198, 0.3);
+}
+
+.session-copy-code.copied {
+  color: var(--accent-gold);
+  border-color: rgba(201, 162, 77, 0.3);
+}
+
+.session-audio-btn svg,
+.session-copy-code svg {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
 .session-rec-timer {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
