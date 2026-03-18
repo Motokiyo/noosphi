@@ -446,20 +446,52 @@ function animate() {
 }
 
 // ============================================================
+// Adaptive z-score normalizer
+// Tracks running stddev per source, rescales so variance ≈ 1
+// (aligned with Princeton which is the reference standard).
+// Princeton (gcp) is NOT normalized — it's the reference.
+// ============================================================
+class ZNormalizer {
+  constructor(warmup = 30) {
+    this.warmup = warmup; // min samples before normalizing
+    this.values = [];
+    this.maxWindow = 300;  // rolling window
+  }
+  push(z) {
+    this.values.push(z);
+    if (this.values.length > this.maxWindow) this.values.shift();
+  }
+  normalize(z) {
+    if (this.values.length < this.warmup) return z; // not enough data yet
+    const n = this.values.length;
+    const mean = this.values.reduce((a, b) => a + b, 0) / n;
+    const variance = this.values.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+    const stddev = Math.sqrt(variance);
+    if (stddev < 0.01) return z; // avoid division by near-zero
+    return (z - mean) / stddev;  // rescale to unit variance, zero mean
+  }
+}
+
+const normalizers = {
+  local: new ZNormalizer(10),    // warms up fast (1/sec)
+  qrng: new ZNormalizer(5),      // slower (1/min)
+  nist: new ZNormalizer(5),
+  qci: new ZNormalizer(5),
+  local_server: new ZNormalizer(5),
+};
+// gcp (Princeton) is NOT in normalizers — it's already calibrated
+
+// ============================================================
 // Z-Score Engine (local RNG, 1 calc/second)
 // ============================================================
 const calculator = new ZScoreCalculator(WINDOW_SIZE);
-// Normalization factor: the sliding-window method on a single CSPRNG
-// produces ~2.5x more variance than Princeton's aggregated EGG network.
-// Dividing by this factor aligns the local z-score distribution with
-// the other sources so Stouffer combination is balanced.
-const LOCAL_Z_SCALE = 2.5;
 
 function tickLocalZ() {
   const bitSum = getRandomBits(DRAW_RATE);
   const z = calculator.update(bitSum);
   if (calculator.ready) {
-    currentZ = z / LOCAL_Z_SCALE;
+    normalizers.local.push(z);
+    currentZ = normalizers.local.normalize(z);
     combineAndUpdate();
     loadingText.classList.add('hidden');
   }
@@ -511,8 +543,14 @@ async function fetchAPIs() {
   results.forEach((r, i) => {
     const key = endpoints[i].key;
     if (r.status === 'fulfilled' && r.value.ok && r.value.z != null && isFinite(r.value.z)) {
-      apiZScores[key] = r.value.z;
-      sourceDots[i + 1]?.classList.add('active'); // +1 because index 0 is local browser
+      let z = r.value.z;
+      // Normalize non-Princeton sources to unit variance
+      if (normalizers[key]) {
+        normalizers[key].push(z);
+        z = normalizers[key].normalize(z);
+      }
+      apiZScores[key] = z;
+      sourceDots[i + 1]?.classList.add('active');
     } else {
       apiZScores[key] = null;
       sourceDots[i + 1]?.classList.remove('active');
