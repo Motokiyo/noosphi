@@ -173,12 +173,104 @@
 
   <!-- Bottom-right controls -->
   <div class="bottom-controls">
+    <button class="control-btn" id="btn-session" aria-label="Session">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+    </button>
     <button class="control-btn" id="btn-graph" aria-label="Graphiques">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     </button>
     <div class="audio-indicator" id="audio-indicator">
       <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
     </div>
+  </div>
+
+  <!-- Session overlay (transparent over sphere) -->
+  <div class="session-overlay" id="session-overlay">
+    <div class="session-header">
+      <span class="session-title">Session</span>
+      <div class="session-header-right">
+        <button class="graph-toggle-btn" id="btn-session-history" aria-label="Sessions enregistrees">
+          <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        </button>
+        <button class="graph-close" id="session-close" aria-label="Fermer">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Session setup (before recording) -->
+    <div class="session-setup" id="session-setup">
+      <input type="text" class="session-name-input" id="session-name" placeholder="Nommez votre session..." maxlength="100">
+      <button class="session-record-btn" id="btn-start-session">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#FF4444"/></svg>
+        <span>Enregistrer</span>
+      </button>
+    </div>
+
+    <!-- Session recording (during) -->
+    <div class="session-recording hidden" id="session-recording">
+      <div class="session-info-bar">
+        <span class="session-rec-dot"></span>
+        <span class="session-rec-name" id="session-rec-name"></span>
+        <span class="session-rec-timer" id="session-rec-timer">00:00</span>
+      </div>
+      <div class="session-live-z">
+        <span class="live-z-value" id="session-z-value">--</span>
+        <span class="live-z-label">z-score</span>
+        <span class="session-z-max" id="session-z-max">max: --</span>
+      </div>
+      <div class="session-toggles" id="session-toggles">
+        <label class="graph-toggle active" data-key="combined">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#CC44FF"></span><span>Combine</span>
+        </label>
+        <label class="graph-toggle active" data-key="local">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#00E5FF"></span><span>Local</span>
+        </label>
+        <label class="graph-toggle active" data-key="gcp">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#6C63FF"></span><span>Princeton</span>
+        </label>
+        <label class="graph-toggle active" data-key="qrng">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#FF8800"></span><span>ANU</span>
+        </label>
+        <label class="graph-toggle active" data-key="nist">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#00CC66"></span><span>NIST</span>
+        </label>
+        <label class="graph-toggle active" data-key="qci">
+          <input type="checkbox" checked><span class="toggle-swatch" style="background:#C9A24D"></span><span>QCI</span>
+        </label>
+      </div>
+      <div class="graph-container session-chart-container">
+        <canvas id="chart-session"></canvas>
+      </div>
+      <button class="session-stop-btn" id="btn-stop-session">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        <span>Arreter la session</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Saved sessions list overlay -->
+  <div class="sessions-list-overlay" id="sessions-list-overlay">
+    <div class="session-header">
+      <span class="session-title">Sessions enregistrees</span>
+      <button class="graph-close" id="sessions-list-close" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </button>
+    </div>
+    <div class="sessions-list" id="sessions-list">
+      <div class="highlight-empty">Aucune session enregistree</div>
+    </div>
+  </div>
+
+  <!-- Session detail overlay -->
+  <div class="session-detail-overlay" id="session-detail-overlay">
+    <div class="session-header">
+      <span class="session-title" id="detail-title">Session</span>
+      <button class="graph-close" id="session-detail-close" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </button>
+    </div>
+    <div class="session-detail-content" id="session-detail-content"></div>
   </div>
 
   <!-- Graph overlay -->

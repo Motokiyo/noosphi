@@ -591,6 +591,9 @@ function combineAndUpdate() {
       return `<span class="live-z-source-dot ${active ? 'active' : ''}" style="background:${s.color}" title="${s.label}"></span>`;
     }).join('');
   }
+
+  // Feed session recording
+  recordSessionTick(displayZ);
 }
 
 // ============================================================
@@ -1011,6 +1014,346 @@ function updateGraph() {
 
 // Refresh graph every 5 seconds while open
 setInterval(() => { if (graphOverlay.classList.contains('open')) updateGraph(); }, 5000);
+
+// ============================================================
+// Session Recording System (localStorage)
+// ============================================================
+const sessionOverlay = document.getElementById('session-overlay');
+const sessionSetup = document.getElementById('session-setup');
+const sessionRecording = document.getElementById('session-recording');
+const sessionNameInput = document.getElementById('session-name');
+const btnSession = document.getElementById('btn-session');
+const btnStartSession = document.getElementById('btn-start-session');
+const btnStopSession = document.getElementById('btn-stop-session');
+const sessionClose = document.getElementById('session-close');
+const sessionRecName = document.getElementById('session-rec-name');
+const sessionRecTimer = document.getElementById('session-rec-timer');
+const sessionZValue = document.getElementById('session-z-value');
+const sessionZMax = document.getElementById('session-z-max');
+const sessionsListOverlay = document.getElementById('sessions-list-overlay');
+const sessionsList = document.getElementById('sessions-list');
+const btnSessionHistory = document.getElementById('btn-session-history');
+const sessionsListClose = document.getElementById('sessions-list-close');
+const sessionDetailOverlay = document.getElementById('session-detail-overlay');
+const sessionDetailClose = document.getElementById('session-detail-close');
+const sessionDetailContent = document.getElementById('session-detail-content');
+const detailTitle = document.getElementById('detail-title');
+
+let sessionActive = false;
+let sessionStartTime = null;
+let sessionTimerInterval = null;
+let sessionData = [];   // { t, z, sources }
+let sessionMaxZ = 0;
+let sessionChart = null;
+const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+
+// Open/close session overlay
+btnSession.addEventListener('click', () => {
+  sessionOverlay.classList.add('open');
+  if (!sessionActive) {
+    sessionSetup.classList.remove('hidden');
+    sessionRecording.classList.add('hidden');
+  }
+});
+
+sessionClose.addEventListener('click', () => {
+  if (!sessionActive) sessionOverlay.classList.remove('open');
+});
+
+// Start recording
+btnStartSession.addEventListener('click', () => {
+  const name = sessionNameInput.value.trim() || 'Session sans nom';
+  sessionRecName.textContent = name;
+  sessionSetup.classList.add('hidden');
+  sessionRecording.classList.remove('hidden');
+
+  sessionActive = true;
+  sessionStartTime = Date.now();
+  sessionData = [];
+  sessionMaxZ = 0;
+  sessionZMax.textContent = 'max: --';
+
+  // Timer
+  sessionTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const s = (elapsed % 60).toString().padStart(2, '0');
+    sessionRecTimer.textContent = `${m}:${s}`;
+  }, 1000);
+
+  // Init chart
+  if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+});
+
+// Stop recording and save
+btnStopSession.addEventListener('click', () => {
+  sessionActive = false;
+  clearInterval(sessionTimerInterval);
+
+  const session = {
+    id: Date.now().toString(36),
+    name: sessionRecName.textContent,
+    startTime: sessionStartTime,
+    endTime: Date.now(),
+    duration: Math.floor((Date.now() - sessionStartTime) / 1000),
+    maxZ: sessionMaxZ,
+    data: sessionData,
+    comment: '',
+  };
+
+  // Save to localStorage
+  const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+  saved.unshift(session);
+  // Keep max 50 sessions
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem('noosphi_sessions', JSON.stringify(saved));
+
+  sessionOverlay.classList.remove('open');
+  sessionSetup.classList.remove('hidden');
+  sessionRecording.classList.add('hidden');
+  sessionNameInput.value = '';
+  if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+});
+
+// Record data point during session (called from combineAndUpdate)
+function recordSessionTick(displayZ) {
+  if (!sessionActive) return;
+
+  const point = { t: Date.now(), z: displayZ };
+  sessionData.push(point);
+
+  if (Math.abs(displayZ) > Math.abs(sessionMaxZ)) {
+    sessionMaxZ = displayZ;
+    sessionZMax.textContent = `max: ${sessionMaxZ.toFixed(2)}`;
+  }
+
+  sessionZValue.textContent = displayZ.toFixed(2);
+  const absZ = Math.abs(displayZ);
+  sessionZValue.style.color = absZ > 2 ? '#C9A24D' : absZ > 1.5 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)';
+
+  updateSessionChart();
+}
+
+function updateSessionChart() {
+  if (!sessionActive || !sessionOverlay.classList.contains('open')) return;
+
+  // Build datasets from sessionData + zHistory (only data during session)
+  const start = sessionStartTime;
+  const datasets = [];
+  const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
+
+  Object.keys(COLORS).forEach(key => {
+    if (!sessionVisibility[key]) return;
+    const srcData = zHistory[key].filter(p => p.t >= start);
+    if (srcData.length === 0) return;
+    datasets.push({
+      label: SOURCE_LABELS[key] || key,
+      data: srcData.map(p => ({ x: p.t, y: p.z })),
+      borderColor: COLORS[key],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: false,
+    });
+  });
+
+  if (sessionChart) {
+    sessionChart.data.datasets = datasets;
+    sessionChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('chart-session');
+  if (!ctx || typeof Chart === 'undefined') return;
+
+  sessionChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'nearest', intersect: false },
+      scales: {
+        x: {
+          type: 'linear',
+          ticks: { callback: v => formatTime(v), color: 'rgba(255,255,255,0.3)', maxTicksLimit: 6, font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+        },
+        y: {
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          suggestedMin: -3, suggestedMax: 3,
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(11,14,20,0.9)',
+          callbacks: {
+            title: items => items[0] ? formatTime(items[0].parsed.x) : '',
+            label: item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+// Session toggles
+document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+  label.addEventListener('click', (e) => {
+    e.preventDefault();
+    const key = label.dataset.key;
+    const nowActive = !label.classList.contains('active');
+    label.classList.toggle('active', nowActive);
+    label.querySelector('input').checked = nowActive;
+    sessionVisibility[key] = nowActive;
+    updateSessionChart();
+  });
+});
+
+// ============================================================
+// Saved Sessions List
+// ============================================================
+btnSessionHistory.addEventListener('click', () => {
+  renderSessionsList();
+  sessionsListOverlay.classList.add('open');
+});
+
+sessionsListClose.addEventListener('click', () => {
+  sessionsListOverlay.classList.remove('open');
+});
+
+function renderSessionsList() {
+  const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+  if (saved.length === 0) {
+    sessionsList.innerHTML = '<div class="highlight-empty">Aucune session enregistree</div>';
+    return;
+  }
+  sessionsList.innerHTML = saved.map(s => {
+    const date = new Date(s.startTime);
+    const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const durStr = formatDuration(s.duration);
+    return `
+      <div class="saved-session-card" data-id="${s.id}">
+        <span class="saved-session-name">${s.name}</span>
+        <span class="saved-session-meta">
+          <span>${dateStr} ${timeStr}</span>
+          <span>${durStr}</span>
+        </span>
+        <span class="saved-session-zmax">z max = ${s.maxZ.toFixed(2)}</span>
+      </div>
+    `;
+  }).join('');
+
+  sessionsList.querySelectorAll('.saved-session-card').forEach(card => {
+    card.addEventListener('click', () => openSessionDetail(card.dataset.id));
+  });
+}
+
+// ============================================================
+// Session Detail View
+// ============================================================
+let detailChart = null;
+
+sessionDetailClose.addEventListener('click', () => {
+  sessionDetailOverlay.classList.remove('open');
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+});
+
+function openSessionDetail(id) {
+  const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+  const session = saved.find(s => s.id === id);
+  if (!session) return;
+
+  detailTitle.textContent = session.name;
+  const date = new Date(session.startTime);
+  const dateStr = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const durStr = formatDuration(session.duration);
+
+  sessionDetailContent.innerHTML = `
+    <div class="detail-meta">
+      <span>${dateStr}</span>
+      <span>${timeStr}</span>
+      <span>${durStr}</span>
+      <span style="color:var(--accent-gold)">z max = ${session.maxZ.toFixed(2)}</span>
+    </div>
+    <textarea class="detail-comment" placeholder="Ajoutez un commentaire..." data-id="${id}">${session.comment || ''}</textarea>
+    <div class="detail-chart-container">
+      <canvas id="chart-detail"></canvas>
+    </div>
+    <button class="detail-delete-btn" data-id="${id}">Supprimer cette session</button>
+  `;
+
+  // Comment save on blur
+  sessionDetailContent.querySelector('.detail-comment').addEventListener('blur', (e) => {
+    const sessions = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+    const s = sessions.find(s => s.id === id);
+    if (s) { s.comment = e.target.value; localStorage.setItem('noosphi_sessions', JSON.stringify(sessions)); }
+  });
+
+  // Delete button
+  sessionDetailContent.querySelector('.detail-delete-btn').addEventListener('click', () => {
+    const sessions = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+    const filtered = sessions.filter(s => s.id !== id);
+    localStorage.setItem('noosphi_sessions', JSON.stringify(filtered));
+    sessionDetailOverlay.classList.remove('open');
+    renderSessionsList();
+  });
+
+  // Build chart from saved data
+  sessionDetailOverlay.classList.add('open');
+  setTimeout(() => {
+    if (detailChart) { detailChart.destroy(); detailChart = null; }
+    const ctx = document.getElementById('chart-detail');
+    if (!ctx || !session.data || session.data.length === 0) return;
+
+    detailChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'z-score',
+          data: session.data.map(p => ({ x: p.t, y: p.z })),
+          borderColor: '#CC44FF',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: {
+            type: 'linear',
+            ticks: { callback: v => formatTime(v), color: 'rgba(255,255,255,0.3)', maxTicksLimit: 6, font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            suggestedMin: -3, suggestedMax: 3,
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(11,14,20,0.9)',
+            callbacks: {
+              title: items => items[0] ? formatTime(items[0].parsed.x) : '',
+              label: item => `z = ${item.parsed.y.toFixed(3)}`,
+            },
+          },
+        },
+      },
+    });
+  }, 100);
+}
 
 // ============================================================
 // Bootstrap
