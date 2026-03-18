@@ -568,11 +568,11 @@ let userVolume = parseFloat(localStorage.getItem('noosphi_volume') || '0.5');
 document.querySelectorAll('.audio-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const slider = btn.parentElement.querySelector('.audio-slider') ||
-                   btn.closest('.audio-control')?.querySelector('.audio-slider');
+    // Find slider in the same container (parent = .audio-indicator or .session-audio-fixed)
+    const container = btn.closest('.audio-indicator') || btn.closest('.session-audio-fixed');
+    const slider = container?.querySelector('.audio-slider');
     if (slider) {
       slider.classList.toggle('visible');
-      // Auto-hide after 4s
       clearTimeout(slider._hideTimer);
       if (slider.classList.contains('visible')) {
         slider._hideTimer = setTimeout(() => slider.classList.remove('visible'), 4000);
