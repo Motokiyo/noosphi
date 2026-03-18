@@ -222,63 +222,132 @@ window.addEventListener('resize', onResize);
 onResize(); // apply immediately
 
 // ============================================================
-// Audio Engine — Cello synthesis
-// Two detuned sawtooth oscillators + lowpass + vibrato LFO
+// Audio Engine — Layered instruments
+// Layers fade in as |z| increases, adding richness not volume
+//
+// Layer 1 (always): Deep drone — warm fundamental (custom wave)
+// Layer 2 (|z|>0.3): Pad — soft strings (detuned triangle chorus)
+// Layer 3 (|z|>0.7): Cello — melodic voice (custom wave + vibrato)
+// Layer 4 (|z|>1.2): Harmonics — crystalline overtones (sine)
+// Master reverb via feedback delay for warmth
 // ============================================================
 let audioCtx = null;
-let osc1 = null;        // main "string"
-let osc2 = null;        // detuned second "string" for chorus
-let vibratoLFO = null;  // pitch wobble (bow vibrato)
-let vibratoGain = null;
-let biquadFilter = null;
-let gainNode = null;
+let masterGain = null;
 let audioActive = false;
+let layers = {};
+
+// Custom warm wave (approximates bowed string / organ)
+function createWarmWave(ctx) {
+  const real = new Float32Array([0, 0, 0.4, 0, 0.2, 0, 0.1, 0, 0.05]);
+  const imag = new Float32Array([0, 1, 0, 0.3, 0, 0.15, 0, 0.08, 0]);
+  return ctx.createPeriodicWave(real, imag);
+}
+
+// Custom cello-like wave
+function createCelloWave(ctx) {
+  const real = new Float32Array([0, 0, 0.5, 0.3, 0.2, 0.1, 0.05, 0.02]);
+  const imag = new Float32Array([0, 1, 0, 0.4, 0, 0.2, 0, 0.1]);
+  return ctx.createPeriodicWave(real, imag);
+}
+
+function createLayer(ctx, options) {
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+
+  if (options.wave) {
+    osc1.setPeriodicWave(options.wave);
+    osc2.setPeriodicWave(options.wave);
+  } else {
+    osc1.type = options.type || 'sine';
+    osc2.type = options.type || 'sine';
+  }
+
+  osc1.frequency.value = options.freq;
+  osc2.frequency.value = options.freq;
+  osc2.detune.value = options.detune || 3;
+
+  filter.type = 'lowpass';
+  filter.frequency.value = options.filterFreq || 800;
+  filter.Q.value = options.filterQ || 0.5;
+
+  gain.gain.value = 0;
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(gain);
+
+  osc1.start();
+  osc2.start();
+
+  return { osc1, osc2, filter, gain, freq: options.freq };
+}
 
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const t = audioCtx.currentTime;
 
-  // Two sawtooth oscillators — rich harmonics like bowed strings
-  osc1 = audioCtx.createOscillator();
-  osc1.type = 'sawtooth';
-  osc1.frequency.setValueAtTime(BASE_FREQ, t);
+  const warmWave = createWarmWave(audioCtx);
+  const celloWave = createCelloWave(audioCtx);
 
-  osc2 = audioCtx.createOscillator();
-  osc2.type = 'sawtooth';
-  osc2.frequency.setValueAtTime(BASE_FREQ, t);
-  osc2.detune.setValueAtTime(DETUNE_CENTS, t);
+  // Master output with gentle reverb (feedback delay)
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0;
 
-  // Vibrato LFO → modulates both oscillator frequencies
-  vibratoLFO = audioCtx.createOscillator();
-  vibratoLFO.type = 'sine';
-  vibratoLFO.frequency.setValueAtTime(VIBRATO_RATE, t);
-  vibratoGain = audioCtx.createGain();
-  vibratoGain.gain.setValueAtTime(VIBRATO_DEPTH, t);
+  const reverbDelay = audioCtx.createDelay(1);
+  reverbDelay.delayTime.value = 0.12;
+  const reverbGain = audioCtx.createGain();
+  reverbGain.gain.value = 0.25;
+  const reverbFilter = audioCtx.createBiquadFilter();
+  reverbFilter.type = 'lowpass';
+  reverbFilter.frequency.value = 2000;
 
-  vibratoLFO.connect(vibratoGain);
-  vibratoGain.connect(osc1.frequency);
-  vibratoGain.connect(osc2.frequency);
+  masterGain.connect(audioCtx.destination);
+  masterGain.connect(reverbDelay);
+  reverbDelay.connect(reverbFilter);
+  reverbFilter.connect(reverbGain);
+  reverbGain.connect(reverbDelay); // feedback loop
+  reverbGain.connect(audioCtx.destination);
 
-  // Lowpass filter — tames the sawtooth buzz into a warm cello tone
-  biquadFilter = audioCtx.createBiquadFilter();
-  biquadFilter.type = 'lowpass';
-  biquadFilter.frequency.setValueAtTime(120, t); // rest value — dark/muffled at z~0
-  biquadFilter.Q.setValueAtTime(0.7, t);
+  // Layer 1: Deep drone (always present) — C2 ~64Hz
+  layers.drone = createLayer(audioCtx, {
+    wave: warmWave, freq: midiToFreq(36), detune: 2,
+    filterFreq: 300, filterQ: 0.3,
+  });
+  layers.drone.gain.connect(masterGain);
 
-  // Master gain
-  gainNode = audioCtx.createGain();
-  gainNode.gain.setValueAtTime(0, t);
+  // Layer 2: Pad strings — C3 ~128Hz (appears at |z|>0.3)
+  layers.pad = createLayer(audioCtx, {
+    type: 'triangle', freq: midiToFreq(48), detune: 5,
+    filterFreq: 600, filterQ: 0.4,
+  });
+  layers.pad.gain.connect(masterGain);
 
-  // Routing: osc1 + osc2 → filter → gain → output
-  osc1.connect(biquadFilter);
-  osc2.connect(biquadFilter);
-  biquadFilter.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
+  // Layer 3: Cello melody — follows scale (appears at |z|>0.7)
+  layers.cello = createLayer(audioCtx, {
+    wave: celloWave, freq: midiToFreq(48), detune: 4,
+    filterFreq: 1200, filterQ: 0.7,
+  });
+  // Vibrato LFO for cello
+  layers.celloLFO = audioCtx.createOscillator();
+  layers.celloLFO.type = 'sine';
+  layers.celloLFO.frequency.value = 5;
+  layers.celloVibGain = audioCtx.createGain();
+  layers.celloVibGain.gain.value = 2;
+  layers.celloLFO.connect(layers.celloVibGain);
+  layers.celloVibGain.connect(layers.cello.osc1.frequency);
+  layers.celloVibGain.connect(layers.cello.osc2.frequency);
+  layers.celloLFO.start();
+  layers.cello.gain.connect(masterGain);
 
-  osc1.start();
-  osc2.start();
-  vibratoLFO.start();
+  // Layer 4: Harmonics — high sine overtones (appears at |z|>1.2)
+  layers.harmonics = createLayer(audioCtx, {
+    type: 'sine', freq: midiToFreq(72), detune: 1,
+    filterFreq: 4000, filterQ: 0.2,
+  });
+  layers.harmonics.gain.connect(masterGain);
 }
 
 function toggleAudio() {
@@ -286,60 +355,71 @@ function toggleAudio() {
     initAudio();
     audioActive = true;
     audioCtx.resume();
-    // Immediately set audible frequency and volume
     updateAudio(smoothZ || 0);
   } else if (audioActive) {
     audioActive = false;
-    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + AUDIO_FADEOUT_TIME);
+    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, AUDIO_FADEOUT_TIME);
   } else {
     audioActive = true;
     audioCtx.resume();
-    // Restore sound immediately on re-toggle
     updateAudio(smoothZ || 0);
   }
   audioIndicator.classList.toggle('active', audioActive);
 }
 
-let prevQuantizedFreq = 0; // track note changes for sharp transitions
+let prevQuantizedFreq = 0;
 
 function updateAudio(zScore) {
   if (!audioCtx || !audioActive) return;
   const t = audioCtx.currentTime;
-  const intensity = Math.min(Math.abs(zScore) / Z_MAX, 1);
+  const absZ = Math.abs(zScore);
+  const intensity = Math.min(absZ / Z_MAX, 1);
 
-  // --- Pitch ---
-  // Map intensity across cello range with flattened curve
+  // Master volume: gentle presence
+  masterGain.gain.setTargetAtTime(0.06 + intensity * 0.06, t, 0.5);
+
+  // --- Layer 1: Drone (always) ---
+  // Quiet hum, slightly louder with intensity
+  layers.drone.gain.gain.setTargetAtTime(0.04 + intensity * 0.03, t, 0.8);
+  layers.drone.filter.frequency.setTargetAtTime(200 + intensity * 200, t, 0.5);
+
+  // --- Layer 2: Pad (fades in at |z|>0.3) ---
+  const padLevel = Math.max(0, (absZ - 0.3) / 1.0);
+  layers.pad.gain.gain.setTargetAtTime(Math.min(padLevel, 1) * 0.04, t, 0.6);
+  layers.pad.filter.frequency.setTargetAtTime(300 + padLevel * 500, t, 0.5);
+  // Pad pitch follows root note gently
+  const padFreq = midiToFreq(48) + intensity * (midiToFreq(55) - midiToFreq(48));
+  layers.pad.osc1.frequency.setTargetAtTime(padFreq, t, 0.5);
+  layers.pad.osc2.frequency.setTargetAtTime(padFreq, t, 0.5);
+
+  // --- Layer 3: Cello melody (fades in at |z|>0.7) ---
+  const celloLevel = Math.max(0, (absZ - 0.7) / 1.0);
+  layers.cello.gain.gain.setTargetAtTime(Math.min(celloLevel, 1) * 0.05, t, 0.4);
+  layers.cello.filter.frequency.setTargetAtTime(400 + celloLevel * 1000, t, 0.3);
+
+  // Cello follows the musical scale
   const pitchT = Math.pow(intensity, 0.6);
   let freq = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
   freq = quantizeFreq(freq, currentScaleFreqs);
 
-  // Note transitions:
-  // - Quantized (gamme): snap rapide comme un changement de corde (30ms)
-  // - Libre: glide doux mais perceptible (200ms time constant)
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
   if (noteChanged) {
-    const tc = currentScaleFreqs ? 0.03 : 0.2;
-    osc1.frequency.setTargetAtTime(freq, t, tc);
-    osc2.frequency.setTargetAtTime(freq, t, tc);
+    const tc = currentScaleFreqs ? 0.03 : 0.3;
+    layers.cello.osc1.frequency.setTargetAtTime(freq, t, tc);
+    layers.cello.osc2.frequency.setTargetAtTime(freq, t, tc);
   }
   prevQuantizedFreq = freq;
 
-  // --- Volume: driven by intensity ---
-  // Z ~ 0: barely audible whisper. Z high: full presence.
-  // Soft attack via long ramp time at low intensity, shorter at high.
-  const vol = 0.01 + intensity * 0.12;
-  const attackTime = 0.8 - intensity * 0.5; // 0.8s at rest → 0.3s at peak
-  gainNode.gain.setTargetAtTime(vol, t, attackTime);
+  // Vibrato depth increases with intensity
+  layers.celloVibGain.gain.setTargetAtTime(1 + celloLevel * 5, t, 0.3);
 
-  // --- Filter: "melodicity" ---
-  // Z ~ 0: very dark, muffled (120 Hz cutoff) — just a hum
-  // Z high: open, rich harmonics (1200 Hz) — full cello voice
-  const cutoff = 120 + intensity * 1080;
-  biquadFilter.frequency.setTargetAtTime(cutoff, t, 0.3);
-
-  // --- Vibrato: more expressive at high Z ---
-  const vibDepth = 1 + intensity * 6; // subtle 1Hz wobble → expressive 7Hz
-  vibratoGain.gain.setTargetAtTime(vibDepth, t, 0.3);
+  // --- Layer 4: Harmonics (fades in at |z|>1.2) ---
+  const harmLevel = Math.max(0, (absZ - 1.2) / 1.0);
+  layers.harmonics.gain.gain.setTargetAtTime(Math.min(harmLevel, 1) * 0.025, t, 0.5);
+  // Harmonics track an octave above the cello note
+  const harmFreq = freq * 2;
+  layers.harmonics.osc1.frequency.setTargetAtTime(harmFreq, t, 0.2);
+  layers.harmonics.osc2.frequency.setTargetAtTime(harmFreq, t, 0.2);
 }
 
 // Click on canvas toggles audio
