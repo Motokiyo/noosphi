@@ -726,18 +726,28 @@ html, body {
 }
 
 .sidebar-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
   cursor: pointer;
-  line-height: 1;
-  padding: 4px;
   transition: color 0.2s ease;
 }
 
 .sidebar-close:hover {
   color: var(--text-primary);
+}
+
+.sidebar-close svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
 }
 
 .sidebar-sources {
@@ -923,18 +933,29 @@ html, body {
 .modal-close {
   position: absolute;
   top: 12px;
-  right: 16px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 24px;
   cursor: pointer;
-  line-height: 1;
   transition: color 0.2s ease;
 }
 
 .modal-close:hover {
   color: var(--text-primary);
+}
+
+.modal-close svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
 }
 
 @keyframes fadeIn {

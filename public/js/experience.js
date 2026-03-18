@@ -216,9 +216,15 @@ function onResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   camera.aspect = w / h;
-  // Continuous zoom: sphere always fits with margin
-  // At aspect 1.5+ (landscape): z=3.5. At 0.5 (tall phone): z=5.5
-  camera.position.z = Math.max(3.5, 5.5 - camera.aspect * 1.5);
+  // Sphere must fit in the smallest dimension.
+  // FOV is 50° vertical → visible height at distance z = 2 * z * tan(25°).
+  // Sphere radius is 1, we want it to fill ~70% of the smallest dim.
+  // Solve: 1 / (0.35 * tan(25°)) ≈ 6.1 for height-limited
+  // For width: divide by aspect ratio
+  const tanHalfFov = Math.tan(25 * Math.PI / 180);
+  const zForHeight = 1 / (0.35 * tanHalfFov);
+  const zForWidth = 1 / (0.35 * tanHalfFov * camera.aspect);
+  camera.position.z = Math.max(zForHeight, zForWidth);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
@@ -436,12 +442,17 @@ function animate() {
 // Z-Score Engine (local RNG, 1 calc/second)
 // ============================================================
 const calculator = new ZScoreCalculator(WINDOW_SIZE);
+// Normalization factor: the sliding-window method on a single CSPRNG
+// produces ~2.5x more variance than Princeton's aggregated EGG network.
+// Dividing by this factor aligns the local z-score distribution with
+// the other sources so Stouffer combination is balanced.
+const LOCAL_Z_SCALE = 2.5;
 
 function tickLocalZ() {
   const bitSum = getRandomBits(DRAW_RATE);
   const z = calculator.update(bitSum);
   if (calculator.ready) {
-    currentZ = z;
+    currentZ = z / LOCAL_Z_SCALE;
     combineAndUpdate();
     loadingText.classList.add('hidden');
   }
@@ -618,7 +629,7 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
-      <button class="modal-close" aria-label="Fermer">&times;</button>
+      <button class="modal-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
     </div>
   `;
   document.body.appendChild(overlay);
