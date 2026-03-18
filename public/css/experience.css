@@ -208,11 +208,12 @@ body:has(.session-detail-overlay.open) .header {
 }
 
 .audio-indicator.active {
-  color: var(--accent-cyan);
+  color: #ffffff;
 }
 
 .audio-indicator.active .audio-btn {
-  border-color: rgba(78, 201, 198, 0.2);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .audio-slider {
@@ -829,8 +830,8 @@ body:has(.session-detail-overlay.open) .header {
 }
 
 .session-audio-fixed.active {
-  color: var(--accent-cyan);
-  border-color: rgba(78, 201, 198, 0.3);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .session-audio-fixed svg {

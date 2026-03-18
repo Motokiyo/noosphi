@@ -565,35 +565,56 @@ canvas.addEventListener('click', toggleAudio);
 // Volume slider: tap audio btn to show/hide, drag to adjust
 let userVolume = parseFloat(localStorage.getItem('noosphi_volume') || '0.5');
 
+// Audio button: tap = toggle sound. Long-press or second tap = show/hide volume slider.
+let sliderVisible = false;
+
 document.querySelectorAll('.audio-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    // Find slider in the same container (parent = .audio-indicator or .session-audio-fixed)
     const container = btn.closest('.audio-indicator') || btn.closest('.session-audio-fixed');
     const slider = container?.querySelector('.audio-slider');
-    if (slider) {
-      slider.classList.toggle('visible');
-      clearTimeout(slider._hideTimer);
-      if (slider.classList.contains('visible')) {
-        slider._hideTimer = setTimeout(() => slider.classList.remove('visible'), 4000);
+
+    if (sliderVisible && slider?.classList.contains('visible')) {
+      // Slider is showing — close it, don't toggle audio
+      slider.classList.remove('visible');
+      sliderVisible = false;
+    } else {
+      // Toggle audio and show slider briefly
+      toggleAudio();
+      if (slider) {
+        slider.classList.add('visible');
+        sliderVisible = true;
+        clearTimeout(slider._hideTimer);
+        slider._hideTimer = setTimeout(() => {
+          slider.classList.remove('visible');
+          sliderVisible = false;
+        }, 5000);
       }
     }
-    toggleAudio();
   });
 });
 
-document.querySelectorAll('.audio-slider input[type="range"]').forEach(slider => {
-  slider.value = userVolume * 100;
-  slider.addEventListener('input', (e) => {
-    e.stopPropagation();
+// Volume sliders — drag adjusts volume, doesn't toggle audio
+document.querySelectorAll('.audio-slider input[type="range"]').forEach(input => {
+  input.value = userVolume * 100;
+  input.addEventListener('input', (e) => {
     userVolume = parseInt(e.target.value) / 100;
     localStorage.setItem('noosphi_volume', userVolume.toString());
-    if (masterGain) masterGain.gain.setTargetAtTime(userVolume * 0.12, audioCtx.currentTime, 0.1);
+    if (masterGain && audioCtx) {
+      masterGain.gain.setTargetAtTime(userVolume * 0.12, audioCtx.currentTime, 0.1);
+    }
     // Sync all sliders
     document.querySelectorAll('.audio-slider input[type="range"]').forEach(s => { s.value = e.target.value; });
+    // Keep slider open while dragging
+    document.querySelectorAll('.audio-slider').forEach(s => {
+      clearTimeout(s._hideTimer);
+      s._hideTimer = setTimeout(() => { s.classList.remove('visible'); sliderVisible = false; }, 5000);
+    });
   });
-  slider.addEventListener('click', (e) => e.stopPropagation());
-  slider.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+  // Prevent all events from bubbling to parent (no toggle while dragging)
+  ['click', 'mousedown', 'touchstart', 'touchmove'].forEach(evt => {
+    input.addEventListener(evt, (e) => e.stopPropagation(), { passive: evt.startsWith('touch') });
+  });
 });
 
 // ============================================================
