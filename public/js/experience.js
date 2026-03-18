@@ -79,6 +79,10 @@ const sidebarZNist     = document.getElementById('sidebar-z-nist');
 const sidebarZQci      = document.getElementById('sidebar-z-qci');
 const sidebarZCombined = document.getElementById('sidebar-z-combined');
 
+// Graph overlay live z-score displays (cached — updated every second in combineAndUpdate)
+const graphZValue   = document.getElementById('graph-z-value');
+const graphZSources = document.getElementById('graph-z-sources');
+
 // ============================================================
 // EGG-method z-score (identical to Princeton methodology)
 // 200 random bits → count 1s → z = (sum - 100) / sqrt(50)
@@ -396,14 +400,7 @@ function lerpVisuals(dt) {
   // Update z-display
   if (localReady) {
     zDisplay.textContent = smoothZ.toFixed(2);
-    // Color the z value text subtly
-    if (absZ > 2) {
-      zDisplay.style.color = '#C9A24D';
-    } else if (absZ > 1.5) {
-      zDisplay.style.color = 'rgba(255,255,255,0.9)';
-    } else {
-      zDisplay.style.color = 'rgba(255,255,255,0.6)';
-    }
+    zDisplay.style.color = zColor(absZ);
   }
 }
 
@@ -571,26 +568,12 @@ function combineAndUpdate() {
   updateAudio(displayZ);
 
   // Update live z-score in graph overlay
-  const graphZValue = document.getElementById('graph-z-value');
-  const graphZSources = document.getElementById('graph-z-sources');
-  if (graphZValue) {
-    graphZValue.textContent = displayZ.toFixed(2);
-    const absZ = Math.abs(displayZ);
-    graphZValue.style.color = absZ > 2 ? '#C9A24D' : absZ > 1.5 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)';
-  }
-  if (graphZSources) {
-    const SOURCE_DOTS = [
-      { key: 'local', color: '#00E5FF', label: 'Local' },
-      { key: 'gcp', color: '#6C63FF', label: 'Princeton' },
-      { key: 'qrng', color: '#FF8800', label: 'ANU' },
-      { key: 'nist', color: '#00CC66', label: 'NIST' },
-      { key: 'qci', color: '#C9A24D', label: 'QCI' },
-    ];
-    graphZSources.innerHTML = SOURCE_DOTS.map(s => {
-      const active = (s.key === 'local' ? localReady : apiZScores[s.key] != null);
-      return `<span class="live-z-source-dot ${active ? 'active' : ''}" style="background:${s.color}" title="${s.label}"></span>`;
-    }).join('');
-  }
+  graphZValue.textContent = displayZ.toFixed(2);
+  graphZValue.style.color = zColor(Math.abs(displayZ));
+  graphZSources.innerHTML = SOURCE_META.map(s => {
+    const active = s.key === 'local' ? localReady : apiZScores[s.key] != null;
+    return `<span class="live-z-source-dot ${active ? 'active' : ''}" style="background:${s.color}" title="${s.label}"></span>`;
+  }).join('');
 
   // Feed session recording
   recordSessionTick(displayZ);
@@ -733,6 +716,15 @@ const COLORS = {
   nist: '#00CC66',
   qci: '#C9A24D',
 };
+const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
+// Used for graph-overlay source dots (excludes 'combined' which has no API slot)
+const SOURCE_META = [
+  { key: 'local', color: '#00E5FF', label: 'Local' },
+  { key: 'gcp',   color: '#6C63FF', label: 'Princeton' },
+  { key: 'qrng',  color: '#FF8800', label: 'ANU' },
+  { key: 'nist',  color: '#00CC66', label: 'NIST' },
+  { key: 'qci',   color: '#C9A24D', label: 'QCI' },
+];
 const zHistory = {
   combined: [],
   local: [],
@@ -854,6 +846,62 @@ function formatDuration(seconds) {
   return s > 0 ? `${m}min ${s}s` : `${m}min`;
 }
 
+// Returns a CSS color string that reflects z-score intensity.
+// Used consistently across the sphere indicator, graph overlay, and session recording.
+function zColor(absZ) {
+  if (absZ > 2)   return '#C9A24D';
+  if (absZ > 1.5) return 'rgba(255,255,255,0.9)';
+  return 'rgba(255,255,255,0.6)';
+}
+
+// Returns a zero-padded MM:SS string for a duration in seconds.
+function formatTimer(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ============================================================
+// Shared chart configuration
+// All three charts (history, session, detail) share the same base options.
+// labelFn receives a Chart.js tooltip item and returns the label string.
+// ============================================================
+function makeChartOptions(labelFn) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: 'nearest', intersect: false },
+    scales: {
+      x: {
+        type: 'linear',
+        ticks: { callback: v => formatTime(v), color: 'rgba(255,255,255,0.3)', maxTicksLimit: 6, font: { size: 10 } },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+      },
+      y: {
+        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        suggestedMin: -3,
+        suggestedMax: 3,
+      },
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(11,14,20,0.9)',
+        titleColor: 'rgba(255,255,255,0.7)',
+        bodyColor: 'rgba(255,255,255,0.9)',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        callbacks: {
+          title: items => items[0] ? formatTime(items[0].parsed.x) : '',
+          label: labelFn,
+        },
+      },
+    },
+  };
+}
+
 // ============================================================
 // Graph overlay
 // ============================================================
@@ -912,7 +960,6 @@ function updateGraph() {
 
   // Update highlights from all visible sources
   const allHighlights = [];
-  const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
   Object.keys(COLORS).forEach(key => {
     if (!graphVisibility[key] || zHistory[key].length < 2) return;
     findHighlights(zHistory[key]).forEach(h => {
@@ -968,47 +1015,7 @@ function updateGraph() {
   historyChart = new Chart(ctx, {
     type: 'line',
     data: { datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: 'nearest', intersect: false },
-      scales: {
-        x: {
-          type: 'linear',
-          ticks: {
-            callback: v => formatTime(v),
-            color: 'rgba(255,255,255,0.3)',
-            maxTicksLimit: 6,
-            font: { size: 10 },
-          },
-          grid: { color: 'rgba(255,255,255,0.05)' },
-        },
-        y: {
-          ticks: {
-            color: 'rgba(255,255,255,0.3)',
-            font: { size: 10 },
-          },
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          suggestedMin: -3,
-          suggestedMax: 3,
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(11,14,20,0.9)',
-          titleColor: 'rgba(255,255,255,0.7)',
-          bodyColor: 'rgba(255,255,255,0.9)',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          callbacks: {
-            title: items => items[0] ? formatTime(items[0].parsed.x) : '',
-            label: item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`,
-          },
-        },
-      },
-    },
+    options: makeChartOptions(item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`),
   });
 }
 
@@ -1076,9 +1083,7 @@ btnStartSession.addEventListener('click', () => {
   // Timer
   sessionTimerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
-    const s = (elapsed % 60).toString().padStart(2, '0');
-    sessionRecTimer.textContent = `${m}:${s}`;
+    sessionRecTimer.textContent = formatTimer(elapsed);
   }, 1000);
 
   // Init chart
@@ -1128,8 +1133,7 @@ function recordSessionTick(displayZ) {
   }
 
   sessionZValue.textContent = displayZ.toFixed(2);
-  const absZ = Math.abs(displayZ);
-  sessionZValue.style.color = absZ > 2 ? '#C9A24D' : absZ > 1.5 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)';
+  sessionZValue.style.color = zColor(Math.abs(displayZ));
 
   updateSessionChart();
 }
@@ -1140,7 +1144,6 @@ function updateSessionChart() {
   // Build datasets from sessionData + zHistory (only data during session)
   const start = sessionStartTime;
   const datasets = [];
-  const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
 
   Object.keys(COLORS).forEach(key => {
     if (!sessionVisibility[key]) return;
@@ -1169,34 +1172,7 @@ function updateSessionChart() {
   sessionChart = new Chart(ctx, {
     type: 'line',
     data: { datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: 'nearest', intersect: false },
-      scales: {
-        x: {
-          type: 'linear',
-          ticks: { callback: v => formatTime(v), color: 'rgba(255,255,255,0.3)', maxTicksLimit: 6, font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.05)' },
-        },
-        y: {
-          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          suggestedMin: -3, suggestedMax: 3,
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(11,14,20,0.9)',
-          callbacks: {
-            title: items => items[0] ? formatTime(items[0].parsed.x) : '',
-            label: item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`,
-          },
-        },
-      },
-    },
+    options: makeChartOptions(item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`),
   });
 }
 
@@ -1225,6 +1201,12 @@ sessionsListClose.addEventListener('click', () => {
   sessionsListOverlay.classList.remove('open');
 });
 
+// Delegate clicks on session cards — avoids re-attaching listeners on each render
+sessionsList.addEventListener('click', (e) => {
+  const card = e.target.closest('.saved-session-card');
+  if (card) openSessionDetail(card.dataset.id);
+});
+
 function renderSessionsList() {
   const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
   if (saved.length === 0) {
@@ -1247,10 +1229,6 @@ function renderSessionsList() {
       </div>
     `;
   }).join('');
-
-  sessionsList.querySelectorAll('.saved-session-card').forEach(card => {
-    card.addEventListener('click', () => openSessionDetail(card.dataset.id));
-  });
 }
 
 // ============================================================
@@ -1324,33 +1302,7 @@ function openSessionDetail(id) {
           fill: false,
         }],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        scales: {
-          x: {
-            type: 'linear',
-            ticks: { callback: v => formatTime(v), color: 'rgba(255,255,255,0.3)', maxTicksLimit: 6, font: { size: 10 } },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-          },
-          y: {
-            ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            suggestedMin: -3, suggestedMax: 3,
-          },
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(11,14,20,0.9)',
-            callbacks: {
-              title: items => items[0] ? formatTime(items[0].parsed.x) : '',
-              label: item => `z = ${item.parsed.y.toFixed(3)}`,
-            },
-          },
-        },
-      },
+      options: makeChartOptions(item => `z = ${item.parsed.y.toFixed(3)}`),
     });
   }, 100);
 }
