@@ -18,7 +18,7 @@ let qciAccessToken = null;
 let qciTokenExpiry = 0;
 const ANU_CACHE_TTL = 60_000;   // 1 min — max free rate (1 req/min)
 const NIST_CACHE_TTL = 60_000;  // 1 min — 1 pulse/min
-const QCI_CACHE_TTL = 60_000;   // 1 min
+const QCI_CACHE_TTL = 5_000;    // 5s — no rate limit, ~300M bits/month at this pace
 const QCI_API_TOKEN = process.env.QCI_TOKEN || '';  // set via QCI_TOKEN env var
 
 // --- Static files ---

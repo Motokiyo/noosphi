@@ -450,7 +450,7 @@ function processApiResult(key, dotIndex, z) {
   }
 }
 
-// GCP (Princeton) — polled every 10s, no rate limit
+// GCP (Princeton) — polled every 1s (no rate limit)
 async function fetchGCP() {
   try {
     const d = await fetch('/api/gcp').then(r => r.json());
@@ -459,12 +459,20 @@ async function fetchGCP() {
   combineAndUpdate();
 }
 
-// Other APIs — polled every 60s (rate-limited)
-async function fetchOtherAPIs() {
+// QCI — polled every 5s (~300M bits/month, within 1B free quota)
+async function fetchQCI() {
+  try {
+    const d = await fetch('/api/qci').then(r => r.json());
+    processApiResult('qci', 4, d.status === 'ok' ? d.zIndex : null);
+  } catch { processApiResult('qci', 4, null); }
+  combineAndUpdate();
+}
+
+// ANU + NIST + local server — polled every 60s (rate-limited)
+async function fetchSlow() {
   const endpoints = [
     { key: 'qrng', dot: 2, url: '/api/qrng' },
     { key: 'nist', dot: 3, url: '/api/nist-beacon' },
-    { key: 'qci', dot: 4, url: '/api/qci' },
     { key: 'local_server', dot: 5, url: '/api/local-rng' },
   ];
 
@@ -986,13 +994,17 @@ function init() {
   tickLocalZ();
   setInterval(tickLocalZ, 1000);
 
-  // Fetch GCP (Princeton) every 10s — no rate limit
+  // GCP every 1s (no rate limit)
   fetchGCP();
-  setInterval(fetchGCP, 10000);
+  setInterval(fetchGCP, 1000);
 
-  // Fetch other APIs every 60s (rate-limited)
-  fetchOtherAPIs();
-  setInterval(fetchOtherAPIs, API_POLL_INTERVAL);
+  // QCI every 5s (~300M bits/month, safe within 1B free quota)
+  fetchQCI();
+  setInterval(fetchQCI, 5000);
+
+  // ANU + NIST + local server every 60s (rate-limited)
+  fetchSlow();
+  setInterval(fetchSlow, API_POLL_INTERVAL);
 
   // Record history every second
   setInterval(recordHistory, 1000);
