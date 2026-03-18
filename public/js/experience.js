@@ -216,12 +216,14 @@ function onResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   camera.aspect = w / h;
-  // Sphere fills ~75% of the smallest dimension.
-  // FOV is 50° vertical → visible half-height at distance z = z * tan(25°).
-  // fillFactor 0.375 = sphere diameter / screen dimension target (75%)
+  // Sphere fills ~75% of the screen width.
+  // Camera distance = sphere_radius / (fraction * tan(halfFov) * aspect)
+  // Lower fraction = bigger sphere. 0.375 fills 75% of half-screen = 37.5% total.
+  // We need: diameter = 75% of width → radius = 0.375 * width-in-world
   const tanFov = Math.tan(25 * Math.PI / 180);
-  const fill = 0.375;
-  camera.position.z = Math.max(1 / (fill * tanFov), 1 / (fill * tanFov * camera.aspect));
+  const zFitW = 1 / (0.375 * tanFov * camera.aspect); // 75% of width
+  const zFitH = 1 / (0.45 * tanFov);                   // max 90% of height
+  camera.position.z = Math.min(zFitW, zFitH);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
