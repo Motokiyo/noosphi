@@ -211,15 +211,19 @@ const glowSprite = new THREE.Sprite(glowMat);
 glowSprite.scale.set(4, 4, 1);
 scene.add(glowSprite);
 
-// ---- Resize ----
+// ---- Resize (sphere responsive) ----
 function onResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   camera.aspect = w / h;
+  // Continuous zoom: sphere always fits with margin
+  // At aspect 1.5+ (landscape): z=3.5. At 0.5 (tall phone): z=5.5
+  camera.position.z = Math.max(3.5, 5.5 - camera.aspect * 1.5);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
 window.addEventListener('resize', onResize);
+onResize(); // apply immediately
 
 // ============================================================
 // Audio Engine — Cello synthesis
@@ -581,7 +585,7 @@ function createHelpModal() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
-    <div class="modal-glass modal-glass-scroll">
+    <div class="modal-glass">
       <h2>Que revele cette sphere ?</h2>
       <p>Depuis 1998, le <strong>Global Consciousness Project</strong> de l'Universite
       de Princeton deploie un reseau de generateurs de nombres aleatoires quantiques
@@ -693,6 +697,290 @@ sourceOptions.forEach(label => {
 });
 
 // ============================================================
+// Z-Score History (for graph overlay)
+// ============================================================
+const HISTORY_MAX = 86400; // 24h at 1 point/sec
+const COLORS = {
+  combined: '#CC44FF',
+  local: '#00E5FF',
+  gcp: '#6C63FF',
+  qrng: '#FF8800',
+  nist: '#00CC66',
+  qci: '#C9A24D',
+};
+const zHistory = {
+  combined: [],
+  local: [],
+  gcp: [],
+  qrng: [],
+  nist: [],
+  qci: [],
+};
+
+function recordHistory() {
+  const now = Date.now();
+  // Combined
+  const allZ = [];
+  if (calculator.ready) allZ.push(currentZ);
+  Object.values(apiZScores).forEach(z => { if (z != null && isFinite(z)) allZ.push(z); });
+  const cz = computeStoufferZ(allZ);
+  if (cz != null) pushHistory('combined', now, cz);
+  // Individual
+  if (calculator.ready) pushHistory('local', now, currentZ);
+  if (apiZScores.gcp != null) pushHistory('gcp', now, apiZScores.gcp);
+  if (apiZScores.qrng != null) pushHistory('qrng', now, apiZScores.qrng);
+  if (apiZScores.nist != null) pushHistory('nist', now, apiZScores.nist);
+  if (apiZScores.qci != null) pushHistory('qci', now, apiZScores.qci);
+}
+
+function pushHistory(key, t, z) {
+  zHistory[key].push({ t, z });
+  // Purge points older than 24h
+  const cutoff = t - 86400000;
+  while (zHistory[key].length > 0 && zHistory[key][0].t < cutoff) {
+    zHistory[key].shift();
+  }
+}
+
+// ============================================================
+// Coherence highlights
+// Slot 1: pure peak |z| (highest single z-score ever seen)
+// Slots 2-5: scored by duration × average |z| (sustained coherence)
+// ============================================================
+function findHighlights(data, threshold = 1.5, minDuration = 5) {
+  if (data.length < 2) return [];
+
+  // 1. Find absolute peak z (single point)
+  let peakIdx = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (Math.abs(data[i].z) > Math.abs(data[peakIdx].z)) peakIdx = i;
+  }
+  const peak = {
+    startTime: data[peakIdx].t,
+    endTime: data[peakIdx].t,
+    duration: 1,
+    maxZ: data[peakIdx].z,
+    avgZ: data[peakIdx].z,
+    score: Math.abs(data[peakIdx].z),
+    isPeak: true,
+  };
+
+  // 2. Find sustained coherence periods
+  const periods = [];
+  let start = null;
+  let sumAbsZ = 0;
+  let maxZ = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    if (Math.abs(data[i].z) >= threshold) {
+      if (start == null) { start = i; sumAbsZ = 0; maxZ = 0; }
+      sumAbsZ += Math.abs(data[i].z);
+      if (Math.abs(data[i].z) > Math.abs(maxZ)) maxZ = data[i].z;
+    } else if (start != null) {
+      const dur = i - start;
+      if (dur >= minDuration) {
+        const avgZ = sumAbsZ / dur;
+        periods.push({
+          startTime: data[start].t,
+          endTime: data[i - 1].t,
+          duration: dur,
+          maxZ,
+          avgZ,
+          score: dur * avgZ, // duration × average |z|
+          isPeak: false,
+        });
+      }
+      start = null;
+    }
+  }
+  // Handle ongoing period
+  if (start != null) {
+    const dur = data.length - start;
+    if (dur >= minDuration) {
+      const avgZ = sumAbsZ / dur;
+      periods.push({
+        startTime: data[start].t,
+        endTime: data[data.length - 1].t,
+        duration: dur,
+        maxZ,
+        avgZ,
+        score: dur * avgZ,
+        isPeak: false,
+      });
+    }
+  }
+
+  // Sort sustained periods by score (duration × avgZ) descending
+  periods.sort((a, b) => b.score - a.score);
+
+  // Combine: peak first, then top 4 sustained
+  return [peak, ...periods.slice(0, 4)];
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatDuration(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}min ${s}s` : `${m}min`;
+}
+
+// ============================================================
+// Graph overlay
+// ============================================================
+const graphOverlay = document.getElementById('graph-overlay');
+const btnGraph = document.getElementById('btn-graph');
+const graphClose = document.getElementById('graph-close');
+const highlightsList = document.getElementById('highlights-list');
+let historyChart = null;
+const graphVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+
+function openGraph() {
+  graphOverlay.classList.add('open');
+  updateGraph();
+}
+
+function closeGraph() {
+  graphOverlay.classList.remove('open');
+}
+
+btnGraph.addEventListener('click', openGraph);
+graphClose.addEventListener('click', closeGraph);
+
+// Toggle sources drawer
+const btnToggleSources = document.getElementById('btn-toggle-sources');
+const graphTogglesPanel = document.getElementById('graph-toggles');
+btnToggleSources.addEventListener('click', () => {
+  graphTogglesPanel.classList.toggle('collapsed');
+  btnToggleSources.classList.toggle('expanded');
+});
+
+// Toggle source visibility in graph
+document.querySelectorAll('.graph-toggle').forEach(label => {
+  label.addEventListener('click', (e) => {
+    e.preventDefault(); // prevent checkbox from double-toggling
+    const key = label.dataset.key;
+    const nowActive = !label.classList.contains('active');
+    label.classList.toggle('active', nowActive);
+    label.querySelector('input').checked = nowActive;
+    graphVisibility[key] = nowActive;
+    updateGraph();
+  });
+});
+
+function updateGraph() {
+  if (!graphOverlay.classList.contains('open')) return;
+
+  // Update highlights from all visible sources
+  const allHighlights = [];
+  const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
+  Object.keys(COLORS).forEach(key => {
+    if (!graphVisibility[key] || zHistory[key].length < 2) return;
+    findHighlights(zHistory[key]).forEach(h => {
+      allHighlights.push({ ...h, source: key, label: SOURCE_LABELS[key] });
+    });
+  });
+  allHighlights.sort((a, b) => Math.abs(b.maxZ) - Math.abs(a.maxZ));
+  const topHighlights = allHighlights.slice(0, 5);
+
+  if (topHighlights.length > 0) {
+    highlightsList.innerHTML = topHighlights.map(h => {
+      const timeStr = h.isPeak
+        ? formatTime(h.startTime)
+        : `${formatTime(h.startTime)} — ${formatTime(h.endTime)}`;
+      const durationStr = h.isPeak
+        ? 'pic instantane'
+        : formatDuration(h.duration);
+      return `
+        <div class="highlight-card ${h.isPeak ? 'highlight-peak' : ''}">
+          <span class="highlight-z">z = ${h.maxZ.toFixed(2)}</span>
+          <span class="highlight-time">${timeStr}</span>
+          <span class="highlight-duration">${durationStr}</span>
+          <span class="highlight-source" style="color:${COLORS[h.source]}">${h.label}</span>
+        </div>
+      `;
+    }).join('');
+  } else {
+    highlightsList.innerHTML = '<div class="highlight-empty">Pas encore de coherence marquante</div>';
+  }
+
+  // Build/update chart
+  const datasets = Object.keys(COLORS)
+    .filter(key => graphVisibility[key] && zHistory[key].length > 0)
+    .map(key => ({
+      label: key,
+      data: zHistory[key].map(p => ({ x: p.t, y: p.z })),
+      borderColor: COLORS[key],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: false,
+    }));
+
+  if (historyChart) {
+    historyChart.data.datasets = datasets;
+    historyChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('chart-history');
+  if (!ctx || typeof Chart === 'undefined') return;
+
+  historyChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'nearest', intersect: false },
+      scales: {
+        x: {
+          type: 'linear',
+          ticks: {
+            callback: v => formatTime(v),
+            color: 'rgba(255,255,255,0.3)',
+            maxTicksLimit: 6,
+            font: { size: 10 },
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+        },
+        y: {
+          ticks: {
+            color: 'rgba(255,255,255,0.3)',
+            font: { size: 10 },
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          suggestedMin: -3,
+          suggestedMax: 3,
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(11,14,20,0.9)',
+          titleColor: 'rgba(255,255,255,0.7)',
+          bodyColor: 'rgba(255,255,255,0.9)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            title: items => items[0] ? formatTime(items[0].parsed.x) : '',
+            label: item => `${item.dataset.label}: ${item.parsed.y.toFixed(3)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+// Refresh graph every 5 seconds while open
+setInterval(() => { if (graphOverlay.classList.contains('open')) updateGraph(); }, 5000);
+
+// ============================================================
 // Bootstrap
 // ============================================================
 function init() {
@@ -706,6 +994,9 @@ function init() {
   // Fetch API sources immediately, then every 60s
   fetchAPIs();
   setInterval(fetchAPIs, API_POLL_INTERVAL);
+
+  // Record history every second
+  setInterval(recordHistory, 1000);
 
   // Hide loading after a few seconds
   setTimeout(() => {

@@ -142,12 +142,21 @@ html, body {
   color: var(--text-tertiary);
 }
 
-/* ---- Audio indicator ---- */
-.audio-indicator {
+/* ---- Bottom controls (audio + graph btn) ---- */
+.bottom-controls {
   position: fixed;
   bottom: 24px;
   right: 24px;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Shared base for .control-btn and .audio-indicator */
+.control-btn,
+.audio-indicator {
   width: 32px;
   height: 32px;
   display: flex;
@@ -159,6 +168,28 @@ html, body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: var(--text-tertiary);
+}
+
+.control-btn svg,
+.audio-indicator svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.control-btn {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.audio-indicator {
   pointer-events: none;
   transition: all 0.5s ease;
 }
@@ -168,12 +199,232 @@ html, body {
   border-color: rgba(78, 201, 198, 0.2);
 }
 
-.audio-indicator svg {
+/* ---- Graph overlay (full screen) ---- */
+.graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg-cosmic);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  overflow-y: auto;
+}
+
+.graph-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+.graph-title {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.graph-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graph-toggle-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.graph-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.graph-toggle-btn svg {
   width: 14px;
   height: 14px;
   stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  transition: transform 0.3s ease;
+}
+
+.graph-toggles:not(.collapsed) ~ .graph-header .graph-toggle-btn svg,
+.graph-toggle-btn.expanded svg {
+  transform: rotate(180deg);
+}
+
+.graph-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.graph-close:hover {
+  color: var(--text-primary);
+}
+
+.graph-close svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
   stroke-width: 1.5;
   fill: none;
+}
+
+.graph-highlights {
+  padding: 0 20px 16px;
+  flex-shrink: 0;
+}
+
+.highlights-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+
+.highlights-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.highlight-card {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.highlight-z {
+  font-size: 18px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-gold);
+}
+
+.highlight-time {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+.highlight-duration {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.highlight-peak {
+  border-color: var(--accent-gold);
+}
+
+.highlight-peak .highlight-z {
+  color: var(--accent-gold);
+}
+
+.highlight-source {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.highlight-empty {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.graph-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  max-height: 200px;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.graph-toggles.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.graph-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
+}
+
+.graph-toggle.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.graph-toggle input {
+  display: none;
+}
+
+.toggle-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.graph-toggle.active .toggle-swatch {
+  opacity: 1;
+}
+
+.graph-container {
+  height: 50vh;
+  min-height: 180px;
+  padding: 0 4px 12px;
+  position: relative;
+  margin-top: auto;
 }
 
 /* ---- Sources status (bottom-left, very discreet) ---- */
@@ -229,20 +480,80 @@ html, body {
   }
 
   .header-icons {
-    gap: 12px;
+    gap: 10px;
   }
 
   .header-icon {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   .z-value {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .z-indicator {
-    bottom: 20px;
+    bottom: 16px;
+  }
+
+  .bottom-controls {
+    bottom: 16px;
+    right: 16px;
+    gap: 8px;
+  }
+
+  .control-btn, .audio-indicator {
+    width: 28px;
+    height: 28px;
+  }
+
+  .sources-status {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .sidebar, .settings-panel {
+    width: 100%;
+  }
+
+  .graph-highlights {
+    padding: 0 16px 12px;
+  }
+
+  .highlights-list {
+    gap: 6px;
+  }
+
+  .highlight-card {
+    padding: 6px 10px;
+    min-width: 100px;
+  }
+
+  .graph-toggles {
+    padding: 0 16px 10px;
+    gap: 4px;
+  }
+
+  .graph-toggle {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .graph-container {
+    height: 45vh;
+    min-height: 150px;
+    padding: 0 2px 8px;
+  }
+
+  .highlight-card {
+    min-width: 90px;
+  }
+
+  .modal-glass {
+    max-width: 100%;
+    margin: 12px;
+    padding: 24px;
+    max-height: 90vh;
   }
 }
 
@@ -250,6 +561,15 @@ html, body {
   .header-title {
     font-size: 12px;
     letter-spacing: 0.06em;
+  }
+
+  .header-icons {
+    gap: 8px;
+  }
+
+  .header-icon {
+    width: 28px;
+    height: 28px;
   }
 }
 
