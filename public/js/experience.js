@@ -459,7 +459,7 @@ async function fetchGCP() {
   combineAndUpdate();
 }
 
-// QCI — polled every 5s (~300M bits/month, within 1B free quota)
+// QCI — polled every 1s (25 bytes/req = ~52% of 1B bits/month quota)
 async function fetchQCI() {
   try {
     const d = await fetch('/api/qci').then(r => r.json());
@@ -998,9 +998,9 @@ function init() {
   fetchGCP();
   setInterval(fetchGCP, 1000);
 
-  // QCI every 5s (~300M bits/month, safe within 1B free quota)
+  // QCI every 1s (25 bytes/req = ~52% of 1B free quota)
   fetchQCI();
-  setInterval(fetchQCI, 5000);
+  setInterval(fetchQCI, 1000);
 
   // ANU + NIST + local server every 60s (rate-limited)
   fetchSlow();
