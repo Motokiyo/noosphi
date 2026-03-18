@@ -892,8 +892,20 @@ scaleOptions.forEach(label => {
     label.classList.add('active');
     label.querySelector('input').checked = true;
     currentScaleFreqs = buildScaleFreqs(label.dataset.scale);
+    localStorage.setItem('noosphi_scale', label.dataset.scale);
   });
 });
+
+// Restore saved scale on load
+const savedScale = localStorage.getItem('noosphi_scale');
+if (savedScale && savedScale !== 'free') {
+  currentScaleFreqs = buildScaleFreqs(savedScale);
+  scaleOptions.forEach(l => {
+    const isActive = l.dataset.scale === savedScale;
+    l.classList.toggle('active', isActive);
+    l.querySelector('input').checked = isActive;
+  });
+}
 
 // ============================================================
 // Sidebar — source selector
