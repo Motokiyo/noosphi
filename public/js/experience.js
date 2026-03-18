@@ -1355,6 +1355,16 @@ if (sessionsList) {
   });
 }
 
+// Session toggles drawer
+const btnSessionToggleSources = document.getElementById('btn-session-toggle-sources');
+const sessionTogglesPanel = document.getElementById('session-toggles');
+if (btnSessionToggleSources && sessionTogglesPanel) {
+  btnSessionToggleSources.addEventListener('click', () => {
+    sessionTogglesPanel.classList.toggle('collapsed');
+    btnSessionToggleSources.classList.toggle('expanded');
+  });
+}
+
 function renderSessionsList() {
   const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
   if (saved.length === 0) {

@@ -225,6 +225,7 @@
 
     <!-- Session recording (during) -->
     <div class="session-recording hidden" id="session-recording">
+      <!-- TOP: info bar + toggles with drawer -->
       <div class="session-info-bar">
         <span class="session-rec-dot"></span>
         <span class="session-rec-name" id="session-rec-name"></span>
@@ -235,14 +236,12 @@
         <button class="session-copy-code hidden" id="btn-share-code" aria-label="Partager">
           <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
+        <button class="graph-toggle-btn" id="btn-session-toggle-sources" aria-label="Sources">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
         <span class="session-rec-timer" id="session-rec-timer">00:00</span>
       </div>
-      <div class="session-live-z">
-        <span class="live-z-value" id="session-z-value">--</span>
-        <span class="live-z-label">z-score</span>
-        <span class="session-z-max" id="session-z-max">max: --</span>
-      </div>
-      <div class="session-toggles" id="session-toggles">
+      <div class="session-toggles collapsed" id="session-toggles">
         <label class="graph-toggle active" data-key="combined">
           <input type="checkbox" checked><span class="toggle-swatch" style="background:#CC44FF"></span><span>Combine</span>
         </label>
@@ -262,6 +261,15 @@
           <input type="checkbox" checked><span class="toggle-swatch" style="background:#C9A24D"></span><span>QCI</span>
         </label>
       </div>
+
+      <!-- CENTER: z-score (sphere visible behind) -->
+      <div class="session-center-z">
+        <span class="session-center-z-value" id="session-z-value">--</span>
+        <span class="live-z-label">z-score</span>
+        <span class="session-z-max" id="session-z-max">max: --</span>
+      </div>
+
+      <!-- BOTTOM: graph + controls -->
       <div class="graph-container session-chart-container">
         <canvas id="chart-session"></canvas>
       </div>
