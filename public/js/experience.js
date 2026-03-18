@@ -878,7 +878,7 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
-      <p style="margin-top:16px"><a href="credits.html" style="color:rgba(255,255,255,0.3);font-size:11px;text-decoration:none;letter-spacing:0.05em">Credits &amp; remerciements</a></p>
+      <p style="margin-top:16px"><a href="credits.html" target="_blank" style="color:rgba(255,255,255,0.3);font-size:11px;text-decoration:none;letter-spacing:0.05em">Credits &amp; remerciements</a></p>
       <button class="modal-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
     </div>
   `;
