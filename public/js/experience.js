@@ -937,10 +937,12 @@ document.getElementById('btn-clear-history').addEventListener('click', () => {
 // Toggle sources drawer
 const btnToggleSources = document.getElementById('btn-toggle-sources');
 const graphTogglesPanel = document.getElementById('graph-toggles');
-btnToggleSources.addEventListener('click', () => {
-  graphTogglesPanel.classList.toggle('collapsed');
-  btnToggleSources.classList.toggle('expanded');
-});
+if (btnToggleSources && graphTogglesPanel) {
+  btnToggleSources.addEventListener('click', () => {
+    graphTogglesPanel.classList.toggle('collapsed');
+    btnToggleSources.classList.toggle('expanded');
+  });
+}
 
 // Toggle source visibility in graph
 document.querySelectorAll('.graph-toggle').forEach(label => {
@@ -1071,38 +1073,46 @@ document.getElementById('btn-session-history-main').addEventListener('click', ()
   sessionsListOverlay.classList.add('open');
 });
 
-// Audio toggle in session
+// Flash a button into its "copied" state for 1.5s
+function flashCopied(btn) {
+  btn.classList.add('copied');
+  setTimeout(() => btn.classList.remove('copied'), 1500);
+}
+
+// Audio toggle in session — fixed button bottom-right
 btnSessionAudio.addEventListener('click', () => {
   toggleAudio();
   btnSessionAudio.classList.toggle('active', audioActive);
 });
 
-// Copy collective code
-btnCopyCode.addEventListener('click', () => {
-  if (!currentCollectiveCode) return;
-  navigator.clipboard.writeText(currentCollectiveCode).then(() => {
-    btnCopyCode.classList.add('copied');
-    setTimeout(() => btnCopyCode.classList.remove('copied'), 1500);
-  });
-});
-
-// Share collective code via native share (Telegram, WhatsApp, Signal, etc.)
-btnShareCode.addEventListener('click', () => {
-  if (!currentCollectiveCode) return;
-  const shareData = {
-    title: 'Noosfeerique — Session collective',
-    text: `Rejoins ma session Noosfeerique !\nCode : ${currentCollectiveCode}`,
-    url: window.location.href,
-  };
-  if (navigator.share) {
-    navigator.share(shareData);
-  } else {
-    navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`).then(() => {
-      btnShareCode.classList.add('copied');
-      setTimeout(() => btnShareCode.classList.remove('copied'), 1500);
-    });
+// Click on session overlay background also toggles audio (like clicking the sphere)
+sessionOverlay.addEventListener('click', (e) => {
+  if (e.target === sessionOverlay) {
+    toggleAudio();
+    btnSessionAudio.classList.toggle('active', audioActive);
   }
 });
+
+// Copy collective code to clipboard
+if (btnCopyCode) {
+  btnCopyCode.addEventListener('click', () => {
+    if (!currentCollectiveCode) return;
+    navigator.clipboard.writeText(currentCollectiveCode).then(() => flashCopied(btnCopyCode));
+  });
+}
+
+// Share collective code via Web Share API, with clipboard fallback
+if (btnShareCode) {
+  btnShareCode.addEventListener('click', () => {
+    if (!currentCollectiveCode) return;
+    const text = `Rejoins ma session Noosfeerique !\nCode : ${currentCollectiveCode}`;
+    if (navigator.share) {
+      navigator.share({ title: 'Noosfeerique — Session collective', text, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(`${text}\n${window.location.href}`).then(() => flashCopied(btnShareCode));
+    }
+  });
+}
 
 // Open/close session overlay
 btnSession.addEventListener('click', () => {
@@ -1260,10 +1270,30 @@ sessionsListClose.addEventListener('click', () => {
   sessionsListOverlay.classList.remove('open');
 });
 
-// Delegate clicks on session cards — avoids re-attaching listeners on each render
+// Delegate clicks on session list — cards, rename, delete
 sessionsList.addEventListener('click', (e) => {
+  const deleteBtn = e.target.closest('.saved-session-delete');
+  if (deleteBtn) {
+    e.stopPropagation();
+    const id = deleteBtn.dataset.id;
+    const sessions = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+    localStorage.setItem('noosphi_sessions', JSON.stringify(sessions.filter(s => s.id !== id)));
+    renderSessionsList();
+    return;
+  }
   const card = e.target.closest('.saved-session-card');
-  if (card) openSessionDetail(card.dataset.id);
+  if (card && !e.target.closest('.saved-session-name-input')) openSessionDetail(card.dataset.id);
+});
+
+// Delegate blur on rename inputs
+sessionsList.addEventListener('focusout', (e) => {
+  if (!e.target.classList.contains('saved-session-name-input')) return;
+  const id = e.target.dataset.id;
+  const newName = e.target.value.trim();
+  if (!newName) return;
+  const sessions = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
+  const s = sessions.find(s => s.id === id);
+  if (s) { s.name = newName; localStorage.setItem('noosphi_sessions', JSON.stringify(sessions)); }
 });
 
 function renderSessionsList() {
@@ -1279,7 +1309,12 @@ function renderSessionsList() {
     const durStr = formatDuration(s.duration);
     return `
       <div class="saved-session-card" data-id="${s.id}">
-        <span class="saved-session-name">${s.name}</span>
+        <div class="saved-session-top">
+          <input class="saved-session-name-input" data-id="${s.id}" value="${s.name}" maxlength="100">
+          <button class="saved-session-delete" data-id="${s.id}" aria-label="Supprimer">
+            <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
         <span class="saved-session-meta">
           <span>${dateStr} ${timeStr}</span>
           <span>${durStr}</span>
@@ -1434,45 +1469,34 @@ btnJoinCollective.addEventListener('click', () => {
   startCollectiveSession('join');
 });
 
+// Shared setup for both collective:created and collective:joined
+function onCollectiveSessionStart({ code, name, statusText }) {
+  currentCollectiveCode = code;
+  collectiveStatus.textContent = statusText;
+  collectiveStatus.classList.remove('hidden');
+  btnCopyCode.classList.remove('hidden');
+  btnShareCode.classList.remove('hidden');
+  sessionRecName.textContent = `${name} (${code})`;
+  sessionSetup.classList.add('hidden');
+  sessionRecording.classList.remove('hidden');
+  sessionParticipants.classList.remove('hidden');
+  sessionActive = true;
+  sessionStartTime = Date.now();
+  sessionData = [];
+  sessionMaxZ = 0;
+  sessionTimerInterval = setInterval(() => {
+    sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
+  }, 1000);
+  if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+}
+
 if (socket) {
   socket.on('collective:created', ({ code, name }) => {
-    currentCollectiveCode = code;
-    collectiveStatus.textContent = `Session creee : ${code}`;
-    collectiveStatus.classList.remove('hidden');
-    btnCopyCode.classList.remove('hidden');
-    btnShareCode.classList.remove('hidden');
-    sessionRecName.textContent = `${name} (${code})`;
-    sessionSetup.classList.add('hidden');
-    sessionRecording.classList.remove('hidden');
-    sessionParticipants.classList.remove('hidden');
-    sessionActive = true;
-    sessionStartTime = Date.now();
-    sessionData = [];
-    sessionMaxZ = 0;
-    sessionTimerInterval = setInterval(() => {
-      sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
-    }, 1000);
-    if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+    onCollectiveSessionStart({ code, name, statusText: `Session creee : ${code}` });
   });
 
   socket.on('collective:joined', ({ code, name }) => {
-    currentCollectiveCode = code;
-    collectiveStatus.textContent = `Rejoint : ${code}`;
-    collectiveStatus.classList.remove('hidden');
-    btnCopyCode.classList.remove('hidden');
-    btnShareCode.classList.remove('hidden');
-    sessionRecName.textContent = `${name} (${code})`;
-    sessionSetup.classList.add('hidden');
-    sessionRecording.classList.remove('hidden');
-    sessionParticipants.classList.remove('hidden');
-    sessionActive = true;
-    sessionStartTime = Date.now();
-    sessionData = [];
-    sessionMaxZ = 0;
-    sessionTimerInterval = setInterval(() => {
-      sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
-    }, 1000);
-    if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+    onCollectiveSessionStart({ code, name, statusText: `Rejoint : ${code}` });
   });
 
   socket.on('collective:error', (msg) => {
@@ -1497,8 +1521,7 @@ if (socket) {
   }, 1000);
 }
 
-// Override stop to also leave collective
-const originalStopHandler = btnStopSession.onclick;
+// On stop: also leave the collective if active
 btnStopSession.addEventListener('click', () => {
   if (isCollective && socket) {
     socket.emit('collective:leave');
