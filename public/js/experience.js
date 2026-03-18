@@ -508,54 +508,59 @@ const apiZScores = {
   local_server: null,
 };
 
-async function fetchAPIs() {
+function processApiResult(key, dotIndex, z) {
+  if (z != null && isFinite(z)) {
+    if (normalizers[key]) {
+      normalizers[key].push(z);
+      z = normalizers[key].normalize(z);
+    }
+    apiZScores[key] = z;
+    sourceDots[dotIndex]?.classList.add('active');
+  } else {
+    apiZScores[key] = null;
+    sourceDots[dotIndex]?.classList.remove('active');
+  }
+}
+
+// GCP (Princeton) — polled every 10s, no rate limit
+async function fetchGCP() {
+  try {
+    const d = await fetch('/api/gcp').then(r => r.json());
+    processApiResult('gcp', 1, d.status === 'ok' ? d.zIndex : null);
+  } catch { processApiResult('gcp', 1, null); }
+  combineAndUpdate();
+}
+
+// Other APIs — polled every 60s (rate-limited)
+async function fetchOtherAPIs() {
+  const chiExtract = d => {
+    if (d.data && typeof chiSquareFromBytes === 'function') return chiSquareFromBytes(d.data);
+    return null;
+  };
   const endpoints = [
-    { key: 'gcp', url: '/api/gcp', extract: d => d.zIndex },
-    { key: 'qrng', url: '/api/qrng', extract: d => {
-      if (d.data && typeof chiSquareFromBytes === 'function') {
-        return chiSquareFromBytes(d.data);
-      }
-      return null;
-    }},
-    { key: 'nist', url: '/api/nist-beacon', extract: d => {
-      if (d.data && typeof chiSquareFromBytes === 'function') {
-        return chiSquareFromBytes(d.data);
-      }
-      return null;
-    }},
-    { key: 'qci', url: '/api/qci', extract: d => {
-      if (d.data && typeof chiSquareFromBytes === 'function') {
-        return chiSquareFromBytes(d.data);
-      }
-      return null;
-    }},
-    { key: 'local_server', url: '/api/local-rng', extract: d => parseFloat(d.zScore) },
+    { key: 'qrng', dot: 2, url: '/api/qrng', extract: chiExtract },
+    { key: 'nist', dot: 3, url: '/api/nist-beacon', extract: chiExtract },
+    { key: 'qci', dot: 4, url: '/api/qci', extract: chiExtract },
+    { key: 'local_server', dot: 5, url: '/api/local-rng', extract: d => parseFloat(d.zScore) },
   ];
 
   const results = await Promise.allSettled(
     endpoints.map(ep =>
       fetch(ep.url)
         .then(r => r.json())
-        .then(d => ({ key: ep.key, z: ep.extract(d), ok: d.status === 'ok' }))
+        .then(d => ({ key: ep.key, dot: ep.dot, z: ep.extract(d), ok: d.status === 'ok' }))
     )
   );
 
   results.forEach((r, i) => {
-    const key = endpoints[i].key;
-    if (r.status === 'fulfilled' && r.value.ok && r.value.z != null && isFinite(r.value.z)) {
-      let z = r.value.z;
-      // Normalize non-Princeton sources to unit variance
-      if (normalizers[key]) {
-        normalizers[key].push(z);
-        z = normalizers[key].normalize(z);
-      }
-      apiZScores[key] = z;
-      sourceDots[i + 1]?.classList.add('active');
+    const ep = endpoints[i];
+    if (r.status === 'fulfilled' && r.value.ok) {
+      processApiResult(ep.key, ep.dot, r.value.z);
     } else {
-      apiZScores[key] = null;
-      sourceDots[i + 1]?.classList.remove('active');
+      processApiResult(ep.key, ep.dot, null);
     }
   });
+  combineAndUpdate();
 }
 
 // ============================================================
@@ -1047,9 +1052,13 @@ function init() {
   tickLocalZ();
   setInterval(tickLocalZ, 1000);
 
-  // Fetch API sources immediately, then every 60s
-  fetchAPIs();
-  setInterval(fetchAPIs, API_POLL_INTERVAL);
+  // Fetch GCP (Princeton) every 10s — no rate limit
+  fetchGCP();
+  setInterval(fetchGCP, 10000);
+
+  // Fetch other APIs every 60s (rate-limited)
+  fetchOtherAPIs();
+  setInterval(fetchOtherAPIs, API_POLL_INTERVAL);
 
   // Record history every second
   setInterval(recordHistory, 1000);

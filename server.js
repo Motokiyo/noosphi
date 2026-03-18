@@ -15,8 +15,8 @@ let nistCache = { data: null, ts: 0 };
 let qciCache = { data: null, ts: 0 };
 let qciAccessToken = null;
 let qciTokenExpiry = 0;
-const ANU_CACHE_TTL = 300_000;  // 5 min (ANU rate limit: 1 req/min)
-const NIST_CACHE_TTL = 60_000;  // 1 min
+const ANU_CACHE_TTL = 60_000;   // 1 min — max free rate (1 req/min)
+const NIST_CACHE_TTL = 60_000;  // 1 min — 1 pulse/min
 const QCI_CACHE_TTL = 60_000;   // 1 min
 const QCI_API_TOKEN = process.env.QCI_TOKEN || '';  // set via QCI_TOKEN env var
 
