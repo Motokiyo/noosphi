@@ -484,13 +484,13 @@ function updateAudio(zScore) {
   padGain.gain.setTargetAtTime(Math.min(padT, 1) * 0.025, t, 1.2);
   padFilter.frequency.setTargetAtTime(250 + padT * 350, t, 0.8);
 
-  // Cello frequency (computed early for pad to reference)
+  // === Cello + Pad shared pitch ===
+  // Cello frequency is computed first; pad plays one octave below it.
   const pitchT = Math.pow(intensity, 0.6);
-  let celloFreqRaw = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
+  const celloFreqRaw = BASE_FREQ + pitchT * (MAX_FREQ - BASE_FREQ);
   const celloFreqQ = quantizeFreq(celloFreqRaw, currentScaleFreqs);
 
-  // Pad: octave below as base, osc2 plays a harmonic interval
-  // Intervals cycle slowly based on elapsed time for organic movement
+  // Pad: octave below as base, osc2 plays a slow-cycling harmonic interval
   const elapsed = audioCtx.currentTime;
   const INTERVALS = [0.5, 0.5, 0.667, 0.5, 0.75, 0.5]; // octave, octave, fifth below, octave, fourth below, octave
   const intervalIdx = Math.floor(elapsed / 8) % INTERVALS.length; // changes every ~8s
@@ -508,7 +508,7 @@ function updateAudio(zScore) {
   celloFilter.frequency.setTargetAtTime(300 + celloT * 700, t, 0.5);
   celloVibGain.gain.setTargetAtTime(1 + celloT * 3, t, 0.5);
 
-  let freq = celloFreqQ; // already quantized above for pad reference
+  const freq = celloFreqQ;
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
   if (noteChanged) {
     const tc = currentScaleFreqs ? 0.05 : 0.4;
@@ -517,17 +517,16 @@ function updateAudio(zScore) {
   }
 
   // === Percussive strikes (all quantized, humanized with randomness) ===
-  // Random variation helpers: ±30% on volume, ±40% on decay
-  const rVol = () => 0.7 + Math.random() * 0.6;   // 0.7 — 1.3
-  const rDec = () => 0.6 + Math.random() * 0.8;   // 0.6 — 1.4
-  const rDelay = () => Math.random() * 0.15;       // 0 — 150ms stagger
-
   // Interval between strikes: randomized ±25%
   const baseInterval = 8000 - intensity * 6500;
   const minInterval = baseInterval * (0.75 + Math.random() * 0.5);
   const timeSinceStrike = now - lastStrikeTime;
 
   if (noteChanged && timeSinceStrike > minInterval) {
+    // Humanization helpers: ±30% on volume, ±40% on decay, 0–150ms timing stagger
+    const rVol = () => 0.7 + Math.random() * 0.6;
+    const rDec = () => 0.6 + Math.random() * 0.8;
+    const rDelay = () => Math.random() * 0.15;
     prevQuantizedFreq = freq;
     lastStrikeTime = now;
 
@@ -553,8 +552,6 @@ function updateAudio(zScore) {
       setTimeout(() => strikeSound(bowlFreq, strikeVol * rVol(), 6 * rDec(), 'bowl'), rDelay() * 1000);
       setTimeout(() => strikeSound(bellFreq, strikeVol * 0.3 * rVol(), 3 * rDec(), 'bell'), rDelay() * 1000);
     }
-  } else if (!noteChanged) {
-    prevQuantizedFreq = freq;
   }
 }
 
@@ -896,15 +893,18 @@ scaleOptions.forEach(label => {
   });
 });
 
-// Restore saved scale on load
+// Restore saved scale on load — validate key before applying
 const savedScale = localStorage.getItem('noosphi_scale');
-if (savedScale && savedScale !== 'free') {
+if (savedScale && savedScale in SCALES && savedScale !== 'free') {
   currentScaleFreqs = buildScaleFreqs(savedScale);
   scaleOptions.forEach(l => {
     const isActive = l.dataset.scale === savedScale;
     l.classList.toggle('active', isActive);
     l.querySelector('input').checked = isActive;
   });
+} else if (savedScale && !(savedScale in SCALES)) {
+  // Stale or corrupted key — remove it
+  localStorage.removeItem('noosphi_scale');
 }
 
 // ============================================================
