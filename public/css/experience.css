@@ -154,9 +154,9 @@ html, body {
   align-items: center;
 }
 
-/* Shared base for .control-btn and .audio-indicator */
+/* Shared base for round buttons */
 .control-btn,
-.audio-indicator {
+.audio-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -171,7 +171,7 @@ html, body {
 }
 
 .control-btn svg,
-.audio-indicator svg {
+.audio-btn svg {
   width: 14px;
   height: 14px;
   stroke: currentColor;
@@ -189,14 +189,95 @@ html, body {
   color: var(--text-primary);
 }
 
+/* Audio control with expandable volume slider */
+.audio-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .audio-indicator {
-  pointer-events: none;
-  transition: all 0.5s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: color 0.3s ease;
 }
 
 .audio-indicator.active {
   color: var(--accent-cyan);
+}
+
+.audio-indicator.active .audio-btn {
   border-color: rgba(78, 201, 198, 0.2);
+}
+
+.audio-slider {
+  width: 32px;
+  height: 0;
+  max-height: 0;
+  background: rgba(11, 14, 20, 0.92);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+}
+
+.audio-slider.visible {
+  height: auto;
+  max-height: 130px;
+  opacity: 1;
+  margin-bottom: 6px;
+}
+
+.audio-slider input[type="range"] {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 100px;
+  background: transparent;
+  cursor: pointer;
+  margin: 10px 0;
+}
+
+.audio-slider input[type="range"]::-webkit-slider-runnable-track {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.audio-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: none;
+  margin-left: -5.5px;
+}
+
+.audio-slider input[type="range"]::-moz-range-track {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.audio-slider input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: none;
 }
 
 /* ---- Full-screen overlay base (graph, session, sessions list, session detail) ---- */

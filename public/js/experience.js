@@ -293,8 +293,8 @@ function initAudio() {
   droneOsc2 = audioCtx.createOscillator();
   droneOsc1.setPeriodicWave(tanpura);
   droneOsc2.setPeriodicWave(tanpura);
-  droneOsc1.frequency.value = midiToFreq(36);
-  droneOsc2.frequency.value = midiToFreq(36);
+  droneOsc1.frequency.value = midiToFreq(48); // C3 ~128Hz — audible on phone speakers
+  droneOsc2.frequency.value = midiToFreq(48);
   droneOsc2.detune.value = 2;
 
   droneFilter = audioCtx.createBiquadFilter();
@@ -461,6 +461,8 @@ function toggleAudio() {
     updateAudio(smoothZ || 0);
   }
   audioIndicator.classList.toggle('active', audioActive);
+  const sa = document.getElementById('btn-session-audio');
+  if (sa) sa.classList.toggle('active', audioActive);
 }
 
 function updateAudio(zScore) {
@@ -470,12 +472,14 @@ function updateAudio(zScore) {
   const intensity = Math.min(absZ / Z_MAX, 1);
   const now = Date.now();
 
-  // === Master volume ===
-  masterGain.gain.setTargetAtTime(0.05 + intensity * 0.04, t, 1.0);
+  // === Master volume (scaled by user volume slider) ===
+  const baseVol = 0.05 + intensity * 0.04;
+  masterGain.gain.setTargetAtTime(baseVol * (userVolume * 2), t, 1.0);
 
   // === Drone: always, very quiet ===
-  droneGain.gain.setTargetAtTime(0.02 + intensity * 0.01, t, 2.0);
-  droneFilter.frequency.setTargetAtTime(120 + intensity * 120, t, 1.0);
+  // Use midiToFreq(48) = C3 ~128Hz instead of C2 ~64Hz — audible on phone speakers
+  droneGain.gain.setTargetAtTime(0.025 + intensity * 0.015, t, 2.0);
+  droneFilter.frequency.setTargetAtTime(180 + intensity * 180, t, 1.0);
 
   // === Pad strings (|z|>0.3): one octave below cello ===
   // Plays harmonic intervals that evolve with intensity:
@@ -557,6 +561,40 @@ function updateAudio(zScore) {
 
 // Click on canvas toggles audio
 canvas.addEventListener('click', toggleAudio);
+
+// Volume slider: tap audio btn to show/hide, drag to adjust
+let userVolume = parseFloat(localStorage.getItem('noosphi_volume') || '0.5');
+
+document.querySelectorAll('.audio-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const slider = btn.parentElement.querySelector('.audio-slider') ||
+                   btn.closest('.audio-control')?.querySelector('.audio-slider');
+    if (slider) {
+      slider.classList.toggle('visible');
+      // Auto-hide after 4s
+      clearTimeout(slider._hideTimer);
+      if (slider.classList.contains('visible')) {
+        slider._hideTimer = setTimeout(() => slider.classList.remove('visible'), 4000);
+      }
+    }
+    toggleAudio();
+  });
+});
+
+document.querySelectorAll('.audio-slider input[type="range"]').forEach(slider => {
+  slider.value = userVolume * 100;
+  slider.addEventListener('input', (e) => {
+    e.stopPropagation();
+    userVolume = parseInt(e.target.value) / 100;
+    localStorage.setItem('noosphi_volume', userVolume.toString());
+    if (masterGain) masterGain.gain.setTargetAtTime(userVolume * 0.12, audioCtx.currentTime, 0.1);
+    // Sync all sliders
+    document.querySelectorAll('.audio-slider input[type="range"]').forEach(s => { s.value = e.target.value; });
+  });
+  slider.addEventListener('click', (e) => e.stopPropagation());
+  slider.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+});
 
 // ============================================================
 // Visual updates based on Z-score
@@ -1330,19 +1368,24 @@ function flashCopied(btn) {
   setTimeout(() => btn.classList.remove('copied'), 1500);
 }
 
-// Audio toggle in session — fixed button bottom-right
+// Session audio: btn-session-audio has its own .audio-btn inside,
+// handled by the global .audio-btn click handler above.
+// Click on sphere zone in session also toggles audio.
+document.querySelector('.session-center-z')?.addEventListener('click', () => {
+  toggleAudio();
+  if (btnSessionAudio) btnSessionAudio.classList.toggle('active', audioActive);
+});
+
+// Session audio button direct click (for the outer div)
 if (btnSessionAudio) {
-  btnSessionAudio.addEventListener('click', () => {
+  btnSessionAudio.addEventListener('click', (e) => {
+    // Only toggle if click is not on the slider
+    if (e.target.closest('.audio-slider')) return;
+    if (e.target.closest('.audio-btn')) return; // handled by global .audio-btn handler
     toggleAudio();
     btnSessionAudio.classList.toggle('active', audioActive);
   });
 }
-
-// Click on the sphere zone in session toggles audio (like clicking the sphere on main page)
-document.querySelector('.session-center-z')?.addEventListener('click', () => {
-  toggleAudio();
-  btnSessionAudio.classList.toggle('active', audioActive);
-});
 
 
 // Pause/resume session
