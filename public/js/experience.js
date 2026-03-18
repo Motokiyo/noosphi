@@ -872,6 +872,7 @@ function createHelpModal() {
       <h3>Les sources</h3>
       <ul>
         <li>~60 EGGs quantiques mondiaux (Princeton, USA)</li>
+        <li>QCI uQRNG — photonique quantique (USA)</li>
         <li>ANU QRNG — photonique (Australie)</li>
         <li>NIST Beacon 2.0 (gouvernement US)</li>
         <li>Le generateur de votre propre appareil</li>
