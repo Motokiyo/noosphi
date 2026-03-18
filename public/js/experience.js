@@ -216,14 +216,22 @@ function onResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   camera.aspect = w / h;
-  // Sphere fills ~75% of the screen width.
-  // Camera distance = sphere_radius / (fraction * tan(halfFov) * aspect)
-  // Lower fraction = bigger sphere. 0.375 fills 75% of half-screen = 37.5% total.
-  // We need: diameter = 75% of width → radius = 0.375 * width-in-world
+  // Sphere diameter = 75% of the smallest screen dimension.
+  // Visible half-height at distance z = z * tan(halfFov).
+  // Visible half-width = half-height * aspect.
+  // We want: sphere_diameter / min(screenW, screenH) = 0.75
+  // → sphere_radius / min(half-width, half-height) = 0.75
+  // → z = radius / (0.75 * tan(halfFov))        if height is smallest
+  // → z = radius / (0.75 * tan(halfFov) * aspect) if width is smallest
   const tanFov = Math.tan(25 * Math.PI / 180);
-  const zFitW = 1 / (0.375 * tanFov * camera.aspect); // 75% of width
-  const zFitH = 1 / (0.45 * tanFov);                   // max 90% of height
-  camera.position.z = Math.min(zFitW, zFitH);
+  const target = 0.75; // 75% of smallest dimension
+  if (camera.aspect < 1) {
+    // Portrait: width is smallest → size by width
+    camera.position.z = 1 / (target * tanFov * camera.aspect);
+  } else {
+    // Landscape: height is smallest → size by height
+    camera.position.z = 1 / (target * tanFov);
+  }
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
