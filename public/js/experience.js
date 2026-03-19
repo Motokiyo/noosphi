@@ -1481,10 +1481,15 @@ if (btnShareCode) {
 if (btnSession) {
   btnSession.addEventListener('click', () => {
     sessionOverlay.classList.add('open');
+    if (recIndicator) recIndicator.classList.add('hidden');
     if (btnSessionAudio) {
       btnSessionAudio.classList.toggle('active', audioActive);
     }
-    if (!sessionActive) {
+    if (sessionActive) {
+      // Session in progress — show recording view
+      sessionSetup.classList.add('hidden');
+      sessionRecording.classList.remove('hidden');
+    } else {
       sessionSetup.classList.remove('hidden');
       sessionRecording.classList.add('hidden');
     }
