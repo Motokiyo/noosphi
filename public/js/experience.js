@@ -927,7 +927,7 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <h3>En haut</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
         <div style="display:flex;align-items:center;gap:8px">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           <span>Choix du generateur (source du z-score)</span>
@@ -942,7 +942,7 @@ function createHelpModal() {
         </div>
       </div>
       <h3>En bas</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
         <div style="display:flex;align-items:center;gap:8px">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
           <span>Sessions enregistrees</span>
@@ -961,7 +961,7 @@ function createHelpModal() {
         </div>
       </div>
       <h3>Pendant une session</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
         <div style="display:flex;align-items:center;gap:8px">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           <span>Retour sphere (l'enregistrement continue)</span>
