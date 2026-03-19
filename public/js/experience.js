@@ -927,21 +927,43 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <h3>Les boutons</h3>
-      <ul>
-        <li>Cliquez sur la sphere pour activer/desactiver le son</li>
-        <li>Grille — sessions enregistrees</li>
-        <li>Cercle + point — enregistrer une session (solo ou collective)</li>
-        <li>Courbe ECG — historique des z-scores (24h)</li>
-        <li>Haut-parleur — son on/off + volume (pilule verticale)</li>
-      </ul>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+          <span>Sessions enregistrees</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)"/></svg>
+          <span>Enregistrer une session (solo ou collective)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Historique des z-scores (24h)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span>Son on/off + volume</span>
+        </div>
+      </div>
       <h3>Pendant une session</h3>
-      <ul>
-        <li>La croix ferme la fenetre mais l'enregistrement continue</li>
-        <li>Le bouton session (blanc inverse) rouvre l'enregistrement</li>
-        <li>La pastille rouge en haut montre le temps ecoule</li>
-        <li>Pause / Reprendre : met l'enregistrement en attente</li>
-        <li>Arreter : sauvegarde la session</li>
-      </ul>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <span>Retour sphere (l'enregistrement continue)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:#0B0E14"></div></div>
+          <span>Session en cours — cliquez pour revenir</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:2px"><div style="width:3px;height:10px;background:#0B0E14;border-radius:1px"></div><div style="width:3px;height:10px;background:#0B0E14;border-radius:1px"></div></div>
+          <span>Session en pause</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0"><span style="width:8px;height:8px;border-radius:50%;background:#FF4444;display:inline-block"></span><span style="font-size:11px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums">03:42</span></div>
+          <span>Temps ecoule (cliquez pour revenir)</span>
+        </div>
+      </div>
       <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
       <p style="margin-top:16px"><a href="credits.html" target="_blank" style="color:#ffffff;font-size:11px;text-decoration:none;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.3)">Credits &amp; remerciements</a></p>
       <button class="modal-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
