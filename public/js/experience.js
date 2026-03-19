@@ -278,14 +278,23 @@ function initAudio() {
   revFilter.type = 'lowpass';
   revFilter.frequency.value = 1200;
 
-  masterGain.connect(audioCtx.destination);
+  // Compressor: prevents clipping/crackling on phone speakers
+  const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -24;   // start compressing at -24dB
+  compressor.knee.value = 12;         // soft knee for smooth transition
+  compressor.ratio.value = 8;         // 8:1 compression ratio
+  compressor.attack.value = 0.005;    // fast attack to catch transients
+  compressor.release.value = 0.15;    // smooth release
+
+  masterGain.connect(compressor);
+  compressor.connect(audioCtx.destination);
   masterGain.connect(revDelay1);
   masterGain.connect(revDelay2);
   revDelay1.connect(revFilter);
   revDelay2.connect(revFilter);
   revFilter.connect(revGain);
   revGain.connect(revDelay1);
-  revGain.connect(audioCtx.destination);
+  revGain.connect(compressor);
 
   // Drone: very soft tanpura — C2 432Hz
   const tanpura = waveTanpura(audioCtx);
@@ -369,26 +378,28 @@ function initAudio() {
 }
 
 // Strike a bowl/bell — creates a one-shot sound that decays naturally
+// All strikes use a soft attack ramp (10ms) to avoid clicks/pops
 function strikeSound(freq, volume, decay, type) {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
+  const ATTACK = 0.01; // 10ms soft attack
 
   if (type === 'bowl') {
-    // Singing bowl: fundamental + slightly inharmonic overtone
     const osc1 = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
     osc1.type = 'sine';
     osc2.type = 'sine';
     osc1.frequency.value = freq;
-    osc2.frequency.value = freq * 2.76; // inharmonic partial (bowl character)
+    osc2.frequency.value = freq * 2.76;
 
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.value = freq;
-    filter.Q.value = 12; // very resonant
+    filter.Q.value = 12;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(volume, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(volume, t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
 
     osc1.connect(filter);
@@ -408,7 +419,8 @@ function strikeSound(freq, volume, decay, type) {
     osc.frequency.value = freq;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(volume * 0.6, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(volume * 0.6, t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay * 0.6);
 
     osc.connect(gain);
@@ -417,7 +429,6 @@ function strikeSound(freq, volume, decay, type) {
     osc.stop(t + decay * 0.6);
 
   } else if (type === 'gong') {
-    // Deep gong: very low, long decay
     const osc1 = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
     osc1.type = 'sine';
@@ -431,7 +442,8 @@ function strikeSound(freq, volume, decay, type) {
     filter.Q.value = 1;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(volume, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(volume, t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
 
     osc1.connect(filter);
