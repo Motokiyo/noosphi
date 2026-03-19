@@ -123,7 +123,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 1.3;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0B0E14);
@@ -140,10 +140,10 @@ camera.position.z = 3.5;
 const sphereGeo = new THREE.SphereGeometry(1, 64, 64);
 const sphereMat = new THREE.MeshPhysicalMaterial({
   color: new THREE.Color(0xF5F5F2),
-  roughness: 0.35,
+  roughness: 0.15,
   metalness: 0.0,
-  clearcoat: 0.4,
-  clearcoatRoughness: 0.2,
+  clearcoat: 0.8,
+  clearcoatRoughness: 0.1,
   emissive: new THREE.Color(0x000000),
   emissiveIntensity: 0,
 });
@@ -152,7 +152,7 @@ scene.add(sphere);
 
 // ---- Lighting ----
 // Ambient: very dim base
-const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+const ambient = new THREE.AmbientLight(0xffffff, 0.35);
 scene.add(ambient);
 
 // Key light (front-top-right)
@@ -655,7 +655,7 @@ function lerpVisuals(dt) {
   sphereMat.emissiveIntensity = 1;
 
   // Key light intensity scales up
-  keyLight.intensity = 0.3 + intensity * 2.5;
+  keyLight.intensity = 0.8 + intensity * 2.5;
 
   // Glow sprite opacity
   glowMat.opacity = intensity * 0.7;
@@ -911,7 +911,7 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
-      <p style="margin-top:16px"><a href="credits.html" target="_blank" style="color:rgba(255,255,255,0.3);font-size:11px;text-decoration:none;letter-spacing:0.05em">Credits &amp; remerciements</a></p>
+      <p style="margin-top:16px"><a href="credits.html" target="_blank" style="color:#ffffff;font-size:11px;text-decoration:none;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.3)">Credits &amp; remerciements</a></p>
       <button class="modal-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
     </div>
   `;
