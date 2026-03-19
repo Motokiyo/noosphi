@@ -264,7 +264,8 @@ function waveCello(ctx) {
 
 function initAudio() {
   if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // 'playback' latencyHint uses a larger buffer — prevents glitches on mobile
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
 
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0;
@@ -683,18 +684,17 @@ function lerpVisuals(dt) {
     rimLight.color.set(0xC9A24D);
   }
 
-  // Franck's sphere photo — fades in at |z| > 2, grows with intensity
-  // Franck's sphere photo — fades in at |z| > 2
+  // Franck's photo sphere — same size as 3D sphere, opacity follows |z|
+  // Fixed size matching the 3D sphere (75% of smallest screen dimension)
+  const sphereSize = Math.min(window.innerWidth, window.innerHeight) * 0.75;
+  spherePhotoImg.style.width = sphereSize + 'px';
+  spherePhotoImg.style.height = sphereSize + 'px';
+
   if (absZ > 2) {
     const photoT = Math.min((absZ - 2) / 1.5, 1); // 0→1 over z 2→3.5
-    const photoSize = 150 + photoT * 300; // 150px → 450px
-    spherePhotoEl.style.opacity = 0.3 + photoT * 0.5;
-    spherePhotoImg.style.width = photoSize + 'px';
-    spherePhotoImg.style.height = photoSize + 'px';
+    spherePhotoEl.style.opacity = photoT * 0.85; // 0% → 85% opacity
   } else if (parseFloat(spherePhotoEl.style.opacity) > 0) {
     spherePhotoEl.style.opacity = 0;
-    spherePhotoImg.style.width = '0';
-    spherePhotoImg.style.height = '0';
   }
 
   // Update z-display

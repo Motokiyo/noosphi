@@ -60,11 +60,8 @@ html, body {
 }
 
 .sphere-photo-overlay img {
-  width: 0;
-  height: 0;
   border-radius: 50%;
   display: block;
-  transition: width 1.5s ease, height 1.5s ease;
 }
 
 /* ---- Header ---- */
