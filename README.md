@@ -189,17 +189,27 @@ Le dashboard d&eacute;tecte automatiquement le type de machine sur laquelle il t
 
 ## Feuille de route
 
-Ce prototype valide la faisabilit&eacute; technique. Les prochaines &eacute;tapes sont d&eacute;crites dans la proposition de projet :
+Le prototype v1.0.0 est fonctionnel et d&eacute;ploy&eacute;. Prochaines &eacute;tapes :
 
-1. **Phase 1** — MVP mobile (React Native + Expo) : dot GCP + timer m&eacute;ditation
-2. **Phase 2** — App compl&egrave;te : RNG quantique personnel, sessions de groupe, historique
-3. **Phase 3** — Hardware : bo&icirc;tier RAVA-BLE + partenariat HeartMath / GCP 2.0
+1. **Phase 3** — Navigation compl&egrave;te : Festival Noosf&eacute;erique, Projet, Profil, Param&egrave;tres avanc&eacute;s
+2. **Phase 4** — Conway sur sph&egrave;re : photos rondes, circle packing, mapping 360
+3. **App finale** — React Native + Expo SDK 52 + Supabase + comptes utilisateurs
+
+**Deadline** : Festival Noosf&eacute;erique, 3-4 octobre 2026
+
+---
+
+## Acc&egrave;s en ligne
+
+**https://noosfeerique.leparede.org/experience.html**
 
 ---
 
 ## Documentation technique
 
-Pour une description d&eacute;taill&eacute;e de chaque fichier, des calculs statistiques, des flux de donn&eacute;es et de l'architecture, voir **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+- **[METHODOLOGY_ZSCORE.md](METHODOLOGY_ZSCORE.md)** — Comment le z-score est calcul&eacute; et harmonis&eacute; entre toutes les sources (m&eacute;thode Princeton EGG, 200 bits/trial, Stouffer)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — Architecture du prototype, flux de donn&eacute;es
+- **[CHANGELOG.md](CHANGELOG.md)** — Historique des versions
 
 ---
 
@@ -207,8 +217,9 @@ Pour une description d&eacute;taill&eacute;e de chaque fichier, des calculs stat
 
 Lors du d&eacute;veloppement, nous avons constat&eacute; que le service **ETH Zurich QRNG** (`qrng.ethz.ch`), pr&eacute;vu comme source de secours dans la proposition, est **hors service** (le DNS ne r&eacute;sout plus). Deux alternatives fonctionnelles ont &eacute;t&eacute; int&eacute;gr&eacute;es :
 
-- **ANU QRNG** (Australian National University) — g&eacute;n&eacute;rateur photonique, fonctionnel
+- **ANU QRNG** (Australian National University) — g&eacute;n&eacute;rateur photonique quantique, fonctionnel
 - **NIST Beacon 2.0** — service gouvernemental US, gratuit, fiable
+- **QCI uQRNG** — g&eacute;n&eacute;rateur photonique quantique cloud, 1 milliard bits/mois gratuit
 
 ## Remerciements
 
