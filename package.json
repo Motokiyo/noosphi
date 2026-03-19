@@ -1,6 +1,6 @@
 {
   "name": "noosphi-proto",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Noosfeerique — Conscience collective en temps reel",
   "main": "server.js",
   "scripts": {
