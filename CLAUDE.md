@@ -1,111 +1,133 @@
-# CLAUDE.md — Projet Noosfeerique (NAPP)
+# CLAUDE.md — Noosfeerique v1.0.0
 
 ## QUI TU ES
 Tu es le dev principal de l'application Noosfeerique. Alexandre (l'utilisateur) est ton interlocuteur.
-Tu travailles dans ce dossier : `noosphi-proto/`.
+Franck Laharrague est le commanditaire et directeur artistique.
 
 ## LE PROJET EN UNE PHRASE
-App artistique qui visualise en temps reel l'impact de la conscience collective sur des generateurs de nombres aleatoires quantiques, via une sphere 3D reactive.
+App artistique mesurant la conscience collective en temps reel via des generateurs de nombres aleatoires quantiques (lignee du Global Consciousness Project de Princeton), visualisee par une sphere 3D reactive et un soundscape meditatif.
 
-## DOCUMENTS A LIRE
-- `BRIEF_NOOSFEERIQUE.md` — spec complete, vision artistique de Franck, charte graphique, specs techniques, phases
-- `ARCHITECTURE.md` — architecture technique du proto dashboard existant
+## VERSION : 1.0.0 (19 mars 2026)
 
 ---
 
-## BUG THREE.JS — CORRIGE (17 mars 2026)
+## ARCHITECTURE
 
-Le fichier `three.module.min.js` (version "addons" cassee) a ete SUPPRIME.
-Remplace par `public/js/three.module.js` (570KB, bundle standalone copie depuis le dossier de Franck).
-L'importmap dans experience.html pointe vers `./js/three.module.js`.
+### Frontend (public/)
+- `experience.html` — page Experience Noosfeerique (sphere + son + sessions)
+- `credits.html` — page credits (Franck, Alexandre, Claude Code, QCI)
+- `index.html` — dashboard existant (NE PAS TOUCHER)
+- `manifest.json` — PWA config
+- `sw.js` — service worker (cache offline)
+- `css/experience.css` — styles mobile-first
+- `js/experience.js` — logique complete (~1500 lignes)
+- `js/zindex.js` — fonctions stats (NE PAS TOUCHER)
+- `js/three.module.js` — Three.js standalone 570KB
+- `assets/icons/` — icones PWA (icon-512, icon-192, apple-touch-icon, favicons)
+- `assets/images/` — logo EIFFEL AI
+
+### Backend (server.js)
+- Express + socket.io
+- Routes API proxy : /api/gcp, /api/qrng, /api/nist-beacon, /api/qci, /api/local-rng, /api/status
+- WebSocket : sessions collectives (creer, rejoindre, z-score combine)
+- dotenv pour les credentials (.env gitignore)
+
+### Calcul z-score — Methode Princeton EGG
+Toutes les sources utilisent la meme methode : 200 bits → z = (sum-100)/√50
+- Local : 10 trials/sec, Stouffer combine
+- QCI : 50 octets = 2 trials, 1 req/sec
+- ANU/NIST : octets → bits → trials, 1 req/min
+- GCP : p-values reseau → inverseNormalCDF (deja combine par Princeton)
+- Doc : METHODOLOGY_ZSCORE.md
 
 ---
 
-## ETAT ACTUEL (17 mars 2026)
+## CE QUI EST IMPLEMENTE
 
-### PHASE 1 — SPHERE MVP : IMPLEMENTEE (mais bug Three.js a corriger, voir ci-dessus)
-Les fichiers suivants ont ete crees et sont fonctionnels :
+### Sphere 3D
+- [x] Three.js MeshPhysicalMaterial (roughness 0.15, clearcoat 0.8)
+- [x] Eclairage reactif au z-score (key + fill cyan + rim or + ambient)
+- [x] Halo/glow sprite additif
+- [x] Rotation lente
+- [x] Responsive (75% de la plus petite dimension, jamais coupee)
+- [x] Photo sphere de Franck apparait a |z| > 2 (opacite progressive, taille fixe)
 
-- `public/experience.html` — page Experience Noosfeerique (sphere plein ecran)
-- `public/css/experience.css` — styles mobile-first, charte graphique Franck
-- `public/js/experience.js` — logique complete :
-  - Sphere Three.js (MeshPhysicalMaterial, clearcoat, roughness)
-  - Eclairage multi-points (ambient + key + fill cyan + rim or), intensite = f(|Z|)
-  - Halo/glow sprite additif, opacite = f(|Z|)
-  - Rotation lente (Y 0.003, X 0.001), pulse subtil
-  - ZScoreCalculator (12000 bits/s, fenetre 60s, 1 calcul/seconde)
-  - Audio : triangle + lowpass + gain (0.02-0.10), toggle au clic sur sphere
-  - Fetch des 4 APIs (/api/gcp, /api/qrng, /api/nist-beacon, /api/local-rng) toutes les 60s
-  - Combinaison Stouffer via zindex.js
-  - Transitions fluides (lerp)
-- `public/js/three.module.min.js` — Three.js copie locale
+### Son meditatif
+- [x] 6 couches : drone tanpura + pad cordes + cello + bol frappe + cloche + gong
+- [x] Frappes humanisees (aleatoire volume/decay/intervalle/stagger)
+- [x] 6 gammes musicales (432 Hz) — persiste en localStorage
+- [x] Pad joue octave sous le cello avec intervalles harmoniques variables
+- [x] Volume slider (pilule flottante) — persiste en localStorage
+- [x] Compressor audio (anti-saturation mobile)
+- [x] Toutes rampes exponentialRamp, attack 30ms, latencyHint 'playback'
+- [x] Reverb cathedrale (dual delay feedback)
 
-### URLs
-- http://localhost:3000/experience.html → sphere (NOUVEAU)
-- http://localhost:3000/ → dashboard existant (INCHANGE)
+### Sources de donnees (5 actives)
+- [x] GCP Princeton (60s) — ~60 EGGs quantiques mondiaux
+- [x] QCI uQRNG (1s) — photonique quantique cloud, token via .env
+- [x] ANU QRNG (60s) — photonique quantique, Australie
+- [x] NIST Beacon (60s) — entropie gouvernementale US
+- [x] Local RNG (1s) — CSPRNG, 10 trials EGG
+
+### Interface
+- [x] Sidebar sources (hamburger) — choix source individuelle
+- [x] Panneau settings (engrenage) — choix gamme musicale
+- [x] Modale help (?) — contexte Princeton, z-score explique, lien credits
+- [x] Overlay graphique — historique 24h glissant, toggles, coherences marquantes
+- [x] Header cache quand overlays ouverts (CSS :has())
+- [x] Boutons cercle+X uniformes partout
+- [x] Speaker blanc vif quand actif
+- [x] Responsive mobile-first
+
+### Sessions
+- [x] Solo : nommer, enregistrer, pause/reprendre, arreter
+- [x] Collective (WebSocket) : creer code NOOS-XXXX, rejoindre, partager
+- [x] Web Share API (Telegram/WhatsApp/Signal)
+- [x] Z-score centre + graphe temps reel + toggles sources
+- [x] Sauvegarde localStorage (max 50), renommer, supprimer
+- [x] Detail : graphe par source, commentaire editable
+- [x] Son activable dans les sessions (bouton + clic zone sphere)
+
+### PWA
+- [x] manifest.json avec icones
+- [x] Service worker (cache offline, network-first)
+- [x] Favicon sphere
 
 ---
 
 ## CE QU'IL RESTE A FAIRE
 
-### Phase 2 — Integration donnees mondiales (A VALIDER)
-La Phase 1 fetch deja les APIs et combine via Stouffer, mais il faut :
-- [ ] Verifier visuellement que les donnees API influencent bien la sphere
-- [ ] Afficher un indicateur discret du nombre de sources actives (4 dots en bas a gauche existent deja)
-- [ ] Tester avec le serveur qui tourne (les APIs externes repondent-elles ?)
+### Deploiement
+- [ ] Domaine + HTTPS (Let's Encrypt) sur Hetzner — necessaire pour Web Share API
+- [ ] Deja deploye en HTTP sur VPS Hetzner (meme serveur qu'OpenClaw)
 
-### Phase 3 — Sidebar + navigation
-- [ ] Menu sidebar animee (slide from left)
-  - Experience Noosfeerique (actif)
-  - Festival Noosfeerique (placeholder)
-  - Projet Noosfeerique (placeholder)
-  - Profil utilisateur (placeholder)
-  - Parametres
-- [ ] Panneau parametres d'experience (accessible via icone engrenage) :
-  - Intensite lumineuse maximale (slider)
-  - Plages de frequences sonores (slider min/max)
-  - Sensibilite des variations (slider)
-  - Seuils de declenchement Z (slider, defaut 2)
-  - Mode : Individuel / Collectif / Scene (radio buttons)
-  - Vitesse d'animation (slider)
-- [ ] Pages placeholder pour Festival et Projet
+### Phase 3 — Sidebar navigation
+- [ ] Festival Noosfeerique (placeholder)
+- [ ] Projet Noosfeerique (placeholder)
+- [ ] Profil utilisateur (placeholder)
+- [ ] Parametres avances (sliders intensite, frequences, seuils)
 
-### Phase 4 — Conway sur sphere (avance, complexe)
+### Phase 4 — Conway sur sphere
 - [ ] Photos rondes apparaissant sur la sphere quand Z > seuil
-- [ ] Circle packing spherique (theoreme de Descartes)
+- [ ] Circle packing spherique
 - [ ] Animations naissance/croissance/deplacement/mort
 - [ ] Full mapping photo-sphere 360 quand Z > 3
-- [ ] Franck dispose de "dizaines de milliers de photos rondes" a integrer
+
+### Deadline : Festival Noosfeerique, 3-4 octobre 2026
 
 ---
 
-## CE QUI EXISTE — NE PAS CASSER
+## NE PAS CASSER
 
-### Backend (server.js, port 3000)
-- Express servant `public/` en statique
-- Routes API proxy :
-  - `GET /api/gcp` → Princeton GCP (~60 EGGs quantiques mondiaux)
-  - `GET /api/qrng` → ANU QRNG (photonique, Australie)
-  - `GET /api/nist-beacon` → NIST Beacon 2.0 (US gov)
-  - `GET /api/local-rng` → crypto.randomBytes local
-  - `GET /api/status` → ping toutes les sources
-  - `GET /api/gcp/history` → historique 24h en memoire
-
-### Dashboard existant (NE PAS TOUCHER)
-- `public/index.html` — dashboard avec dot GCP, graphe 24h, cartes
-- `public/js/app.js` — orchestrateur polling
-- `public/js/charts.js` — config Chart.js
-- `public/js/zindex.js` — fonctions stats (inverseNormalCDF, stoufferZ, zToColor, chiSquareFromBytes, normalCDF)
-- `public/css/style.css` — styles du dashboard
-
-### Code de reference (NAP v1 de Franck)
-`/Users/alexandre/Downloads/Code NAPv1ok by Franck/main.js` — ZScoreCalculator, getRandomBits, logique audio
+### Dashboard existant
+- `public/index.html`, `public/js/app.js`, `public/js/charts.js`
+- `public/js/zindex.js`, `public/css/style.css`
 
 ---
 
-## CHARTE GRAPHIQUE STRICTE
+## CHARTE GRAPHIQUE
 - Fond : `#0B0E14` (noir cosmique)
-- Sphere : `#F5F5F2` (blanc chaud)
+- Sphere : `#F5F5F2` (blanc chaud, brillant)
 - Accent or : `#C9A24D`
 - Accent cyan : `#4EC9C6`
 - Texte principal : blanc opacity 0.9
@@ -113,19 +135,21 @@ La Phase 1 fetch deja les APIs et combine via Stouffer, mais il faut :
 - Style : "MYSTIQUE SOBRE, PREMIUM, NON KITSCH"
 - Glass-morphism discret (backdrop-filter blur)
 - Font : Inter ou system sans-serif
-- Boutons fins et minimalistes
+- Liens cliquables : blanc pur #ffffff
 
-## COMMANDES UTILES
+## COMMANDES
 ```bash
-npm install          # installer express
+npm install          # installer les dependances
 npm start            # lancer le serveur (port 3000)
-npm run dev          # lancer en mode watch (node --watch)
+npm run dev          # lancer en mode watch
 ```
 
 ## REGLES
 1. NE JAMAIS ecraser index.html, app.js, charts.js, style.css, zindex.js
-2. Performance : 60fps, Three.js leger
-3. Pas de scroll, tout dans le viewport
-4. La sphere EST l'interface — le moins d'UI possible
-5. Tester sur http://localhost:3000/experience.html
-6. Le dashboard reste sur http://localhost:3000/
+2. NE JAMAIS committer .env ou des credentials
+3. Performance : 60fps, Three.js leger
+4. Pas de scroll, tout dans le viewport
+5. La sphere EST l'interface — le moins d'UI possible
+6. Toutes les rampes audio en exponentialRamp, jamais linearRamp
+7. AudioContext avec latencyHint 'playback'
+8. Tester sur http://localhost:3000/experience.html
