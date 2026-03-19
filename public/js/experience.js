@@ -473,7 +473,7 @@ function updateAudio(zScore) {
   const now = Date.now();
 
   // === Master volume (scaled by user volume slider) ===
-  const baseVol = 0.05 + intensity * 0.04;
+  const baseVol = 0.15 + intensity * 0.35;
   masterGain.gain.setTargetAtTime(baseVol * (userVolume * 2), t, 1.0);
 
   // === Drone: always, very quiet ===
