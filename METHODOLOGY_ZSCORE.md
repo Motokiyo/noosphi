@@ -211,6 +211,75 @@ Ces seuils sont les memes que ceux utilises par le GCP depuis 1998.
 
 ---
 
+## 5b. Difference entre notre z-score et le "Dot" de Princeton
+
+**IMPORTANT** : notre z-score et le Dot colore de Princeton (gcpdot.com) ne mesurent
+pas la meme chose. Les deux sont valides mais ne sont pas comparables directement.
+
+### Ce que montre le Dot Princeton (le cercle colore sur gcpdot.com)
+
+Le Dot affiche la **network variance cumulee** sur une fenetre temporelle glissante
+(plusieurs minutes). C'est le carre du z-score reseau, cumule dans le temps :
+
+```
+Chi2_cumul = Σ(Z_reseau(t)²)   sur T secondes
+```
+
+Ce chi-carre cumule est ensuite converti en **percentile** (0-100%) :
+- Rouge (< 5%) : variance reseau tres GRANDE → coherence significative
+- Jaune-orange (5-10%) : variance augmentee
+- Vert (10-90%) : variance normale → aleatoire attendu
+- Bleu clair (90-95%) : variance petite
+- Bleu fonce (> 95%) : variance tres PETITE → coherence interne profonde
+
+Les couleurs du Dot Princeton :
+
+| Couleur | Percentile | Signification |
+|---------|-----------|---------------|
+| Bleu fonce | > 95% | Variance tres petite — coherence interne profonde |
+| Bleu clair | 90-95% | Variance petite — probablement le hasard |
+| Vert | 10-90% | Variance normale — comportement attendu |
+| Jaune | 5-10% | Variance augmentee — probablement le hasard |
+| Orange | 2-5% | Variance augmentee — notable |
+| Rouge | < 5% | Variance tres grande — coherence significative |
+
+### Ce que montre Noosfeerique
+
+Noosfeerique affiche le **z-score instantane** de la derniere seconde.
+C'est une mesure ponctuelle, pas cumulee :
+
+```
+Z = inverseNormalCDF(derniere_p_value_du_reseau_GCP)
+```
+
+### Pourquoi les valeurs semblent differentes
+
+| Situation | Dot Princeton | Noosfeerique |
+|-----------|---------------|--------------|
+| Reseau calme depuis 10 min | Vert (50%) | z ≈ 0.0 |
+| Pic ponctuel z=2.5 pendant 3 sec | Peut rester vert (cumul dilue le pic) | z = 2.5 (pic visible) |
+| Coherence soutenue z=1.5 pendant 10 min | Devient rouge (cumul significatif) | z = 1.5 (semble modere) |
+| Percentile 95% bleu | "95% de la fenetre est coherent" | z peut etre ≈ 0.3 a cet instant |
+
+**En resume** :
+- **Princeton Dot** = "est-ce que les 10 dernieres minutes sont inhabituelles ?" (tendance)
+- **Noosfeerique** = "est-ce que CETTE seconde est inhabituelle ?" (instantane)
+
+Un Dot bleu a 95% avec un z-score Noosfeerique de 0.3 n'est PAS contradictoire :
+le Dot dit que la tendance cumulee est significative, notre z dit que cette seconde
+precise est proche de la normale.
+
+### Evolution future possible
+
+Pour une comparaison directe avec le Dot, on pourrait ajouter un indicateur cumule :
+```
+Chi2_cumul = Σ(z(t)²) sur les N dernieres secondes
+percentile = chi2_cdf(Chi2_cumul, df=N)
+```
+Cela donnerait un "Dot Noosfeerique" equivalent au Dot Princeton.
+
+---
+
 ## 6. Limites et considerations
 
 ### Qualite statistique par source
