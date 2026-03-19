@@ -927,55 +927,55 @@ function createHelpModal() {
         <li>Le generateur de votre propre appareil</li>
       </ul>
       <h3>En haut</h3>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           <span>Choix du generateur (source du z-score)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Gamme musicale (432 Hz)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span>Cette page (aide et credits)</span>
         </div>
       </div>
       <h3>En bas</h3>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
           <span>Sessions enregistrees</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)"/></svg>
           <span>Enregistrer une session (solo ou collective)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Historique des z-scores (24h)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
           <span>Son on/off + volume</span>
         </div>
       </div>
       <h3>Pendant une session</h3>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           <span>Retour sphere (l'enregistrement continue)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:#0B0E14"></div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:5px;height:5px;border-radius:50%;background:#0B0E14"></div></div>
           <span>Session en cours — cliquez pour revenir</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:2px"><div style="width:3px;height:10px;background:#0B0E14;border-radius:1px"></div><div style="width:3px;height:10px;background:#0B0E14;border-radius:1px"></div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:1px"><div style="width:2px;height:7px;background:#0B0E14;border-radius:1px"></div><div style="width:2px;height:7px;background:#0B0E14;border-radius:1px"></div></div>
           <span>Session en pause</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0"><span style="width:8px;height:8px;border-radius:50%;background:#FF4444;display:inline-block"></span><span style="font-size:11px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums">03:42</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:#FF4444;display:inline-block"></span><span style="font-size:9px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums">03:42</span></div>
           <span>Temps ecoule (cliquez pour revenir)</span>
         </div>
       </div>
