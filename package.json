@@ -1,7 +1,7 @@
 {
   "name": "noosphi-proto",
-  "version": "0.1.0",
-  "description": "noosphi prototype - API cumulation dashboard",
+  "version": "1.0.0",
+  "description": "Noosfeerique — Conscience collective en temps reel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
