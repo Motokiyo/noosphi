@@ -1452,6 +1452,7 @@ if (btnPauseSession) {
       pauseLabel.textContent = 'Pause';
       btnPauseSession.classList.remove('paused');
     }
+    updateSessionBtnState();
   });
 }
 
@@ -1545,6 +1546,27 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && sessionActive) requestWakeLock();
 });
 
+// Update session button icon based on state
+const sessionBtnIcon = document.getElementById('session-btn-icon');
+const btnSessionEl = document.getElementById('btn-session');
+
+function updateSessionBtnState() {
+  if (!sessionBtnIcon || !btnSessionEl) return;
+  if (sessionActive && sessionPaused) {
+    // Paused: white bg, black pause bars
+    btnSessionEl.classList.add('recording');
+    sessionBtnIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><rect x="8" y="7" width="3" height="10" fill="currentColor" stroke="none"/><rect x="13" y="7" width="3" height="10" fill="currentColor" stroke="none"/>';
+  } else if (sessionActive) {
+    // Recording: white bg, black dot
+    btnSessionEl.classList.add('recording');
+    sessionBtnIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>';
+  } else {
+    // Idle: normal style
+    btnSessionEl.classList.remove('recording');
+    sessionBtnIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/>';
+  }
+}
+
 // Start recording
 if (btnStartSession) {
   btnStartSession.addEventListener('click', () => {
@@ -1559,6 +1581,7 @@ if (btnStartSession) {
   sessionMaxZ = 0;
   sessionZMax.textContent = 'max: --';
   requestWakeLock();
+  updateSessionBtnState();
 
   // Timer
   sessionTimerInterval = setInterval(() => {
@@ -1578,6 +1601,7 @@ if (btnStopSession) {
   clearInterval(sessionTimerInterval);
   releaseWakeLock();
   recIndicator.classList.add('hidden');
+  updateSessionBtnState();
 
   const session = {
     id: Date.now().toString(36),

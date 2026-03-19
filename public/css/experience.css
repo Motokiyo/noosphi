@@ -250,9 +250,14 @@ body:has(.session-detail-overlay.open) .header {
   color: var(--text-primary);
 }
 
-.control-btn.session-btn {
-  background: transparent;
-  border-color: transparent;
+.control-btn.recording {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0B0E14;
+}
+
+.control-btn.recording svg {
+  stroke: #0B0E14;
 }
 
 /* Audio indicator with floating volume slider */
