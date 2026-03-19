@@ -1491,22 +1491,19 @@ if (btnSession) {
   });
 }
 
-if (sessionClose) {
-  sessionClose.addEventListener('click', () => {
-    if (!sessionActive) sessionOverlay.classList.remove('open');
-  });
-}
-
-// Minimize session — return to sphere view while recording continues
-const btnMinimize = document.getElementById('btn-minimize-session');
 const recIndicator = document.getElementById('rec-indicator');
 const recIndicatorTimer = document.getElementById('rec-indicator-timer');
 
-if (btnMinimize) {
-  btnMinimize.addEventListener('click', () => {
-    if (!sessionActive) return;
-    sessionOverlay.classList.remove('open');
-    recIndicator.classList.remove('hidden');
+// Close button: if recording → minimize to sphere. If not → close overlay.
+if (sessionClose) {
+  sessionClose.addEventListener('click', () => {
+    if (sessionActive) {
+      // Minimize: return to sphere, recording continues
+      sessionOverlay.classList.remove('open');
+      recIndicator.classList.remove('hidden');
+    } else {
+      sessionOverlay.classList.remove('open');
+    }
   });
 }
 
