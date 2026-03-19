@@ -47,6 +47,26 @@ html, body {
   cursor: pointer;
 }
 
+/* ---- Sphere photo overlay (appears at high |z|) ---- */
+.sphere-photo-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.5s ease, transform 1.5s ease;
+}
+
+.sphere-photo-overlay img {
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  display: block;
+  transition: width 1.5s ease, height 1.5s ease;
+}
+
 /* ---- Header ---- */
 .header {
   position: fixed;

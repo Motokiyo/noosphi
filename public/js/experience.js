@@ -70,6 +70,8 @@ const zDisplay = document.getElementById('z-display');
 const loadingText = document.getElementById('loading-text');
 const audioIndicator = document.getElementById('audio-indicator');
 const sourceDots = document.querySelectorAll('.source-dot');
+const spherePhotoEl = document.getElementById('sphere-photo');
+const spherePhotoImg = spherePhotoEl?.querySelector('img');
 
 // Sidebar z-score displays (cached — updated every second in combineAndUpdate)
 const sidebarZLocal    = document.getElementById('sidebar-z-local');
@@ -679,6 +681,20 @@ function lerpVisuals(dt) {
     rimLight.intensity = 0.15;
     fillLight.color.set(0x4EC9C6);
     rimLight.color.set(0xC9A24D);
+  }
+
+  // Franck's sphere photo — fades in at |z| > 2, grows with intensity
+  // Franck's sphere photo — fades in at |z| > 2
+  if (absZ > 2) {
+    const photoT = Math.min((absZ - 2) / 1.5, 1); // 0→1 over z 2→3.5
+    const photoSize = 150 + photoT * 300; // 150px → 450px
+    spherePhotoEl.style.opacity = 0.3 + photoT * 0.5;
+    spherePhotoImg.style.width = photoSize + 'px';
+    spherePhotoImg.style.height = photoSize + 'px';
+  } else if (parseFloat(spherePhotoEl.style.opacity) > 0) {
+    spherePhotoEl.style.opacity = 0;
+    spherePhotoImg.style.width = '0';
+    spherePhotoImg.style.height = '0';
   }
 
   // Update z-display
