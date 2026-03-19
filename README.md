@@ -51,17 +51,46 @@ L'app combine **5 sources** de nombres al&eacute;atoires, chacune activable/d&ea
 | **NIST Beacon** (USA) | Service gouvernemental am&eacute;ricain | 1/min | 512 bits d'entropie v&eacute;rifiable chaque minute |
 | **Votre machine** | Le processeur de l'appareil qui fait tourner l'app | 1/sec | Bruit thermique local (10 trials de 200 bits) |
 
-### Le graphique temps r&eacute;el
+### Les boutons (en bas &agrave; droite)
 
-Un graphe glissant qui montre l'&eacute;volution du z-index au cours du temps, avec une courbe par source. Des **switches** (cliquets on/off) permettent de choisir quelles courbes afficher.
+| Bouton | Ic&ocirc;ne | Action |
+|--------|-------|--------|
+| **Sessions enregistr&eacute;es** | Grille | Ouvre la liste des sessions sauvegard&eacute;es |
+| **Session** | Cercle + point | Enregistrer une session (solo ou collective) |
+| **Historique** | Courbe ECG | Graphique 24h glissant avec toutes les sources |
+| **Son** | Haut-parleur | Active/d&eacute;sactive le son + volume (pilule verticale) |
 
-### Les bulles d'information
+### Pendant une session
 
-Des petits boutons **(i)** sont pr&eacute;sents partout dans l'interface. Survolez-les pour obtenir une explication en langage simple de chaque &eacute;l&eacute;ment.
+- **La croix (X)** ferme la fen&ecirc;tre mais l'enregistrement **continue en fond**
+- **Le bouton session** (blanc invers&eacute;) indique qu'une session est en cours — cliquez dessus pour revenir &agrave; l'enregistrement
+- **La pastille rouge en haut** montre le temps &eacute;coul&eacute; — cliquez dessus pour revenir aussi
+- **Pause / Reprendre** : met l'enregistrement en attente (le bouton session affiche des barres de pause)
+- **Arr&ecirc;ter** : sauvegarde la session
+
+### Sessions collectives
+
+1. Choisissez "Session collective" dans l'&eacute;cran de session
+2. Un code (ex: `NOOS-ABCD`) est g&eacute;n&eacute;r&eacute;
+3. Partagez-le via le bouton partage (Telegram, WhatsApp, Signal...)
+4. Les participants rejoignent avec le code
+5. Le z-score combine les RNG de tous les appareils connect&eacute;s
+
+### Le son
+
+Un **soundscape m&eacute;ditatif** r&eacute;actif au z-score :
+- **z ~ 0** : drone grave (tanpura), &agrave; peine audible
+- **|z| > 0.3** : nappe de cordes chaude
+- **|z| > 0.7** : violoncelle m&eacute;lodique (suit la gamme choisie)
+- **|z| > 1** : bols tib&eacute;tains frapp&eacute;s
+- **|z| > 1.5** : cloches
+- **|z| > 2** : gongs profonds + sph&egrave;re photo de Franck appara&icirc;t
+
+6 gammes disponibles (432 Hz) : libre, pentatonique, majeure, mineure, dorienne, chromatique.
 
 ### Le score combin&eacute; (Stouffer)
 
-Le dashboard fusionne toutes les sources actives en un **score unique** via la m&eacute;thode statistique de Stouffer. Plus il y a de sources, plus la mesure est fiable.
+L'app fusionne toutes les sources actives en un **score unique** via la m&eacute;thode statistique de Stouffer. Plus il y a de sources, plus la mesure est fiable. Voir **[METHODOLOGY_ZSCORE.md](METHODOLOGY_ZSCORE.md)** pour les d&eacute;tails.
 
 ---
 
