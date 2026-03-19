@@ -280,11 +280,11 @@ function initAudio() {
 
   // Compressor: prevents clipping/crackling on phone speakers
   const compressor = audioCtx.createDynamicsCompressor();
-  compressor.threshold.value = -24;   // start compressing at -24dB
-  compressor.knee.value = 12;         // soft knee for smooth transition
-  compressor.ratio.value = 8;         // 8:1 compression ratio
-  compressor.attack.value = 0.005;    // fast attack to catch transients
-  compressor.release.value = 0.15;    // smooth release
+  compressor.threshold.value = -24;
+  compressor.knee.value = 30;         // wide knee — very smooth compression
+  compressor.ratio.value = 12;        // aggressive ratio for phone speakers
+  compressor.attack.value = 0.003;    // 3ms — catches transients before they clip
+  compressor.release.value = 0.25;    // smooth release
 
   masterGain.connect(compressor);
   compressor.connect(audioCtx.destination);
