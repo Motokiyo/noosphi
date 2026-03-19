@@ -64,6 +64,40 @@ html, body {
   display: block;
 }
 
+/* ---- Recording indicator (minimized session) ---- */
+.rec-indicator {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(11, 14, 20, 0.8);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.rec-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FF4444;
+  animation: recPulse 1.5s ease infinite;
+}
+
+.rec-indicator-timer {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* ---- Header ---- */
 .header {
   position: fixed;
@@ -214,6 +248,11 @@ body:has(.session-detail-overlay.open) .header {
 .control-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
+}
+
+.control-btn.session-btn {
+  background: transparent;
+  border-color: transparent;
 }
 
 /* Audio indicator with floating volume slider */

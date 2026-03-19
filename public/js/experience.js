@@ -1496,6 +1496,55 @@ if (sessionClose) {
   });
 }
 
+// Minimize session — return to sphere view while recording continues
+const btnMinimize = document.getElementById('btn-minimize-session');
+const recIndicator = document.getElementById('rec-indicator');
+const recIndicatorTimer = document.getElementById('rec-indicator-timer');
+
+if (btnMinimize) {
+  btnMinimize.addEventListener('click', () => {
+    if (!sessionActive) return;
+    sessionOverlay.classList.remove('open');
+    recIndicator.classList.remove('hidden');
+  });
+}
+
+// Click on rec indicator reopens the session overlay
+if (recIndicator) {
+  recIndicator.addEventListener('click', () => {
+    sessionOverlay.classList.add('open');
+    recIndicator.classList.add('hidden');
+  });
+}
+
+// Update rec indicator timer (synced with session timer)
+setInterval(() => {
+  if (sessionActive && !sessionOverlay.classList.contains('open') && recIndicatorTimer) {
+    const elapsed = Math.floor((Date.now() - sessionStartTime - sessionPausedTotal - (sessionPaused ? Date.now() - sessionPauseStart : 0)) / 1000);
+    recIndicatorTimer.textContent = formatTimer(Math.max(0, elapsed));
+  }
+}, 1000);
+
+// Wake Lock — prevent screen from sleeping during sessions
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch { /* user denied or not supported */ }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// Re-acquire wake lock when page becomes visible again (mobile tab switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && sessionActive) requestWakeLock();
+});
+
 // Start recording
 if (btnStartSession) {
   btnStartSession.addEventListener('click', () => {
@@ -1509,6 +1558,7 @@ if (btnStartSession) {
   sessionData = [];
   sessionMaxZ = 0;
   sessionZMax.textContent = 'max: --';
+  requestWakeLock();
 
   // Timer
   sessionTimerInterval = setInterval(() => {
@@ -1526,6 +1576,8 @@ if (btnStopSession) {
   btnStopSession.addEventListener('click', () => {
   sessionActive = false;
   clearInterval(sessionTimerInterval);
+  releaseWakeLock();
+  recIndicator.classList.add('hidden');
 
   const session = {
     id: Date.now().toString(36),

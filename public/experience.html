@@ -168,6 +168,12 @@
   <!-- Three.js canvas -->
   <canvas id="sphere-canvas"></canvas>
 
+  <!-- Recording indicator (visible on main page when session runs minimized) -->
+  <div class="rec-indicator hidden" id="rec-indicator">
+    <span class="rec-indicator-dot"></span>
+    <span class="rec-indicator-timer" id="rec-indicator-timer">00:00</span>
+  </div>
+
   <!-- Franck's sphere overlay — appears at |z| > 2 -->
   <div class="sphere-photo-overlay" id="sphere-photo">
     <img src="assets/icons/icon-512.png" alt="">
@@ -184,8 +190,8 @@
     <button class="control-btn" id="btn-session-history-main" aria-label="Sessions enregistrees">
       <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
     </button>
-    <button class="control-btn" id="btn-session" aria-label="Session">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+    <button class="control-btn session-btn" id="btn-session" aria-label="Session">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffffff" stroke="#ffffff"/><circle cx="12" cy="12" r="3" fill="#0B0E14" stroke="none"/></svg>
     </button>
     <button class="control-btn" id="btn-graph" aria-label="Graphiques">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -205,6 +211,9 @@
     <div class="session-header">
       <span class="session-title">Session</span>
       <div class="session-header-right">
+        <button class="graph-toggle-btn" id="btn-minimize-session" aria-label="Voir la sphere" title="Retour sphere">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none"/><circle cx="12" cy="12" r="4"/></svg>
+        </button>
         <button class="graph-close" id="session-close" aria-label="Fermer">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         </button>
