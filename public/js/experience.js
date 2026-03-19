@@ -380,11 +380,12 @@ function initAudio() {
 }
 
 // Strike a bowl/bell — creates a one-shot sound that decays naturally
-// All strikes use a soft attack ramp (10ms) to avoid clicks/pops
+// All ramps use exponentialRamp (smoother than linear, no discontinuities)
+// exponentialRamp can't start from 0 — use 0.001 as floor
 function strikeSound(freq, volume, decay, type) {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
-  const ATTACK = 0.01; // 10ms soft attack
+  const ATTACK = 0.03; // 30ms soft exponential attack
 
   if (type === 'bowl') {
     const osc1 = audioCtx.createOscillator();
@@ -400,8 +401,8 @@ function strikeSound(freq, volume, decay, type) {
     filter.Q.value = 12;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(volume, t + ATTACK);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.001), t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
 
     osc1.connect(filter);
@@ -415,14 +416,13 @@ function strikeSound(freq, volume, decay, type) {
     osc2.stop(t + decay);
 
   } else if (type === 'bell') {
-    // Small bell: higher, shorter, brighter
     const osc = audioCtx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = freq;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(volume * 0.6, t + ATTACK);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.exponentialRampToValueAtTime(Math.max(volume * 0.6, 0.001), t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay * 0.6);
 
     osc.connect(gain);
@@ -444,8 +444,8 @@ function strikeSound(freq, volume, decay, type) {
     filter.Q.value = 1;
 
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(volume, t + ATTACK);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.001), t + ATTACK);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
 
     osc1.connect(filter);
@@ -514,7 +514,7 @@ function updateAudio(zScore) {
   const intervalIdx = Math.floor(elapsed / 8) % INTERVALS.length; // changes every ~8s
   const padBase = celloFreqQ * INTERVALS[intervalIdx];
   let padFreq = quantizeFreq(padBase, currentScaleFreqs) || padBase;
-  const padTc = currentScaleFreqs ? 0.05 : 0.8;
+  const padTc = currentScaleFreqs ? 0.1 : 0.8;
   padOsc1.frequency.setTargetAtTime(padFreq, t, padTc);
   // Second oscillator on a neighboring note for richness
   const padFreq2 = quantizeFreq(celloFreqQ * 0.5, currentScaleFreqs) || celloFreqQ * 0.5;
@@ -529,7 +529,7 @@ function updateAudio(zScore) {
   const freq = celloFreqQ;
   const noteChanged = Math.abs(freq - prevQuantizedFreq) > 0.5;
   if (noteChanged) {
-    const tc = currentScaleFreqs ? 0.05 : 0.4;
+    const tc = currentScaleFreqs ? 0.1 : 0.4;
     celloOsc1.frequency.setTargetAtTime(freq, t, tc);
     celloOsc2.frequency.setTargetAtTime(freq, t, tc);
   }
@@ -615,7 +615,7 @@ document.querySelectorAll('.audio-slider input[type="range"]').forEach(input => 
     userVolume = parseInt(e.target.value) / 100;
     localStorage.setItem('noosphi_volume', userVolume.toString());
     if (masterGain && audioCtx) {
-      masterGain.gain.setTargetAtTime(userVolume * 0.12, audioCtx.currentTime, 0.1);
+      masterGain.gain.setTargetAtTime(userVolume * 0.5, audioCtx.currentTime, 0.3);
     }
     // Sync all sliders
     document.querySelectorAll('.audio-slider input[type="range"]').forEach(s => { s.value = e.target.value; });
