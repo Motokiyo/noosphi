@@ -1491,6 +1491,7 @@ if (btnSession) {
   });
 }
 
+
 const recIndicator = document.getElementById('rec-indicator');
 const recIndicatorTimer = document.getElementById('rec-indicator-timer');
 
@@ -1500,7 +1501,7 @@ if (sessionClose) {
     if (sessionActive) {
       // Minimize: return to sphere, recording continues
       sessionOverlay.classList.remove('open');
-      recIndicator.classList.remove('hidden');
+      if (recIndicator) recIndicator.classList.remove('hidden');
     } else {
       sessionOverlay.classList.remove('open');
     }
@@ -1597,7 +1598,7 @@ if (btnStopSession) {
   sessionActive = false;
   clearInterval(sessionTimerInterval);
   releaseWakeLock();
-  recIndicator.classList.add('hidden');
+  if (recIndicator) recIndicator.classList.add('hidden');
   updateSessionBtnState();
 
   const session = {
