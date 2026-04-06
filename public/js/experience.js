@@ -2136,6 +2136,14 @@ function init() {
     backBtn.style.cssText = 'position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.9);color:#8B6914;padding:8px 16px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
     document.body.appendChild(backBtn);
   }
+
+  // ?sessions=1 or #sessions → open sessions list
+  if (urlParams.get('sessions') === '1' || window.location.hash === '#sessions') {
+    setTimeout(() => {
+      if (typeof renderSessionsList === 'function') renderSessionsList();
+      if (sessionsListOverlay) sessionsListOverlay.classList.add('open');
+    }, 2000);
+  }
 }
 
 init();
