@@ -772,11 +772,11 @@ async function fetchQCI() {
   combineAndUpdate();
 }
 
-// ANU + NIST + local server — polled every 60s (rate-limited)
+// Local server — polled every 60s (ANU and NIST disabled)
 async function fetchSlow() {
   const endpoints = [
-    { key: 'qrng', dot: 2, url: '/api/qrng' },
-    { key: 'nist', dot: 3, url: '/api/nist-beacon' },
+    // { key: 'qrng', dot: 2, url: '/api/qrng' },      // ANU QRNG — disabled
+    // { key: 'nist', dot: 3, url: '/api/nist-beacon' }, // NIST Beacon — disabled
     { key: 'local_server', dot: 5, url: '/api/local-rng' },
   ];
 
@@ -822,10 +822,12 @@ function combineAndUpdate() {
   // Local browser RNG is always source #0
   sourceDots[0]?.classList.toggle('active', localReady);
 
-  // Collect all available z-scores
+  // Collect all available z-scores (ANU/NIST excluded — sources disabled)
+  const DISABLED_SOURCES = ['qrng', 'nist'];
   const allZ = [];
   if (localReady) allZ.push(currentZ);
-  Object.values(apiZScores).forEach(z => {
+  Object.entries(apiZScores).forEach(([key, z]) => {
+    if (DISABLED_SOURCES.includes(key)) return;
     if (z != null && isFinite(z)) allZ.push(z);
   });
 

@@ -176,126 +176,14 @@ app.get('/api/gcp/history', (req, res) => {
   res.json(gcpHistory);
 });
 
-// 2. ANU QRNG Proxy (replaces ETH Zurich which is down)
-app.get('/api/qrng', async (req, res) => {
-  const t0 = Date.now();
-
-  // Check cache
-  if (anuCache.data && (Date.now() - anuCache.ts) < ANU_CACHE_TTL) {
-    return res.json({ ...anuCache.data, cached: true, latency: 0 });
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(
-      'https://qrng.anu.edu.au/API/jsonI.php?length=100&type=uint8',
-      { signal: controller.signal }
-    );
-    clearTimeout(timeout);
-    const data = await response.json();
-    const latency = Date.now() - t0;
-
-    if (!data.success) throw new Error('ANU API returned success=false');
-
-    const bytes = data.data;
-    const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
-    const z = bytesToEggZ(bytes);
-    const result = {
-      source: 'ANU QRNG (Photonic)',
-      type: data.type,
-      count: data.length,
-      data: bytes,
-      mean,
-      zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
-      status: 'ok',
-      latency,
-      cached: false
-    };
-
-    anuCache = { data: result, ts: Date.now() };
-    res.json(result);
-  } catch (err) {
-    // Fallback: use NIST Beacon data as quantum source
-    try {
-      const nistRes = await fetch('https://beacon.nist.gov/beacon/2.0/pulse/last', {
-        signal: AbortSignal.timeout(8000)
-      });
-      const nistData = await nistRes.json();
-      const hexStr = nistData.pulse.localRandomValue;
-      const bytes = [];
-      for (let i = 0; i < Math.min(hexStr.length, 200); i += 2) {
-        bytes.push(parseInt(hexStr.substring(i, i + 2), 16));
-      }
-      const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
-      const z = bytesToEggZ(bytes);
-      const result = {
-        source: 'NIST Beacon (fallback)',
-        type: 'uint8',
-        count: bytes.length,
-        data: bytes,
-        mean,
-        zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
-        status: 'ok',
-        latency: Date.now() - t0,
-        cached: false,
-        fallback: true
-      };
-      anuCache = { data: result, ts: Date.now() };
-      res.json(result);
-    } catch (nistErr) {
-      res.status(502).json({ error: err.message, source: 'ANU QRNG', status: 'down', latency: Date.now() - t0 });
-    }
-  }
+// 2. ANU QRNG — DISABLED (source removed from active combination)
+app.get('/api/qrng', (req, res) => {
+  res.status(410).json({ status: 'disabled', source: 'ANU QRNG', message: 'Source disabled — not included in z-score combination' });
 });
 
-// 3. NIST Beacon 2.0
-app.get('/api/nist-beacon', async (req, res) => {
-  const t0 = Date.now();
-
-  if (nistCache.data && (Date.now() - nistCache.ts) < NIST_CACHE_TTL) {
-    return res.json({ ...nistCache.data, cached: true, latency: 0 });
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(
-      'https://beacon.nist.gov/beacon/2.0/pulse/last',
-      { signal: controller.signal }
-    );
-    clearTimeout(timeout);
-    const data = await response.json();
-    const latency = Date.now() - t0;
-
-    const pulse = data.pulse;
-    // Convert hex string to byte array (first 100 bytes)
-    const hexStr = pulse.localRandomValue;
-    const bytes = [];
-    for (let i = 0; i < Math.min(hexStr.length, 200); i += 2) {
-      bytes.push(parseInt(hexStr.substring(i, i + 2), 16));
-    }
-    const mean = (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2);
-
-    const z = bytesToEggZ(bytes);
-    const result = {
-      source: 'NIST Beacon 2.0',
-      pulseIndex: pulse.pulseIndex,
-      timestamp: pulse.timeStamp,
-      count: bytes.length,
-      data: bytes,
-      mean,
-      zIndex: z != null ? parseFloat(z.toFixed(4)) : null,
-      status: 'ok',
-      latency,
-      cached: false
-    };
-
-    nistCache = { data: result, ts: Date.now() };
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: err.message, source: 'NIST Beacon', status: 'down', latency: Date.now() - t0 });
-  }
+// 3. NIST Beacon 2.0 — DISABLED (source removed from active combination)
+app.get('/api/nist-beacon', (req, res) => {
+  res.status(410).json({ status: 'disabled', source: 'NIST Beacon 2.0', message: 'Source disabled — not included in z-score combination' });
 });
 
 // 4. QCI uQRNG (Quantum photonic, cloud API)
@@ -457,23 +345,11 @@ app.get('/api/status', async (req, res) => {
     sources.gcp = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'GCP 1.0 (Princeton)' };
   } catch { sources.gcp = { status: 'down', latency: -1, name: 'GCP 1.0 (Princeton)' }; }
 
-  // ANU
-  try {
-    const t0 = Date.now();
-    const r = await fetch('https://qrng.anu.edu.au/API/jsonI.php?length=1&type=uint8', {
-      signal: AbortSignal.timeout(5000)
-    });
-    sources.anu = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'ANU QRNG (Photonic)' };
-  } catch { sources.anu = { status: 'down', latency: -1, name: 'ANU QRNG (Photonic)' }; }
+  // ANU — disabled
+  sources.anu = { status: 'disabled', latency: -1, name: 'ANU QRNG (Photonic)' };
 
-  // NIST
-  try {
-    const t0 = Date.now();
-    const r = await fetch('https://beacon.nist.gov/beacon/2.0/pulse/last', {
-      signal: AbortSignal.timeout(5000)
-    });
-    sources.nist = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'NIST Beacon 2.0' };
-  } catch { sources.nist = { status: 'down', latency: -1, name: 'NIST Beacon 2.0' }; }
+  // NIST — disabled
+  sources.nist = { status: 'disabled', latency: -1, name: 'NIST Beacon 2.0' };
 
   // QCI
   if (QCI_API_TOKEN) {
