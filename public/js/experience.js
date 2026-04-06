@@ -2084,6 +2084,51 @@ function init() {
   setTimeout(() => {
     loadingText.classList.add('hidden');
   }, 6000);
+
+  // ── URL parameters for external integration (Pierres de la Paix) ──
+  const urlParams = new URLSearchParams(window.location.search);
+
+  // ?autoplay=1 → start audio automatically after user gesture
+  if (urlParams.get('autoplay') === '1') {
+    // Browsers require user gesture for audio. We start on first touch/click.
+    const autoplayHandler = () => {
+      toggleAudio();
+      document.removeEventListener('click', autoplayHandler);
+      document.removeEventListener('touchstart', autoplayHandler);
+    };
+    // Small delay to let page render, then trigger on next interaction
+    setTimeout(() => {
+      document.addEventListener('click', autoplayHandler, { once: true });
+      document.addEventListener('touchstart', autoplayHandler, { once: true });
+      // Show a hint
+      if (loadingText) {
+        loadingText.textContent = 'Touche l\'ecran pour demarrer le son';
+        loadingText.classList.remove('hidden');
+        setTimeout(() => loadingText.classList.add('hidden'), 5000);
+      }
+    }, 1500);
+  }
+
+  // ?session=1 → open session overlay automatically
+  if (urlParams.get('session') === '1') {
+    setTimeout(() => {
+      if (btnSession) btnSession.click();
+    }, 2000);
+  }
+
+  // ?pierre=X&ange=Y → show stone theme in title
+  const pierreName = urlParams.get('pierre');
+  const angeName = urlParams.get('ange');
+  if (pierreName) {
+    const titleEl = document.querySelector('.experience-title, h1, .header-title');
+    if (titleEl) {
+      titleEl.textContent = 'Meditation — ' + pierreName;
+    }
+    // Add stone info to session name default
+    if (sessionNameInput) {
+      sessionNameInput.placeholder = pierreName + (angeName ? ' (' + angeName + ')' : '');
+    }
+  }
 }
 
 init();
