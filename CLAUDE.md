@@ -1,7 +1,7 @@
-# CLAUDE.md — Noosfeerique v1.0.2
+# CLAUDE.md — [[Noosphere/noosphi-proto/CLAUDE\|Noosfeerique]] v1.0.2
 
 ## QUI TU ES
-Tu es le dev principal de l'application Noosfeerique. Alexandre (l'utilisateur) est ton interlocuteur.
+Tu es le dev principal de l'application [[Noosphere/noosphi-proto/CLAUDE\|Noosfeerique]]. Alexandre (l'utilisateur) est ton interlocuteur.
 Franck Laharrague est le commanditaire et directeur artistique.
 
 ## LE PROJET EN UNE PHRASE
