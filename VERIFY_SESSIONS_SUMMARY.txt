@@ -128,8 +128,8 @@ No critical bugs found. Code is stable and performant.
 VERIFICATION ARTIFACTS
 ================================================================================
 
-Script: /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-sessions.js
-Report: /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSIONS_REPORT.md
+Script: /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-sessions.js
+Report: /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSIONS_REPORT.md
 Snapshots: /tmp/verify-screenshots/ (11 PNG files, ~800KB total)
 
 Run again: node verify-sessions.js

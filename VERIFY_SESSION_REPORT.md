@@ -233,7 +233,7 @@ Sources (tous cochés par défaut):
 
 ### Priorité Haute
 1. **Afficher le Z-score au centre** pendant l'enregistrement
-   - Fichier: `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/css/experience.css`
+   - Fichier: `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/css/experience.css`
    - Vérifier le layout de `.session-recording` et `.session-center-z`
    - S'assurer que le flex layout est correct (voir structure HTML ligne 226-276)
 

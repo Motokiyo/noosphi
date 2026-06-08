@@ -157,7 +157,7 @@ L'application est prête pour:
 Pour relancer la vérification à l'avenir:
 
 ```bash
-cd /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto
+cd /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto
 
 # Terminal 1: Serveur
 node server.js

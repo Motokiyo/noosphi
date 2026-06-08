@@ -11,23 +11,23 @@ BRANCH: main
 ================================================================================
 
 PRINCIPAL (commencer ici):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFICATION_COMPLETE.txt
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFICATION_COMPLETE.txt
   → Synthèse complète (5 min de lecture)
 
 INDEX (navigation):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_INDEX.md
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_INDEX.md
   → Guide pour utiliser la vérification
 
 LAYOUT (positions en pixels):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSION_LAYOUT.md
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSION_LAYOUT.md
   → Diagrammes ASCII et positions exactes
 
 RÉSUMÉ FINAL (détaillé):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSION_FINAL_SUMMARY.md
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSION_FINAL_SUMMARY.md
   → Rapport complet (10 min de lecture)
 
 RAPPORT INITIAL (archive):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSION_REPORT.md
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSION_REPORT.md
   → Rapport détaillé initial
 
 ================================================================================
@@ -35,19 +35,19 @@ RAPPORT INITIAL (archive):
 ================================================================================
 
 1. Experience Page (sphère initiale):
-   /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-01-experience-page.png
+   /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-01-experience-page.png
    État: ✅ | Sphère 3D visible | Z-score: -0.58
 
 2. Session Setup Modal:
-   /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-02-session-setup.png
+   /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-02-session-setup.png
    État: ✅ | Modal centré | Tous éléments visibles
 
 3. Session Recording (v1):
-   /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-03-session-recording.png
+   /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-03-session-recording.png
    État: ✅ | Graphe visible | Z-score au centre
 
 4. Session Recording (v2 - Debug Layout):
-   /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-04-layout-debug.png
+   /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-04-layout-debug.png
    État: ✅ | Z-score: -0.02 | Graphe avec 6 lignes
 
 ================================================================================
@@ -55,23 +55,23 @@ RAPPORT INITIAL (archive):
 ================================================================================
 
 Script 1 (initial):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-session.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-session.js
   → Navigation + screenshots
 
 Script 2 (détaillé):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-session-detailed.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-session-detailed.js
   → Positions exactes + analyseur DOM
 
 Script 3 (final):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-session-final.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-session-final.js
   → Rapport lisible et résumé
 
 Script 4 (debug):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/verify-layout-debug.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/verify-layout-debug.js
   → CSS computed + structure children
 
 Utilisation:
-  cd /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/
+  cd /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/
   node verify-session-final.js      # rapport détaillé
   node verify-layout-debug.js       # debug CSS/layout
 
@@ -80,7 +80,7 @@ Utilisation:
 ================================================================================
 
 HTML PRINCIPAL:
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/experience.html
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/experience.html
   Lignes importantes:
     - Session setup: ligne 202
     - Session recording: ligne 227
@@ -91,7 +91,7 @@ HTML PRINCIPAL:
     - Controls: ligne 276
 
 CSS:
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/css/experience.css
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/css/experience.css
   Total: 1542 lignes
   Classes importantes:
     - .session-recording (flex layout)
@@ -102,15 +102,15 @@ CSS:
     - .session-controls (62px height)
 
 JAVASCRIPT (Logique):
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/js/experience.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/js/experience.js
   → Orchestrateur de la session
 
 Stats Z-Score:
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/js/zindex.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/js/zindex.js
   → Calculs Stouffer, Z-score, statistiques
 
 SERVEUR:
-  /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/server.js
+  /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/server.js
   → Express server (port 3000)
   → Socket.io pour temps réel
   → API proxy (GCP, QRNG, NIST, Local)
@@ -192,7 +192,7 @@ AMÉLIORATIONS FUTURES:
 ================================================================================
 
 1. Démarrer le serveur:
-   cd /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/
+   cd /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/
    node server.js
 
 2. Attendre "Serveur lancé sur port 3000"

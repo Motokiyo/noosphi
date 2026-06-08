@@ -13,7 +13,7 @@ Erreurs: 0
 ## Rapports Principaux
 
 ### 1. VERIFICATION_COMPLETE.txt (LIRE EN PREMIER)
-**Fichier:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFICATION_COMPLETE.txt`
+**Fichier:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFICATION_COMPLETE.txt`
 
 Synthèse complète et lisible de la vérification avec:
 - Résumé exécutif
@@ -27,7 +27,7 @@ Synthèse complète et lisible de la vérification avec:
 ---
 
 ### 2. VERIFY_SESSION_LAYOUT.md
-**Fichier:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSION_LAYOUT.md`
+**Fichier:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSION_LAYOUT.md`
 
 Layout détaillé avec:
 - Diagramme ASCII du layout
@@ -41,7 +41,7 @@ Layout détaillé avec:
 ---
 
 ### 3. VERIFY_SESSION_FINAL_SUMMARY.md
-**Fichier:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/VERIFY_SESSION_FINAL_SUMMARY.md`
+**Fichier:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/VERIFY_SESSION_FINAL_SUMMARY.md`
 
 Rapport détaillé avec:
 - Analyse de chaque page
@@ -145,7 +145,7 @@ Script debug qui:
 ## Structure du Projet Testé
 
 ```
-/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/
+/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/
 ├── public/
 │   ├── experience.html ................. Page principale (400 lignes)
 │   ├── css/
@@ -219,13 +219,13 @@ Script debug qui:
 
 ### Pour reproduire la vérification:
 ```bash
-cd /Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/
+cd /Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/
 node verify-session-final.js
 node verify-layout-debug.js
 ```
 
 ### Pour passer en revue le code:
-- Lire `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/experience.html`
+- Lire `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/experience.html`
 - Vérifier la section Session recording (ligne 226+)
 - Examiner les classes CSS dans `experience.css`
 

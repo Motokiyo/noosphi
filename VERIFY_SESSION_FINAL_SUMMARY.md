@@ -180,9 +180,9 @@ Tous cochés par défaut (checked).
 
 ## Fichiers Impliqués
 
-- **HTML:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/experience.html`
-- **CSS:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/css/experience.css`
-- **JS Logic:** `/Users/alexandre/Galaad-Motokiyo-Ferran/Noosphere/noosphi-proto/public/js/experience.js`
+- **HTML:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/experience.html`
+- **CSS:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/css/experience.css`
+- **JS Logic:** `/Users/alexandre/Territoire/Galaad-Motokiyo-Ferran/1 Projets/Noosphere/noosphi-proto/public/js/experience.js`
 
 ---
 
