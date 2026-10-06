@@ -1,6 +1,6 @@
 # Changelog — Noosfeerique
 
-## [Non publie] — branche feat/midi-u1-virtuel
+## [1.1.0] — 2026-10-06 (mise en ligne manuelle sur Hetzner)
 
 ### Sortie MIDI « U1 virtuel »
 - Le z-score de la source choisie joue des phrases MIDI vers MainStage (Bus IAC), dans Chrome
