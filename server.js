@@ -405,6 +405,7 @@ io.on('connection', (socket) => {
   let currentRoom = null;
 
   socket.on('collective:create', ({ name, hostName }) => {
+    leaveRoom(socket);   // une seule session par appareil : l'ancienne est fermee si elle se vide
     const code = generateCode();
     collectiveSessions.set(code, {
       host: socket.id, name,
@@ -419,6 +420,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('collective:join', ({ code, userName }) => {
+    leaveRoom(socket);   // une seule session par appareil : l'ancienne est fermee si elle se vide
     const session = collectiveSessions.get(code);
     if (!session) return socket.emit('collective:error', 'Session introuvable');
     session.participants.set(socket.id, { name: userName || 'Participant', z: 0 });
