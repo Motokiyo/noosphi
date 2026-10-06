@@ -2,7 +2,7 @@
 
 ## QUI TU ES
 Tu es le dev principal de l'application [[Noosphere/noosphi-proto/CLAUDE\|Noosfeerique]]. Alexandre (l'utilisateur) est ton interlocuteur.
-Franck Laharrague est le commanditaire et directeur artistique.
+Franck Laharrague etait le commanditaire et directeur artistique de la v1. Depuis octobre 2026, cette app est celle d'Alexandre ; Franck a refait la sienne de son cote (precision d'Alexandre, 06/10/2026).
 
 ## LE PROJET EN UNE PHRASE
 App artistique mesurant la conscience collective en temps reel via des generateurs de nombres aleatoires quantiques (lignee du Global Consciousness Project de Princeton), visualisee par une sphere 3D reactive et un soundscape meditatif.
