@@ -2016,6 +2016,7 @@ function onCollectiveSessionStart({ code, name, statusText }) {
   sessionRecording.classList.remove('hidden');
   sessionParticipants.classList.remove('hidden');
   sessionActive = true;
+  requestWakeLock();   // un telephone en veille ne tire plus aucun z : on garde l'ecran allume
   sessionStartTime = Date.now();
   sessionData = [];
   sessionMaxZ = 0;
