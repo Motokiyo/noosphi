@@ -42,11 +42,36 @@ Le z est lu à chaque seconde, mais ses décimales placent l'événement dans la
 
 Chaque note sonne au moins la **durée minimale** (0,5 s par défaut). Toutes les notes ont la même force de frappe.
 
+## La cohérence, rendue audible
+
+La cohérence, au sens du Global Consciousness Project, c'est quand le z garde le même cap. Le U1 virtuel la mesure sur la dernière minute (méthode Stouffer de Princeton) et la musique change par paliers :
+
+| Niveau | Mesure | Ce qu'on entend |
+|---|---|---|
+| Hasard | sous 1,5 | Phrases éparses, intervalles libres |
+| Approche | 1,5 et plus | Mélodie liée, petits pas, gamme pentatonique si l'app est en chromatique |
+| Cohérence | 2 et plus | Un accord de trois sons sur le **canal 2** avec chaque note |
+| Forte | 2,5 et plus | La mélodie se pose sur la note centrale, l'accord tient |
+
+On ne sort d'un niveau qu'en redescendant un peu sous son seuil d'entrée (1,3 / 1,7 / 2,2), pour éviter que la musique clignote.
+
+Sous le pur hasard, la cohérence (2 et plus) n'occupe qu'environ 6 % du temps. Relevé réel de 15 minutes sur les sources locale et QCI : 81,9 / 13,1 / 4,4 / 0,6 % du temps par niveau, conforme au hasard.
+
+Le niveau est aussi envoyé en continu sur le **contrôleur 20** (0 à 127), sur les deux canaux. Il n'agit que si tu l'assignes dans MainStage. Toutes les notes ont la même frappe : les volumes se règlent dans MainStage.
+
+**Sources utilisées pour le MIDI**, pour éviter toute fausse cohérence : en session collective, le z des téléphones et de l'ordinateur hôte (chaque tirage compte une fois, un téléphone muet depuis 3 s est écarté) ; sur « combiné », le hasard local et QCI seulement, sans les sources qui ne changent qu'une fois par minute.
+
+## En concert : le lanceur
+
+Double-cliquer sur `tools/U1-virtuel.command`. Il ouvre le U1 virtuel dans une fenêtre Chrome à part, protégée : sans elle, Chrome endort la page dès que MainStage passe devant. La première fois, autoriser le MIDI dans cette fenêtre.
+
+Les notes partent datées à l'avance : le système MIDI du Mac les joue à l'heure exacte, même fenêtre cachée.
+
 ## Réglages
 
 | Réglage | Effet |
 |---|---|
-| Canal | Canal MIDI d'envoi (1 à 16) |
+| Canal mélodie / harmonie | Canaux MIDI d'envoi (1 et 2 par défaut) |
 | Note la plus grave / aiguë | Étendue du clavier (21 à 108 = piano 88 touches) |
 | Centre (départ) | Note de départ de chaque phrase (60 = Do3 dans MainStage) |
 | Degrés par unité de z | Taille des intervalles (2 : z = 1 monte de 2 degrés de la gamme) |

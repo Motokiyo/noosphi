@@ -9,7 +9,10 @@
 - Duree minimale de note (500 ms), frappe fixe, bouton panique
 - Seuil par defaut 1 (choisi a l'ecoute) ; les decimales du z placent la note dans la seconde (plus de grille) ; le silence finit au prochain mouvement du z
 - Panneau visible seulement avec ?midi=1 ; notice docs/MIDI-MAINSTAGE.md ; tests test/midi-engine.test.mjs
-- Service worker v5 (cache des deux nouveaux fichiers)
+- Coherence audible : Stouffer glissant 60 s, paliers approche / coherence (accords canal 2) / forte ; CC 20 neutre
+- MIDI alimente par des tirages frais seulement ; z collectif frais une fois par seconde cote serveur
+- Notes datees a l'avance ; lanceur tools/U1-virtuel.command contre l'endormissement de Chrome
+- Service worker v6
 
 ## [1.0.0] — 2026-03-19
 
