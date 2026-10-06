@@ -1973,6 +1973,7 @@ function openSessionDetail(id) {
 // WebSocket — Collective sessions
 // ============================================================
 const socket = (typeof io !== 'undefined') ? io() : null;
+let rejoining = false;
 
 function startCollectiveSession(mode) {
   const name = sessionNameInput.value.trim() || 'Session collective';
@@ -2030,10 +2031,25 @@ if (socket) {
   });
 
   socket.on('collective:joined', ({ code, name }) => {
+    if (rejoining) {   // reconnexion : la session continue, on ne la remet pas a zero
+      rejoining = false;
+      collectiveStatus.textContent = `Rejoint : ${code}`;
+      return;
+    }
     onCollectiveSessionStart({ code, name, statusText: `Rejoint : ${code}` });
   });
 
+  // Ecran verrouille, reseau coupe : socket.io se reconnecte sous une nouvelle
+  // identite, que le serveur a retiree de la session. On la rejoint seul,
+  // sinon l'appareil croit participer alors qu'il n'est plus compte.
+  socket.on('connect', () => {
+    if (!sessionActive || !isCollective || !currentCollectiveCode) return;
+    rejoining = true;
+    socket.emit('collective:join', { code: currentCollectiveCode, userName: 'Participant' });
+  });
+
   socket.on('collective:error', (msg) => {
+    rejoining = false;
     collectiveStatus.textContent = msg;
     collectiveStatus.classList.remove('hidden');
   });
