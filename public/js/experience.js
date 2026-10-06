@@ -4,6 +4,7 @@
    ============================================================ */
 
 import * as THREE from 'three';
+import { midiZ } from './midi.js';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -868,6 +869,7 @@ function combineAndUpdate() {
 
   updateVisuals(displayZ);
   updateAudio(displayZ);
+  midiZ(displayZ);
 
   // Update live z-score in graph overlay
   graphZValue.textContent = displayZ.toFixed(2);

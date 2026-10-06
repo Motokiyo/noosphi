@@ -19,10 +19,12 @@ App artistique mesurant la conscience collective en temps reel via des generateu
 - `credits.html` — page credits (Franck, Alexandre, Claude Code, QCI)
 - `index.html` — dashboard existant (NE PAS TOUCHER)
 - `manifest.json` — PWA config
-- `sw.js` — service worker (cache offline, version v4)
+- `sw.js` — service worker (cache offline, version v5)
 - `css/experience.css` — styles mobile-first
 - `js/experience.js` — logique complete (~1800 lignes)
 - `js/zindex.js` — fonctions stats (NE PAS TOUCHER)
+- `js/midi-engine.js` — moteur de phrases MIDI « U1 virtuel » (logique pure, tests : `node --test test/midi-engine.test.mjs`)
+- `js/midi.js` — sortie Web MIDI + panneau, visible seulement avec `?midi=1` (notice : docs/MIDI-MAINSTAGE.md)
 - `js/three.module.js` — Three.js standalone 570KB
 - `assets/icons/` — icon-512 (sphere Franck), icon-192, apple-touch-icon, favicons
 - `assets/images/` — logo EIFFEL AI

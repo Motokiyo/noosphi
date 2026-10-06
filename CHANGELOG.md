@@ -1,5 +1,15 @@
 # Changelog — Noosfeerique
 
+## [Non publie] — branche feat/midi-u1-virtuel
+
+### Sortie MIDI « U1 virtuel »
+- Le z-score de la source choisie joue des phrases MIDI vers MainStage (Bus IAC), dans Chrome
+- Une note quand le z bouge d'au moins le seuil (1,5) ; le z est un intervalle depuis la note en cours
+- Phrase -> cadence (retour au centre ou bord du clavier) -> silence, chaque temps ouvert par un mouvement du z
+- Duree minimale de note (500 ms), frappe fixe, bouton panique
+- Panneau visible seulement avec ?midi=1 ; notice docs/MIDI-MAINSTAGE.md ; tests test/midi-engine.test.mjs
+- Service worker v5 (cache des deux nouveaux fichiers)
+
 ## [1.0.0] — 2026-03-19
 
 Premiere version complete du prototype.
