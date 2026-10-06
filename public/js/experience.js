@@ -709,6 +709,9 @@ function lerpVisuals(dt) {
 // Animation Loop
 // ============================================================
 const clock = new THREE.Clock();
+// Mode concert (?concert=1) : la sphere est dessinee une fois puis figee.
+// La carte graphique ne travaille plus, pour un vieux Mac qui joue en MIDI.
+const CONCERT = new URLSearchParams(location.search).has('concert');
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2096,7 +2099,7 @@ btnStopSession.addEventListener('click', () => {
 // ============================================================
 function init() {
   // Start animation loop
-  animate();
+  if (CONCERT) renderer.render(scene, camera); else animate();
 
   // Start local Z-score engine (1 tick/second)
   tickLocalZ();

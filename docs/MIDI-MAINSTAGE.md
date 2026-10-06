@@ -65,6 +65,8 @@ Le niveau est aussi envoyé en continu sur le **contrôleur 20** (0 à 127), sur
 
 Double-cliquer sur `tools/U1-virtuel.command`. Il ouvre le U1 virtuel dans une fenêtre Chrome à part, protégée : sans elle, Chrome endort la page dès que MainStage passe devant. La première fois, autoriser le MIDI dans cette fenêtre.
 
+Le lanceur ouvre le **mode concert** (`&concert=1`) : la sphère est dessinée une fois puis figée, la carte graphique ne travaille plus. Indispensable sur un vieux Mac qui chauffe.
+
 Les notes partent datées à l'avance : le système MIDI du Mac les joue à l'heure exacte, même fenêtre cachée.
 
 ## Le public : page noire et QR code

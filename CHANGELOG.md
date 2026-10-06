@@ -1,5 +1,10 @@
 # Changelog — Noosfeerique
 
+## [1.1.1] — 2026-10-06
+
+- Mode concert (`?concert=1`) : sphere figee, plus de rendu 3D continu ; le lanceur l'ouvre par defaut
+- Service worker v8
+
 ## [1.1.0] — 2026-10-06 (mise en ligne manuelle sur Hetzner)
 
 ### Sortie MIDI « U1 virtuel »
