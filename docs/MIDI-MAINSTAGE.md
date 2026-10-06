@@ -28,15 +28,17 @@ Un « Bus 1 » apparaît. C'est le câble virtuel entre Chrome et MainStage.
 | Le U1 | Le U1 virtuel |
 |---|---|
 | Une note quand la résistance de la plante bouge | Une note quand le z-score bouge |
-| Event Filter : taille minimale du changement | **Seuil de mouvement** (1,5 par défaut) |
-| Sample Rate | Le z est lu une fois par seconde |
+| Event Filter : taille minimale du changement | **Seuil de mouvement** (1 par défaut) |
+| Sample Rate | Le z est lu une fois par seconde, et ses décimales placent la note dans la seconde |
 | Gamme La majeur ou chromatique | **Gamme** : celle de l'app, La majeur (U1) ou chromatique |
 
 Le z joue des **phrases**, et aucune horloge ne décide de leur longueur :
 
 1. **Phrase** : la première note part du **centre**. Chaque z suivant est un intervalle à partir de la note qui sonne (z = -2 descend de 4 degrés depuis cette note).
 2. **Cadence** : quand la mélodie revient sur le centre, ou touche un bord du clavier, cette note finale tient.
-3. **Silence** : le mouvement suivant du z éteint la note. Le mouvement d'après ouvre une nouvelle phrase.
+3. **Silence** : le mouvement suivant du z éteint la note. Le mouvement d'après ouvre une nouvelle phrase, depuis le centre.
+
+Le z est lu à chaque seconde, mais ses décimales placent l'événement dans la seconde (z = 1,37 : 0,37 s après le tic). Les durées ne tombent donc pas sur une grille.
 
 Chaque note sonne au moins la **durée minimale** (0,5 s par défaut). Toutes les notes ont la même force de frappe.
 
@@ -48,7 +50,7 @@ Chaque note sonne au moins la **durée minimale** (0,5 s par défaut). Toutes le
 | Note la plus grave / aiguë | Étendue du clavier (21 à 108 = piano 88 touches) |
 | Centre (départ) | Note de départ de chaque phrase (60 = Do3 dans MainStage) |
 | Degrés par unité de z | Taille des intervalles (2 : z = 1 monte de 2 degrés de la gamme) |
-| Seuil de mouvement | Plus haut : moins de notes, plus de tenues et de silences |
+| Seuil de mouvement | 1 par défaut. Plus haut : moins de notes, plus de tenues et de silences |
 | Maison (± degrés) | 0 : la phrase finit sur le centre exact. Plus grand : des phrases plus courtes |
 | Durée min. | Durée minimale d'une note |
 
@@ -61,6 +63,6 @@ Les réglages sont gardés dans Chrome d'une séance à l'autre.
 - **Combiné** contient le hasard du serveur, qui ne change qu'une fois par minute. Pendant cette minute, il pousse toutes les notes dans la même direction, puis la minute suivante il peut faire repartir dans l'autre sens. QCI seul ou local seul n'ont pas cet effet.
 - Il faut internet pour charger la page, même avec la source locale.
 
-## Ordre de grandeur (100 heures simulées, réglages par défaut)
+## Ordre de grandeur (10 heures simulées, réglages par défaut)
 
-Environ 45 phrases par heure. Une phrase compte de 3 à 50 notes (15 d'habitude) et dure de quelques secondes à quelques minutes. Les silences vont de 1 à 16 secondes, parfois près d'une minute.
+Environ 85 phrases par heure et 27 notes par minute. Une note dure de 0,7 à 4,4 s d'habitude (1,5 s le plus souvent), parfois plus de 20 s. Un silence dure de 0,6 à 4,6 s d'habitude (1,6 s le plus souvent), au plus une quinzaine de secondes.

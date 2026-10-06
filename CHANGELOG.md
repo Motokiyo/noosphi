@@ -7,6 +7,7 @@
 - Une note quand le z bouge d'au moins le seuil (1,5) ; le z est un intervalle depuis la note en cours
 - Phrase -> cadence (retour au centre ou bord du clavier) -> silence, chaque temps ouvert par un mouvement du z
 - Duree minimale de note (500 ms), frappe fixe, bouton panique
+- Seuil par defaut 1 (choisi a l'ecoute) ; les decimales du z placent la note dans la seconde (plus de grille) ; le silence finit au prochain mouvement du z
 - Panneau visible seulement avec ?midi=1 ; notice docs/MIDI-MAINSTAGE.md ; tests test/midi-engine.test.mjs
 - Service worker v5 (cache des deux nouveaux fichiers)
 
