@@ -2,14 +2,23 @@
    Noosfeerique — Sortie MIDI (U1 virtuel)
    Envoie les phrases du moteur (midi-engine.js) vers une sortie
    MIDI (Bus IAC -> MainStage). Panneau visible avec ?midi=1.
+
+   Canal melodie : les phrases. Canal harmonie : les accords qui
+   apparaissent quand la coherence monte. Un controleur continu (CC 20)
+   suit le niveau de coherence : il ne fait rien tant qu'on ne le
+   branche pas dans MainStage. Volumes et sons se reglent dans MainStage.
+
+   Diagnostic : ?midi=debug ecrit chaque seconde dans la console ce que
+   le module recoit et decide.
    ============================================================ */
 
 import { SCALES, ENGINE_DEFAULTS, createEngine } from './midi-engine.js';
+import { createCoherence } from './midi-coherence.js';
 
 const STORAGE_KEY = 'noosphi_midi';
-const VELOCITY = 100;          // frappe fixe
+const VELOCITY = 100;          // frappe fixe, melodie et harmonie : les volumes se reglent dans MainStage
+const CC_COHERENCE = 20;       // numero libre dans la norme MIDI : n'agit que si on l'assigne
 const SAMPLE_MS = 1000;        // lecture du z une fois par seconde (le Sample Rate du U1)
-const TICK_MS = 50;
 const NOTE_NAMES = ['Do','Do#','Ré','Ré#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
 
 const DEFAULTS = {
@@ -17,6 +26,7 @@ const DEFAULTS = {
   enabled: false,
   outputId: null,
   channel: 1,
+  channelHarmony: 2,
   gamme: 'app',      // 'app' : gamme choisie dans l'app ; 'u1' : La majeur ; 'chromatic'
 };
 
@@ -24,13 +34,19 @@ const settings = loadSettings();
 let access = null;
 let output = null;
 let latestZ = null;
-let sampleTimer = null;
-let tickTimer = null;
+let clock = null;
+let lastCc = -1;
 let panel = null;
 
+const coherence = createCoherence({ window: 60 });
+const DEBUG = new URLSearchParams(location.search).get('midi') === 'debug';
+
+// Chaque message part date : le systeme MIDI du Mac le joue a l'heure dite,
+// meme si Chrome arrondit les minuteurs d'une fenetre cachee.
+const channelOf = voice => (voice === 'h' ? settings.channelHarmony : settings.channel) - 1;
 const engine = createEngine({
-  noteOn: n => send([0x90 | (settings.channel - 1), n, VELOCITY]),
-  noteOff: n => send([0x80 | (settings.channel - 1), n, 0]),
+  noteOn: (n, voice, at) => send([0x90 | channelOf(voice), n, VELOCITY], at),
+  noteOff: (n, voice, at) => send([0x80 | channelOf(voice), n, 0], at),
 });
 
 function loadSettings() {
@@ -43,8 +59,10 @@ function saveSettings() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
 }
 
-function send(bytes) {
-  if (output) output.send(bytes);
+function send(bytes, at) {
+  if (!output) return;
+  if (at != null && at > performance.now()) output.send(bytes, at);
+  else output.send(bytes);
 }
 
 // Gamme et tonique selon le reglage (le mode « libre » de l'app devient chromatique)
@@ -64,40 +82,47 @@ function configureEngine() {
   }, intervals, root);
 }
 
-// Appele par experience.js a chaque nouvelle valeur du z-score de la source choisie
+// Appele par experience.js a chaque nouvelle valeur du z destine au MIDI
+// (tirages frais seulement : session collective, ou sources rapides)
 export function midiZ(z) {
   latestZ = z;
 }
 
-// Le z est lu sur le tic de chaque seconde, mais l'evenement est place dans
-// la seconde par les decimales du z (1,37 -> 0,37 s apres le tic) : les
-// durees ne tombent plus sur une grille, et c'est encore le z qui decide.
+// Une fois par seconde : coherence, puis evenement place dans la seconde par
+// les decimales du z (1,37 -> 0,37 s apres le tic). Les durees ne tombent pas
+// sur une grille, et c'est encore le z qui decide.
 function onSample() {
+  const now = performance.now();
   const z = latestZ;
-  if (z == null || !isFinite(z)) return;
-  const offset = (Math.abs(z) % 1) * SAMPLE_MS;
-  setTimeout(() => {
-    if (!settings.enabled) return;
+  const coh = coherence.add(z);
+  if (coh.cc !== lastCc) {
+    lastCc = coh.cc;
+    send([0xB0 | (settings.channel - 1), CC_COHERENCE, coh.cc]);
+    send([0xB0 | (settings.channelHarmony - 1), CC_COHERENCE, coh.cc]);
+  }
+  let note = null;
+  if (z != null && isFinite(z)) {
     configureEngine();   // suit un changement de gamme dans l'app
-    const note = engine.sample(z, performance.now());
-    updateReadout(note);
-  }, offset);
+    note = engine.sample(z, now + (Math.abs(z) % 1) * SAMPLE_MS, coh.level);
+  }
+  // Relachements prevus avant la prochaine lecture, envoyes dates des maintenant
+  engine.tick(now + SAMPLE_MS);
+  updateReadout(note, coh);
+  if (DEBUG) console.log(`[midi] ${Math.round(now)} z=${z} C=${coh.c.toFixed(2)} palier=${coh.level} note=${note} phase=${engine.state.phase}`);
 }
 
 function startClock() {
-  if (sampleTimer) return;
-  sampleTimer = setInterval(onSample, SAMPLE_MS);
-  tickTimer = setInterval(() => engine.tick(performance.now()), TICK_MS);
+  if (!clock) clock = setInterval(onSample, SAMPLE_MS);
 }
 
 function stopClock() {
-  clearInterval(sampleTimer);
-  clearInterval(tickTimer);
-  sampleTimer = tickTimer = null;
+  clearInterval(clock);
+  clock = null;
 }
 
 export function midiPanic() {
   engine.panic();
+  if (output && output.clear) output.clear();   // annule les messages dates pas encore partis
   for (let ch = 0; ch < 16; ch++) send([0xB0 | ch, 123, 0]);   // All Notes Off
 }
 
@@ -160,13 +185,16 @@ function setStatus(msg) {
   if (panel) panel.querySelector('[data-status]').textContent = msg;
 }
 
-function updateReadout(note) {
+function updateReadout(note, coh) {
   if (!panel) return;
   const z = latestZ != null && isFinite(latestZ) ? latestZ.toFixed(2) : '—';
   const { sounding, phase } = engine.state;
   const shown = note ?? sounding;
   panel.querySelector('[data-readout]').textContent =
     `z ${z}  ·  ${shown != null ? `${noteName(shown)} (${shown})` : '—'}  ·  ${phase}`;
+  panel.querySelector('[data-coherence]').textContent =
+    `Cohérence ${coh.c.toFixed(2)} · ${coh.name}`;
+  panel.querySelector('[data-bar]').style.width = `${Math.round(coh.cc / 1.27)}%`;
 }
 
 function fillOutputs() {
@@ -186,12 +214,13 @@ function row(label, input) {
   return wrap;
 }
 
-function numberField(label, key, min, max, step = 1) {
+function numberField(label, key, min, max, step = 1, onChange) {
   const input = el('input', { type: 'number', min, max, step, value: settings[key] });
   input.addEventListener('change', () => {
     const v = Math.max(min, Math.min(max, Number(input.value)));
     if (!isFinite(v)) { input.value = settings[key]; return; }
     input.value = v;
+    if (onChange) onChange();   // avant le changement : couper sur l'ancien canal
     settings[key] = v;
     saveSettings();
     configureEngine();
@@ -231,6 +260,9 @@ function buildPanel() {
       background: transparent; color: #4EC9C6; font: inherit; cursor: pointer; }
     .midi-buttons button.on { background: #4EC9C6; color: #0B0E14; }
     .midi-readout { margin-top: 8px; font-family: ui-monospace, Menlo, monospace; color: #C9A24D; }
+    .midi-coherence { margin-top: 4px; color: rgba(255,255,255,.7); }
+    .midi-gauge { height: 4px; margin-top: 3px; background: #1a1f2a; border-radius: 2px; overflow: hidden; }
+    .midi-gauge div { height: 100%; width: 0; background: #C9A24D; transition: width .8s ease; }
     .midi-status { margin-top: 4px; color: rgba(255,255,255,.5); }
   `);
   document.head.append(style);
@@ -248,7 +280,8 @@ function buildPanel() {
   panel.append(row('Sortie', output));
 
   panel.append(
-    numberField('Canal', 'channel', 1, 16),
+    numberField('Canal mélodie', 'channel', 1, 16, 1, midiPanic),
+    numberField('Canal harmonie', 'channelHarmony', 1, 16, 1, midiPanic),
     selectField('Gamme', 'gamme', [
       ['app', 'Celle de l’app'],
       ['u1', 'La majeur (U1)'],
@@ -262,8 +295,6 @@ function buildPanel() {
     numberField('Maison (± degrés)', 'maison', 0, 6, 1),
     numberField('Durée min. (ms)', 'minDur', 50, 5000, 50),
   );
-  // Un changement de canal en cours de jeu laisserait des notes coincees sur l'ancien
-  panel.querySelector('input').addEventListener('change', midiPanic);
 
   const buttons = el('div', { className: 'midi-buttons' });
   const toggle = el('button', { type: 'button' });
@@ -285,9 +316,15 @@ function buildPanel() {
 
   const readout = el('div', { className: 'midi-readout' }, 'z —');
   readout.dataset.readout = '';
+  const coh = el('div', { className: 'midi-coherence' }, 'Cohérence —');
+  coh.dataset.coherence = '';
+  const gauge = el('div', { className: 'midi-gauge' });
+  const bar = el('div');
+  bar.dataset.bar = '';
+  gauge.append(bar);
   const status = el('div', { className: 'midi-status' }, 'MIDI en pause');
   status.dataset.status = '';
-  panel.append(readout, status);
+  panel.append(readout, coh, gauge, status);
 
   document.body.append(panel);
   refreshToggle();

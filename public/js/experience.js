@@ -819,6 +819,16 @@ function computeStoufferZ(zArray) {
   return (typeof stoufferZ === 'function') ? stoufferZ(pValues) : zArray[0];
 }
 
+// Z envoye au MIDI : uniquement des tirages frais. Une source qui ne change
+// qu'une fois par minute (Princeton, serveur) fabriquerait une fausse coherence.
+// En session collective : le z combine des telephones et de cet ordinateur.
+function midiSourceZ(displayZ) {
+  if (isCollective && collectiveZ != null && isFinite(collectiveZ)) return collectiveZ;
+  if (selectedSource !== 'combined') return displayZ;
+  const fresh = [localReady ? currentZ : null, apiZScores.qci].filter(z => z != null && isFinite(z));
+  return fresh.length ? fresh.reduce((a, b) => a + b, 0) / Math.sqrt(fresh.length) : null;
+}
+
 function combineAndUpdate() {
   // Local browser RNG is always source #0
   sourceDots[0]?.classList.toggle('active', localReady);
@@ -869,7 +879,7 @@ function combineAndUpdate() {
 
   updateVisuals(displayZ);
   updateAudio(displayZ);
-  midiZ(displayZ);
+  midiZ(midiSourceZ(displayZ));
 
   // Update live z-score in graph overlay
   graphZValue.textContent = displayZ.toFixed(2);

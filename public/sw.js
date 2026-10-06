@@ -2,13 +2,14 @@
 // Enables offline caching and home screen install
 // Note: requires HTTPS to activate (won't work on plain HTTP)
 
-const CACHE_NAME = 'noosphi-v5';
+const CACHE_NAME = 'noosphi-v6';
 const ASSETS_TO_CACHE = [
   '/experience.html',
   '/css/experience.css',
   '/js/experience.js',
   '/js/midi.js',
   '/js/midi-engine.js',
+  '/js/midi-coherence.js',
   '/js/zindex.js',
   '/js/three.module.js',
   '/manifest.json',

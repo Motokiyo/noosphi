@@ -416,8 +416,13 @@ io.on('connection', (socket) => {
     const session = collectiveSessions.get(currentRoom);
     if (!session) return;
     const p = session.participants.get(socket.id);
-    if (p) p.z = z;
-    const allZ = [...session.participants.values()].map(p => p.z).filter(v => v != null && isFinite(v));
+    if (p) { p.z = z; p.t = Date.now(); }
+    // Seuls les z recus depuis moins de 3 s comptent : un telephone en veille
+    // garderait sinon une valeur figee, qui fausse le z collectif.
+    const now = Date.now();
+    const allZ = [...session.participants.values()]
+      .filter(p => p.t && now - p.t < 3000)
+      .map(p => p.z).filter(v => v != null && isFinite(v));
     const collectiveZ = allZ.length > 0 ? allZ.reduce((a, b) => a + b, 0) / Math.sqrt(allZ.length) : 0;
     io.to(currentRoom).emit('collective:z-update', {
       collectiveZ,
