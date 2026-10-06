@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noosfeerique · QR public</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <style>
+    /* QR code a projeter : il ouvre public.html avec le code de la seance.
+       qr.html?code=NOOS-ABCD ; pour un essai local, &base=http://adresse-du-mac:3000 */
+    :root { --bg: #000; --fg: rgba(255, 255, 255, .85); --dim: rgba(255, 255, 255, .45); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh;
+      color: var(--fg); font: 300 16px/1.4 Inter, -apple-system, system-ui, sans-serif; text-align: center; padding: 16px; }
+    #qr { background: #fff; padding: 2.5vmin; border-radius: 1.5vmin; }
+    #qr img, #qr canvas { display: block; width: min(60vmin, 520px) !important; height: auto !important; }
+    .code { font-size: clamp(28px, 6vmin, 64px); letter-spacing: .15em; font-weight: 400; }
+    .hint { color: var(--dim); font-size: clamp(14px, 2.4vmin, 22px); }
+    .url { color: var(--dim); font-size: 13px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div id="qr"></div>
+  <div class="code" id="code"></div>
+  <div class="hint">Scannez pour rejoindre la séance · gardez la page ouverte</div>
+  <div class="url" id="url"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const code = (params.get('code') || '').toUpperCase();
+    const base = (params.get('base') || location.origin).replace(/\/$/, '');
+    const url = `${base}/public.html?code=${encodeURIComponent(code)}`;
+    document.getElementById('code').textContent = code || 'Code manquant';
+    document.getElementById('url').textContent = url;
+    if (code) new QRCode(document.getElementById('qr'), { text: url, width: 512, height: 512, correctLevel: QRCode.CorrectLevel.M });
+  </script>
+</body>
+</html>

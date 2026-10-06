@@ -17,6 +17,8 @@ App artistique mesurant la conscience collective en temps reel via des generateu
 ### Frontend (public/)
 - `experience.html` — page Experience Noosfeerique (sphere + son + sessions)
 - `credits.html` — page credits (Franck, Alexandre, Claude Code, QCI)
+- `public.html` + `js/public.js` — page des spectateurs en session collective (noire, muette, sans 3D)
+- `qr.html` — QR code a projeter (`?code=NOOS-XXXX`, `&base=` pour un essai local)
 - `index.html` — dashboard existant (NE PAS TOUCHER)
 - `manifest.json` — PWA config
 - `sw.js` — service worker (cache offline, version v5)

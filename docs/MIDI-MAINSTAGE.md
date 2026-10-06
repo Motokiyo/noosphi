@@ -67,6 +67,16 @@ Double-cliquer sur `tools/U1-virtuel.command`. Il ouvre le U1 virtuel dans une f
 
 Les notes partent datées à l'avance : le système MIDI du Mac les joue à l'heure exacte, même fenêtre cachée.
 
+## Le public : page noire et QR code
+
+Les spectateurs n'utilisent pas l'app normale, mais **`public.html`** : écran noir avec une lueur très faible, aucun son, pas de sphère 3D. Elle consomme peu de batterie et n'éclaire pas la salle. Elle tire le z du téléphone chaque seconde, garde l'écran allumé (en ligne, en https) et rejoint seule la séance après une coupure.
+
+1. Dans la fenêtre du U1 virtuel, créer la **Session collective**.
+2. Dans le panneau MIDI, cliquer sur **QR code pour le public** et projeter la page : le QR contient déjà le code de la séance.
+3. Les spectateurs scannent : ils sont dans la séance, sans rien taper.
+
+Pour un essai local (sans mise en ligne), le QR doit pointer vers l'adresse du Mac sur le réseau : ajouter `&base=http://ADRESSE-DU-MAC:3000` à l'adresse de la page QR.
+
 ## Réglages
 
 | Réglage | Effet |

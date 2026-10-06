@@ -12,7 +12,9 @@
 - Coherence audible : Stouffer glissant 60 s, paliers approche / coherence (accords canal 2) / forte ; CC 20 neutre
 - MIDI alimente par des tirages frais seulement ; z collectif frais une fois par seconde cote serveur
 - Notes datees a l'avance ; lanceur tools/U1-virtuel.command contre l'endormissement de Chrome
-- Service worker v6
+- Page public.html pour les spectateurs (noire, muette, sans 3D, ecran garde allume, retour automatique) et qr.html a projeter
+- Session collective : ecran garde allume, retour automatique apres reconnexion, une session par appareil
+- Service worker v7
 
 ## [1.0.0] — 2026-03-19
 

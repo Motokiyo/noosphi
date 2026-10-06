@@ -4,7 +4,7 @@
    ============================================================ */
 
 import * as THREE from 'three';
-import { midiZ } from './midi.js';
+import { midiZ, midiSessionCode } from './midi.js';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -2007,6 +2007,7 @@ if (btnJoinCollective) {
 // Shared setup for both collective:created and collective:joined
 function onCollectiveSessionStart({ code, name, statusText }) {
   currentCollectiveCode = code;
+  midiSessionCode(code);
   collectiveStatus.textContent = statusText;
   collectiveStatus.classList.remove('hidden');
   btnCopyCode.classList.remove('hidden');
@@ -2082,6 +2083,7 @@ btnStopSession.addEventListener('click', () => {
     collectiveZ = null;
     collectiveFreshZ = null;
     currentCollectiveCode = null;
+    midiSessionCode(null);
     sessionParticipants.classList.add('hidden');
     collectiveStatus.classList.add('hidden');
     btnCopyCode.classList.add('hidden');

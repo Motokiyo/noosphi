@@ -82,6 +82,15 @@ function configureEngine() {
   }, intervals, root);
 }
 
+// Appele par experience.js quand cette fenetre ouvre ou quitte une session
+// collective : le panneau propose alors le QR code a projeter pour le public.
+export function midiSessionCode(code) {
+  if (!panel) return;
+  const link = panel.querySelector('[data-qr]');
+  link.classList.toggle('hidden', !code);
+  if (code) link.href = `qr.html?code=${encodeURIComponent(code)}`;
+}
+
 // Appele par experience.js a chaque nouvelle valeur du z destine au MIDI
 // (tirages frais seulement : session collective, ou sources rapides)
 export function midiZ(z) {
@@ -264,6 +273,8 @@ function buildPanel() {
     .midi-gauge { height: 4px; margin-top: 3px; background: #1a1f2a; border-radius: 2px; overflow: hidden; }
     .midi-gauge div { height: 100%; width: 0; background: #C9A24D; transition: width .8s ease; }
     .midi-status { margin-top: 4px; color: rgba(255,255,255,.5); }
+    .midi-qr { display: block; margin-top: 8px; color: #C9A24D; }
+    .midi-qr.hidden { display: none; }
   `);
   document.head.append(style);
 
@@ -324,7 +335,9 @@ function buildPanel() {
   gauge.append(bar);
   const status = el('div', { className: 'midi-status' }, 'MIDI en pause');
   status.dataset.status = '';
-  panel.append(readout, coh, gauge, status);
+  const qr = el('a', { className: 'midi-qr hidden', target: '_blank', rel: 'noopener' }, 'QR code pour le public ↗');
+  qr.dataset.qr = '';
+  panel.append(readout, coh, gauge, status, qr);
 
   document.body.append(panel);
   refreshToggle();
