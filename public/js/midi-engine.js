@@ -11,7 +11,7 @@
      2. CADENCE : quand la melodie revient au centre (a `maison` degres
         pres) ou touche un bord du clavier, cette note finale tient.
      3. SILENCE : le mouvement suivant eteint la note. Le mouvement
-        d'apres ouvre une nouvelle phrase.
+        d'apres ouvre une nouvelle phrase, depuis le centre.
    - Chaque note sonne au moins `minDur` ms.
    ============================================================ */
 export const SCALES = {
@@ -27,7 +27,7 @@ export const ENGINE_DEFAULTS = {
   high: 108,         // Do7, haut du piano
   centre: 60,        // Do3, le « zero » de chaque phrase
   gain: 2,           // degres de gamme par unite de z
-  seuil: 1.5,        // mouvement minimal du z pour une nouvelle note
+  seuil: 1,          // mouvement minimal du z pour une nouvelle note
   maison: 0,         // degres autour du centre qui comptent comme « retour a la maison »
   minDur: 500,       // duree minimale d'une note (ms)
 };
@@ -55,7 +55,7 @@ export function createEngine(out) {
   let notes = scaleNotes(SCALES.chromatic, 0, cfg.low, cfg.high);
   let sounding = null;     // note qui sonne
   let start = 0;           // debut de cette note
-  let zRef = 0;            // z du dernier evenement (0 apres un silence)
+  let zRef = 0;            // z du dernier evenement
   let phase = 'silence';   // 'silence' | 'phrase' | 'cadence'
   let count = 0;           // notes dans la phrase en cours
   const offs = new Map();  // note -> heure de relachement prevue
@@ -88,8 +88,7 @@ export function createEngine(out) {
     if (phase === 'cadence') {          // ce mouvement ouvre le silence
       if (sounding != null) release(sounding, start + cfg.minDur, now);
       sounding = null;
-      phase = 'silence';
-      zRef = 0;
+      phase = 'silence';   // zRef garde ce z : le prochain mouvement ouvre la phrase
       return null;
     }
 

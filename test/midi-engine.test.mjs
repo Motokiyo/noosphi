@@ -14,7 +14,7 @@ function setup(cfg = {}, scale = SCALES.chromatic, root = 0) {
 }
 
 test('aucune note tant que le z bouge moins que le seuil', () => {
-  const { e, log } = setup();
+  const { e, log } = setup({ seuil: 1.5 });
   assert.equal(e.sample(1.4, 0), null);
   assert.equal(e.sample(-1.0, 1000), null);
   assert.deepEqual(log, []);
@@ -38,7 +38,7 @@ test('la note precedente sonne au moins la duree minimale', () => {
 });
 
 test('retour au centre = cadence, puis silence, puis nouvelle phrase depuis le centre', () => {
-  const { e, log } = setup();
+  const { e, log } = setup({ seuil: 1.5 });
   e.sample(2, 0);                           // 64
   assert.equal(e.sample(-2, 1000), 60);     // retour au centre
   assert.equal(e.state.phase, 'cadence');
@@ -48,7 +48,8 @@ test('retour au centre = cadence, puis silence, puis nouvelle phrase depuis le c
   assert.deepEqual(log.at(-1), ['off', 60]);
   assert.equal(e.state.phase, 'silence');
   assert.equal(e.state.sounding, null);
-  assert.equal(e.sample(1.5, 4000), 63);    // nouvelle phrase, depuis le centre
+  assert.equal(e.sample(1.5, 4000), null);  // 1,0 depuis 2,5 : pas assez, le silence continue
+  assert.equal(e.sample(-0.5, 5000), 59);   // 3,0 depuis 2,5 : nouvelle phrase, depuis le centre (60 - 1)
 });
 
 test('toucher un bord du clavier termine aussi la phrase', () => {

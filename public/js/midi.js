@@ -69,10 +69,19 @@ export function midiZ(z) {
   latestZ = z;
 }
 
+// Le z est lu sur le tic de chaque seconde, mais l'evenement est place dans
+// la seconde par les decimales du z (1,37 -> 0,37 s apres le tic) : les
+// durees ne tombent plus sur une grille, et c'est encore le z qui decide.
 function onSample() {
-  configureEngine();   // suit un changement de gamme dans l'app
-  const note = engine.sample(latestZ, performance.now());
-  updateReadout(note);
+  const z = latestZ;
+  if (z == null || !isFinite(z)) return;
+  const offset = (Math.abs(z) % 1) * SAMPLE_MS;
+  setTimeout(() => {
+    if (!settings.enabled) return;
+    configureEngine();   // suit un changement de gamme dans l'app
+    const note = engine.sample(z, performance.now());
+    updateReadout(note);
+  }, offset);
 }
 
 function startClock() {
