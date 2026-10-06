@@ -823,7 +823,7 @@ function computeStoufferZ(zArray) {
 // qu'une fois par minute (Princeton, serveur) fabriquerait une fausse coherence.
 // En session collective : le z combine des telephones et de cet ordinateur.
 function midiSourceZ(displayZ) {
-  if (isCollective && collectiveZ != null && isFinite(collectiveZ)) return collectiveZ;
+  if (isCollective) return collectiveFreshZ;   // le MIDI n'ajoute qu'une fois une valeur identique
   if (selectedSource !== 'combined') return displayZ;
   const fresh = [localReady ? currentZ : null, apiZScores.qci].filter(z => z != null && isFinite(z));
   return fresh.length ? fresh.reduce((a, b) => a + b, 0) / Math.sqrt(fresh.length) : null;
@@ -1463,6 +1463,7 @@ let sessionPausedTotal = 0;
 let sessionPauseStart = 0;
 let isCollective = false;
 let collectiveZ = null;
+let collectiveFreshZ = null;   // z collectif ou chaque tirage compte une fois (pour le MIDI)
 let sessionStartTime = null;
 let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
@@ -2041,6 +2042,8 @@ if (socket) {
     if (state) sessionParticipants.textContent = `${state.participantCount} connecte${state.participantCount > 1 ? 's' : ''}`;
   });
 
+  socket.on('collective:z-fresh', ({ z }) => { collectiveFreshZ = z; });
+
   socket.on('collective:z-update', ({ collectiveZ: cz, participantCount }) => {
     collectiveZ = cz;
     sessionParticipants.textContent = `${participantCount} connecte${participantCount > 1 ? 's' : ''}`;
@@ -2060,6 +2063,7 @@ btnStopSession.addEventListener('click', () => {
     socket.emit('collective:leave');
     isCollective = false;
     collectiveZ = null;
+    collectiveFreshZ = null;
     currentCollectiveCode = null;
     sessionParticipants.classList.add('hidden');
     collectiveStatus.classList.add('hidden');

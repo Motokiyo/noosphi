@@ -381,6 +381,22 @@ const io = new Server(httpServer, { cors: { origin: '*' } });
 
 const collectiveSessions = new Map();
 
+// Z collectif « frais », une fois par seconde, pour le MIDI : chaque tirage
+// d'un telephone ne compte qu'une fois. Le z-update ci-dessous, recalcule a
+// chaque message avec la derniere valeur de chacun, peut reutiliser une meme
+// valeur dans deux lectures successives, ce qui gonflerait la coherence.
+function startFreshTick(code) {
+  return setInterval(() => {
+    const session = collectiveSessions.get(code);
+    if (!session) return;
+    const fresh = [...session.participants.values()].filter(p => p.fresh);
+    if (!fresh.length) return;
+    fresh.forEach(p => { p.fresh = false; });
+    const z = fresh.reduce((a, p) => a + p.z, 0) / Math.sqrt(fresh.length);
+    io.to(code).emit('collective:z-fresh', { z, n: fresh.length });
+  }, 1000);
+}
+
 function generateCode() {
   return 'NOOS-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 }
@@ -395,6 +411,7 @@ io.on('connection', (socket) => {
       participants: new Map([[socket.id, { name: hostName || 'Hote', z: 0 }]]),
       created: Date.now(),
     });
+    collectiveSessions.get(code).tick = startFreshTick(code);
     currentRoom = code;
     socket.join(code);
     socket.emit('collective:created', { code, name });
@@ -416,7 +433,7 @@ io.on('connection', (socket) => {
     const session = collectiveSessions.get(currentRoom);
     if (!session) return;
     const p = session.participants.get(socket.id);
-    if (p) { p.z = z; p.t = Date.now(); }
+    if (p && z != null && isFinite(z)) { p.z = z; p.t = Date.now(); p.fresh = true; }
     // Seuls les z recus depuis moins de 3 s comptent : un telephone en veille
     // garderait sinon une valeur figee, qui fausse le z collectif.
     const now = Date.now();
@@ -441,7 +458,10 @@ io.on('connection', (socket) => {
     const session = collectiveSessions.get(currentRoom);
     if (session) {
       session.participants.delete(sock.id);
-      if (session.participants.size === 0) collectiveSessions.delete(currentRoom);
+      if (session.participants.size === 0) {
+        clearInterval(session.tick);
+        collectiveSessions.delete(currentRoom);
+      }
       else io.to(currentRoom).emit('collective:update', getCollectiveState(currentRoom));
     }
     sock.leave(currentRoom);
