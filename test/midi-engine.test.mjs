@@ -95,3 +95,14 @@ test('100 heures de hasard : jamais de note coincee, phrases et silences varies'
   console.log(`  ${(phrases / 100).toFixed(0)} phrases par heure`);
   assert.ok(phrases / 100 > 10 && phrases / 100 < 200);
 });
+
+test('fin de scene : la note finit sa duree minimale, puis la scene suivante repart du centre', () => {
+  const { e, log } = setup({ minDur: 500 });
+  e.sample(1.5, 0);                         // 63
+  e.rest(200);
+  assert.equal(e.state.sounding, null);
+  assert.equal(e.state.phase, 'silence');
+  e.tick(500);
+  assert.deepEqual(log.at(-1), ['off', 63]);
+  assert.equal(e.sample(-0.5, 5000), 59);   // 60 - 1 : repart du centre
+});

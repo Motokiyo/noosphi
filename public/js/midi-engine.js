@@ -173,6 +173,16 @@ export function createEngine(out) {
     });
   }
 
+  // Fin de scene (l'envie retombe) : la note et l'accord finissent leur duree
+  // minimale puis s'eteignent ; la scene suivante repartira du centre.
+  function rest(now) {
+    if (sounding != null) release(sounding, 'm', start + cfg.minDur, now);
+    sounding = null;
+    releaseChord(now);
+    phase = 'silence';
+    count = 0;
+  }
+
   function panic() {
     offs.forEach((_, key) => { const [voice, note] = key.split(':'); out.noteOff(Number(note), voice); });
     offs.clear();
@@ -186,7 +196,7 @@ export function createEngine(out) {
   }
 
   return {
-    configure, sample, tick, panic,
+    configure, sample, tick, rest, panic,
     get state() { return { sounding, chord: [...chord], phase, count }; },
   };
 }

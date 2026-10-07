@@ -42,6 +42,18 @@ Le z est lu à chaque seconde, mais ses décimales placent l'événement dans la
 
 Chaque note sonne au moins la **durée minimale** (0,5 s par défaut). Toutes les notes ont la même force de frappe.
 
+## L'envie de jouer : le z choisit ses scènes
+
+Le U1 virtuel ne joue pas tout le temps. Comme un musicien qui choisit où il entre, il décide lui-même de jouer ou de se taire, à partir du z :
+
+- **En silence, il écoute.** Il entre dès que la cohérence de la dernière minute atteint le **seuil d'envie** (1,5 par défaut).
+- **Il s'engage pour une minute.** Même si le z retombe entre-temps, il finit sa minute.
+- **Au bout de la minute, il fait le point.** Si la cohérence de la minute jouée est encore au-dessus du seuil, il reprend pour une minute de plus. Sinon, sa dernière note finit et il se tait.
+
+Aucune minuterie ne décide seule : la minute fixe seulement le moment où le z est consulté. Au pur hasard, avec le seuil à 1,5, il joue un peu moins de la moitié du temps, des scènes d'une minute le plus souvent, de deux parfois, et se tait entre une minute et quatre minutes. Quand le public s'accorde, il joue plus souvent et plus longtemps d'affilée.
+
+Le panneau affiche « Se tait, écoute » ou « Joue · fait le point dans 34 s ». Seuil plus haut : il est plus réservé. **Seuil 0 : il joue toujours**, comme avant.
+
 ## La cohérence, rendue audible
 
 La cohérence, au sens du Global Consciousness Project, c'est quand le z garde le même cap. Le U1 virtuel la mesure sur la dernière minute (méthode Stouffer de Princeton) et la musique change par paliers :
@@ -83,6 +95,7 @@ Pour un essai local (sans mise en ligne), le QR doit pointer vers l'adresse du M
 
 | Réglage | Effet |
 |---|---|
+| Seuil d'envie | 1,5 par défaut. Cohérence à atteindre pour jouer une scène. 0 = joue toujours |
 | Canal mélodie / harmonie | Canaux MIDI d'envoi (1 et 2 par défaut) |
 | Note la plus grave / aiguë | Étendue du clavier (21 à 108 = piano 88 touches) |
 | Centre (départ) | Note de départ de chaque phrase (60 = Do3 dans MainStage) |

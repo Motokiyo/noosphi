@@ -8,12 +8,17 @@
    suit le niveau de coherence : il ne fait rien tant qu'on ne le
    branche pas dans MainStage. Volumes et sons se reglent dans MainStage.
 
+   L'envie (midi-envie.js) decide des scenes : il ne joue que quand la
+   coherence de la derniere minute depasse le seuil d'envie, s'engage pour
+   une minute, et reprend une minute de plus tant que ca tient.
+
    Diagnostic : ?midi=debug ecrit chaque seconde dans la console ce que
    le module recoit et decide.
    ============================================================ */
 
 import { SCALES, ENGINE_DEFAULTS, createEngine } from './midi-engine.js';
 import { createCoherence } from './midi-coherence.js';
+import { ENVIE_DEFAULTS, createEnvie } from './midi-envie.js';
 
 const STORAGE_KEY = 'noosphi_midi';
 const VELOCITY = 100;          // frappe fixe, melodie et harmonie : les volumes se reglent dans MainStage
@@ -27,6 +32,7 @@ const DEFAULTS = {
   outputId: null,
   channel: 1,
   channelHarmony: 2,
+  envie: ENVIE_DEFAULTS.seuil,   // 0 = joue toujours
   gamme: 'app',      // 'app' : gamme choisie dans l'app ; 'u1' : La majeur ; 'chromatic'
 };
 
@@ -39,6 +45,7 @@ let lastCc = -1;
 let panel = null;
 
 const coherence = createCoherence({ window: 60 });
+const envie = createEnvie({ seuil: settings.envie });
 const DEBUG = new URLSearchParams(location.search).get('midi') === 'debug';
 
 // Chaque message part date : le systeme MIDI du Mac le joue a l'heure dite,
@@ -80,6 +87,7 @@ function configureEngine() {
     low: settings.low, high: settings.high, centre: settings.centre, gain: settings.gain,
     seuil: settings.seuil, maison: settings.maison, minDur: settings.minDur,
   }, intervals, root);
+  envie.configure({ seuil: settings.envie });
 }
 
 // Appele par experience.js quand cette fenetre ouvre ou quitte une session
@@ -109,15 +117,17 @@ function onSample() {
     send([0xB0 | (settings.channel - 1), CC_COHERENCE, coh.cc]);
     send([0xB0 | (settings.channelHarmony - 1), CC_COHERENCE, coh.cc]);
   }
+  const scene = envie.update(coh.c, coh.n, now);
+  if (scene.change && !scene.joue) engine.rest(now);
   let note = null;
-  if (z != null && isFinite(z)) {
+  if (scene.joue && z != null && isFinite(z)) {
     configureEngine();   // suit un changement de gamme dans l'app
     note = engine.sample(z, now + (Math.abs(z) % 1) * SAMPLE_MS, coh.level);
   }
   // Relachements prevus avant la prochaine lecture, envoyes dates des maintenant
   engine.tick(now + SAMPLE_MS);
-  updateReadout(note, coh);
-  if (DEBUG) console.log(`[midi] ${Math.round(now)} z=${z} C=${coh.c.toFixed(2)} palier=${coh.level} note=${note} phase=${engine.state.phase}`);
+  updateReadout(note, coh, scene);
+  if (DEBUG) console.log(`[midi] ${Math.round(now)} z=${z} C=${coh.c.toFixed(2)} palier=${coh.level} joue=${scene.joue} note=${note} phase=${engine.state.phase}`);
 }
 
 function startClock() {
@@ -170,7 +180,7 @@ function pickOutput() {
 function setEnabled(on) {
   settings.enabled = on;
   saveSettings();
-  if (on) { configureEngine(); startClock(); }
+  if (on) { envie.reset(); configureEngine(); startClock(); }
   else { stopClock(); midiPanic(); }
   pickOutput();
 }
@@ -194,13 +204,16 @@ function setStatus(msg) {
   if (panel) panel.querySelector('[data-status]').textContent = msg;
 }
 
-function updateReadout(note, coh) {
+function updateReadout(note, coh, scene) {
   if (!panel) return;
   const z = latestZ != null && isFinite(latestZ) ? latestZ.toFixed(2) : '—';
   const { sounding, phase } = engine.state;
   const shown = note ?? sounding;
   panel.querySelector('[data-readout]').textContent =
     `z ${z}  ·  ${shown != null ? `${noteName(shown)} (${shown})` : '—'}  ·  ${phase}`;
+  panel.querySelector('[data-envie]').textContent = !scene.joue ? 'Se tait, écoute'
+    : scene.reste == null ? 'Joue (sans envie)'
+    : `Joue · fait le point dans ${Math.ceil(scene.reste / 1000)} s`;
   panel.querySelector('[data-coherence]').textContent =
     `Cohérence ${coh.c.toFixed(2)} · ${coh.name}`;
   panel.querySelector('[data-bar]').style.width = `${Math.round(coh.cc / 1.27)}%`;
@@ -291,6 +304,7 @@ function buildPanel() {
   panel.append(row('Sortie', output));
 
   panel.append(
+    numberField('Seuil d’envie (0 = toujours)', 'envie', 0, 4, 0.1),
     numberField('Canal mélodie', 'channel', 1, 16, 1, midiPanic),
     numberField('Canal harmonie', 'channelHarmony', 1, 16, 1, midiPanic),
     selectField('Gamme', 'gamme', [
@@ -327,6 +341,8 @@ function buildPanel() {
 
   const readout = el('div', { className: 'midi-readout' }, 'z —');
   readout.dataset.readout = '';
+  const envieLine = el('div', { className: 'midi-coherence' }, 'Envie —');
+  envieLine.dataset.envie = '';
   const coh = el('div', { className: 'midi-coherence' }, 'Cohérence —');
   coh.dataset.coherence = '';
   const gauge = el('div', { className: 'midi-gauge' });
@@ -337,7 +353,7 @@ function buildPanel() {
   status.dataset.status = '';
   const qr = el('a', { className: 'midi-qr hidden', target: '_blank', rel: 'noopener' }, 'QR code pour le public ↗');
   qr.dataset.qr = '';
-  panel.append(readout, coh, gauge, status, qr);
+  panel.append(readout, envieLine, coh, gauge, status, qr);
 
   document.body.append(panel);
   refreshToggle();

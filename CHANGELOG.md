@@ -1,5 +1,10 @@
 # Changelog — Noosfeerique
 
+## [1.2.0] — 2026-10-07
+
+- L'envie de jouer : le U1 virtuel ne joue que quand la cohérence de la dernière minute atteint le seuil d'envie (1,5), s'engage pour une minute et reprend une minute de plus tant que ça tient. Seuil réglable sur le panneau, 0 = joue toujours
+- Service worker v9
+
 ## [1.1.1] — 2026-10-06
 
 - Mode concert (`?concert=1`) : sphere figee, plus de rendu 3D continu ; le lanceur l'ouvre par defaut
