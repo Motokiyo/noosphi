@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>U1 corrigé</title>
+<style>
+  /* U1 corrigé : lit le U1 en MIDI, recoud ses sauts de rattrapage, rejoue une mélodie fidèle vers MainStage. */
+  :root { --fond: #0B0E14; --texte: rgba(255,255,255,.9); --doux: rgba(255,255,255,.55); --cyan: #4EC9C6; --or: #C9A24D; --orange: #E8901A; --carte: #141925; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--fond); color: var(--texte); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+  h1 { font-weight: 500; font-size: 22px; margin: 0 0 4px; color: var(--cyan); }
+  .sous { color: var(--doux); margin: 0 0 14px; max-width: 60em; }
+  .grille { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .grille { grid-template-columns: minmax(0, 1fr); } }
+  .carte { background: var(--carte); border: 1px solid #263044; border-radius: 10px; padding: 12px 14px; }
+  .ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 7px 0; }
+  select, input[type=number] { background: #1d2433; color: var(--texte); border: 1px solid #36405a; border-radius: 5px; padding: 3px 5px; font: inherit; max-width: 170px; }
+  input[type=number] { width: 70px; }
+  button { font: inherit; border: 1px solid var(--cyan); background: transparent; color: var(--cyan); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+  button.on { background: var(--cyan); color: var(--fond); }
+  .boutons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .mode { display: flex; gap: 0; margin: 8px 0; }
+  .mode button { border-radius: 0; flex: 1; }
+  .mode button:first-child { border-radius: 7px 0 0 7px; }
+  .mode button:last-child { border-radius: 0 7px 7px 0; }
+  canvas { display: block; width: 100%; height: 340px; background: #0f1420; border-radius: 8px; }
+  .legende { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--doux); font-size: 13px; margin-top: 6px; }
+  .legende i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
+  .etat { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--or); margin-top: 8px; min-height: 1.4em; }
+  .compteurs { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--doux); }
+  small { color: var(--doux); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<h1>U1 corrigé</h1>
+<p class="sous">Réglages du U1 conseillés : Event Filter et Sample Rate au minimum, Gain 1/4, Res L, Note 1, Scale 12. La page recoud les sauts de rattrapage du U1, applique un seuil identique vers le haut et vers le bas, et donne aux notes une force tirée de la vitesse de la plante.</p>
+
+<div class="grille">
+  <div class="carte">
+    <div class="ligne"><span>Entrée (le U1)</span><select id="entree"></select></div>
+    <div class="ligne"><span>Sortie (MainStage)</span><select id="sortie"></select></div>
+    <div class="mode" role="group" aria-label="Mode">
+      <button id="mode-origine">U1 d'origine</button><button id="mode-corrige" class="on">U1 corrigé</button>
+    </div>
+    <div class="ligne"><span>Sensibilité (crans)</span><input type="number" id="sensibilite" min="1" max="12" step="1" value="3"></div>
+    <div class="ligne"><span>Pas (degrés)</span><input type="number" id="pas" min="1" max="12" step="1" value="2"></div>
+    <div class="ligne"><span>Gamme</span><select id="gamme"><option value="libre">Libre (12)</option><option value="majeur">Majeure</option><option value="penta">Pentatonique</option></select></div>
+    <div class="ligne"><span>Note de départ</span><input type="number" id="centre" min="24" max="96" value="60"></div>
+    <div class="ligne"><span>Canal</span><input type="number" id="canal" min="1" max="16" value="1"></div>
+    <div class="boutons">
+      <button id="activer">Activer le MIDI</button>
+      <button id="panique">Panique</button>
+      <button id="csv">Enregistrer la courbe (CSV)</button>
+    </div>
+    <div class="etat" id="etat">MIDI en pause</div>
+    <div class="compteurs" id="compteurs"></div>
+  </div>
+
+  <div class="carte">
+    <canvas id="courbe" width="1000" height="340" aria-label="Courbe de la plante"></canvas>
+    <div class="legende">
+      <span><i style="background:#5b6478"></i>notes brutes du U1 (repliées dans sa fenêtre)</span>
+      <span><i style="background:var(--cyan)"></i>courbe recousue : le mouvement réel de la plante</span>
+      <span><i style="background:var(--orange)"></i>saut de rattrapage effacé</span>
+      <span><i style="background:var(--or)"></i>note jouée vers MainStage</span>
+    </div>
+    <small>Les trois dernières minutes. Un « cran » est l'unité du U1 : un tiers de son échelle interne.</small>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- Réglages ----------
+  var BORD_HAUT = 96, BORD_BAS = 48, SAUT_MIN = 8;   // fenêtre du U1 d'Alexandre : notes ~44 à 99
+  var GAMMES = { libre: [0,1,2,3,4,5,6,7,8,9,10,11], majeur: [0,2,4,5,7,9,11], penta: [0,2,4,7,9] };
+  var $ = function (id) { return document.getElementById(id); };
+  var reglage = function (id) { return parseInt($(id).value, 10); };
+  var mode = "corrige", acces = null, entree = null, sortie = null, actif = false;
+
+  // ---------- État de la correction ----------
+  var precedente = null, decalage = 0, niveauRef = null, degre = 0, noteJouee = null;
+  var derniereT = null, dernierNiveau = null, vitesse = 0;
+  var points = [], sauts = 0, notesSortie = 0, journal = ["temps_ms,note_u1,niveau_recousu,saut,note_sortie,velocite"];
+  var t0 = performance.now();
+
+  function envoyer(octets) { if (sortie) sortie.send(octets); }
+  function canal() { return Math.max(1, Math.min(16, reglage("canal"))) - 1; }
+  function vers(degreRel) {
+    // degré de gamme relatif -> note MIDI, autour de la note de départ, repliée dans 36..96
+    var g = GAMMES[$("gamme").value], n = g.length;
+    var oct = Math.floor(degreRel / n), r = ((degreRel % n) + n) % n;
+    var base = reglage("centre"), note = base + oct * 12 + g[r];
+    while (note > 96) note -= 12; while (note < 36) note += 12;
+    return note;
+  }
+
+  // Une note arrive du U1
+  function surNoteU1(n, t) {
+    var saut = false;
+    if (precedente !== null) {
+      var d = n - precedente;
+      // rattrapage : départ collé au bord de la fenêtre et grand saut vers l'intérieur
+      if (Math.abs(d) >= SAUT_MIN && ((d < 0 && precedente >= BORD_HAUT) || (d > 0 && precedente <= BORD_BAS))) { decalage -= d; saut = true; sauts++; }
+    }
+    precedente = n;
+    var niveau = n + decalage;
+    if (dernierNiveau !== null && derniereT !== null) {
+      var dt = Math.max(0.05, (t - derniereT) / 1000);
+      vitesse = 0.6 * vitesse + 0.4 * Math.abs(niveau - dernierNiveau) / dt;
+    }
+    dernierNiveau = niveau; derniereT = t;
+    var sortieNote = null, vel = null;
+    if (niveauRef === null) niveauRef = niveau;
+    var s = Math.max(1, reglage("sensibilite")), ecart = niveau - niveauRef;
+    if (Math.abs(ecart) >= s) {                       // seuil identique vers le haut et vers le bas
+      var k = Math.trunc(ecart / s);
+      niveauRef += k * s; degre += k * reglage("pas");
+      sortieNote = vers(degre);
+      vel = Math.max(30, Math.min(127, Math.round(40 + vitesse * 18)));
+      if (mode === "corrige") jouer(sortieNote, vel, t);
+    }
+    points.push({ t: t, brut: n, niveau: niveau, saut: saut, jouee: sortieNote });
+    while (points.length && t - points[0].t > 180000) points.shift();
+    journal.push([Math.round(t - t0), n, niveau, saut ? 1 : 0, sortieNote === null ? "" : sortieNote, vel === null ? "" : vel].join(","));
+    majCompteurs();
+  }
+
+  function jouer(note, vel, t) {
+    if (noteJouee !== null) envoyer([0x80 | canal(), noteJouee, 0]);
+    envoyer([0x90 | canal(), note, vel]);
+    envoyer([0xB0 | canal(), 20, Math.max(0, Math.min(127, Math.round(vitesse * 20)))]);   // CC 20 : vitesse de la plante
+    noteJouee = note; notesSortie++;
+  }
+
+  function panique() {
+    if (noteJouee !== null) envoyer([0x80 | canal(), noteJouee, 0]);
+    noteJouee = null;
+    for (var c = 0; c < 16; c++) envoyer([0xB0 | c, 123, 0]);
+  }
+
+  function surMessage(ev) {
+    var d = ev.data, st = d[0] & 0xF0;
+    if (mode === "origine" && actif) envoyer(Array.prototype.slice.call(d));      // passe tel quel
+    if (st === 0x90 && d[2] > 0) surNoteU1(d[1], ev.timeStamp || performance.now());
+  }
+
+  // ---------- MIDI ----------
+  function remplir() {
+    var e = $("entree"), s = $("sortie"); e.innerHTML = ""; s.innerHTML = "";
+    acces.inputs.forEach(function (p) { var o = document.createElement("option"); o.value = p.id; o.textContent = p.name; if (/USB|1x1|Uno|MIDISPORT/i.test(p.name)) o.selected = true; e.appendChild(o); });
+    acces.outputs.forEach(function (p) { var o = document.createElement("option"); o.value = p.id; o.textContent = p.name; if (/IAC|Bus/i.test(p.name)) o.selected = true; s.appendChild(o); });
+    brancher();
+  }
+  function brancher() {
+    if (entree) entree.onmidimessage = null;
+    entree = acces.inputs.get($("entree").value) || null;
+    sortie = acces.outputs.get($("sortie").value) || null;
+    if (entree) entree.onmidimessage = surMessage;
+    $("etat").textContent = actif ? ("Écoute « " + (entree ? entree.name : "?") + " » → « " + (sortie ? sortie.name : "?") + " »") : "MIDI en pause";
+  }
+  $("activer").addEventListener("click", function () {
+    if (actif) { actif = false; panique(); if (entree) entree.onmidimessage = null; $("activer").textContent = "Activer le MIDI"; $("activer").classList.remove("on"); $("etat").textContent = "MIDI en pause"; return; }
+    if (!navigator.requestMIDIAccess) { $("etat").textContent = "Ce navigateur ne sait pas faire de MIDI : ouvrir dans Chrome."; return; }
+    navigator.requestMIDIAccess({ sysex: false }).then(function (a) {
+      acces = a; actif = true; a.onstatechange = remplir; remplir();
+      $("activer").textContent = "MIDI actif"; $("activer").classList.add("on");
+    }, function () { $("etat").textContent = "Accès MIDI refusé par Chrome."; });
+  });
+  $("entree").addEventListener("change", brancher); $("sortie").addEventListener("change", brancher);
+  $("panique").addEventListener("click", panique);
+  function choisirMode(m) { panique(); mode = m; $("mode-origine").classList.toggle("on", m === "origine"); $("mode-corrige").classList.toggle("on", m === "corrige"); }
+  $("mode-origine").addEventListener("click", function () { choisirMode("origine"); });
+  $("mode-corrige").addEventListener("click", function () { choisirMode("corrige"); });
+  $("csv").addEventListener("click", function () {
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([journal.join("\n")], { type: "text/csv" }));
+    a.download = "u1-corrige-" + new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-") + ".csv"; a.click();
+  });
+  window.addEventListener("pagehide", panique);
+  function majCompteurs() { $("compteurs").textContent = "notes du U1 : " + (journal.length - 1) + " · sauts recousus : " + sauts + " · notes jouées : " + notesSortie; }
+
+  // ---------- Courbe ----------
+  var cv = $("courbe"), cx = cv.getContext("2d");
+  function dessiner() {
+    requestAnimationFrame(dessiner);
+    var s = window.devicePixelRatio || 1, W = cv.width = cv.clientWidth * s, H = cv.height = 340 * s, m = 10 * s;
+    cx.clearRect(0, 0, W, H);
+    var now = performance.now(), x = function (t) { return m + (1 - (now - t) / 180000) * (W - 2 * m); };
+    if (!points.length) { cx.fillStyle = "rgba(255,255,255,.4)"; cx.font = (14 * s) + "px -apple-system, sans-serif"; cx.fillText("En attente des notes du U1…", 20 * s, 30 * s); return; }
+    var lo = Infinity, hi = -Infinity; points.forEach(function (p) { lo = Math.min(lo, p.niveau, p.brut); hi = Math.max(hi, p.niveau, p.brut); });
+    lo -= 4; hi += 4; var y = function (v) { return H - m - (v - lo) / (hi - lo) * (H - 2 * m); };
+    cx.strokeStyle = "#5b6478"; cx.lineWidth = 1.5 * s; cx.beginPath(); points.forEach(function (p, i) { if (i === 0 || p.saut) cx.moveTo(x(p.t), y(p.brut)); else cx.lineTo(x(p.t), y(p.brut)); }); cx.stroke();
+    cx.strokeStyle = "#4EC9C6"; cx.lineWidth = 2.5 * s; cx.beginPath(); points.forEach(function (p, i) { if (i === 0) cx.moveTo(x(p.t), y(p.niveau)); else cx.lineTo(x(p.t), y(p.niveau)); }); cx.stroke();
+    points.forEach(function (p) {
+      if (p.saut) { cx.strokeStyle = "#E8901A"; cx.lineWidth = 2 * s; cx.beginPath(); cx.moveTo(x(p.t), m); cx.lineTo(x(p.t), H - m); cx.stroke(); }
+      if (p.jouee !== null) { cx.fillStyle = "#C9A24D"; cx.beginPath(); cx.arc(x(p.t), y(p.niveau), 3.5 * s, 0, Math.PI * 2); cx.fill(); }
+    });
+  }
+  requestAnimationFrame(dessiner);
+  window.__u1corrige = { surNoteU1: surNoteU1 };   // pour les essais hors ligne
+})();
+</script>
+</body>
+</html>
