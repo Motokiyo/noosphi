@@ -13,6 +13,11 @@
      3. SILENCE : le mouvement suivant eteint la note. Le mouvement
         d'apres ouvre une nouvelle phrase, depuis le centre.
    - Chaque note sonne au moins `minDur` ms.
+   - FIN DE SCENE (finish) : rien n'est coupe. La phrase en cours marche
+     vers le centre, a petits pas, a chaque mouvement du z, jusqu'a sa
+     cadence ; l'accord qui sonne tient jusque-la et part avec elle.
+     Garde-fou : apres `finMax` ms, la lead rejoint le centre ; la note
+     finale tient alors au plus `finTenue` ms si le z ne bouge plus.
    ============================================================ */
 export const SCALES = {
   chromatic:  [0,1,2,3,4,5,6,7,8,9,10,11],
@@ -30,6 +35,8 @@ export const ENGINE_DEFAULTS = {
   seuil: 1,          // mouvement minimal du z pour une nouvelle note
   maison: 0,         // degres autour du centre qui comptent comme « retour a la maison »
   minDur: 500,       // duree minimale d'une note (ms)
+  finMax: 15000,     // fin de scene : au-dela, la lead rejoint le centre sans attendre le z
+  finTenue: 4000,    // fin de scene : tenue maximale de la note finale
 };
 
 // Notes MIDI de la gamme entre low et high. root = tonique (0 = Do, 9 = La)
@@ -64,6 +71,8 @@ export function createEngine(out) {
   let zRef = 0;            // z du dernier evenement
   let phase = 'silence';   // 'silence' | 'phrase' | 'cadence' | 'grace'
   let count = 0;           // notes dans la phrase en cours
+  let draining = false;    // fin de scene : la phrase va vers sa cadence
+  let drainStart = 0;
   const offs = new Map();  // 'voix:note' -> heure de relachement prevue
 
   function configure(next, intervals, root) {
@@ -120,6 +129,7 @@ export function createEngine(out) {
   // Renvoie la note de melodie jouee, ou null.
   function sample(z, now, level = 0) {
     if (z == null || !isFinite(z)) return null;
+    if (draining) level = Math.min(level, 2);   // pas de note posee en fin de scene
     const notes = notesFor(level);
     if (!notes.length) return null;
     const centre = nearestIndex(notes, cfg.centre);
@@ -137,11 +147,13 @@ export function createEngine(out) {
       return null;
     }
     if (phase === 'grace') phase = 'phrase';   // la phrase repart de la note posee
-    if (level < 2 && chord.length) releaseChord(now);
+    if (!draining && level < 2 && chord.length) releaseChord(now);   // en fin de scene, l'accord attend la cadence
 
-    const seuil = level >= 1 ? cfg.seuil * 0.7 : cfg.seuil;   // plus de notes enchainees
+    const seuil = level >= 1 || draining ? cfg.seuil * 0.7 : cfg.seuil;   // plus de notes enchainees
     const gain = level >= 1 ? 1 : cfg.gain;                    // pas conjoints, une ligne chantable
-    if (Math.abs(z - zRef) < seuil) return null;
+    const late = draining && phase === 'phrase' && now - drainStart >= cfg.finMax;
+    const held = draining && phase === 'cadence' && now - start >= cfg.finTenue;
+    if (!late && !held && Math.abs(z - zRef) < seuil) return null;
     zRef = z;
 
     if (phase === 'cadence') {          // ce mouvement ouvre le silence
@@ -149,15 +161,23 @@ export function createEngine(out) {
       sounding = null;
       releaseChord(now);
       phase = 'silence';   // zRef garde ce z : le prochain mouvement ouvre la phrase
+      draining = false;    // fin de scene faite
       return null;
     }
 
     if (phase === 'silence') { phase = 'phrase'; count = 0; }
     const base = count > 0 && sounding != null ? nearestIndex(notes, sounding) : centre;
-    const i = Math.max(0, Math.min(notes.length - 1, base + Math.round(z * gain)));
-    if (play(notes[i], now) && level >= 2) playChord(notes[i], notes, now);
+    let i;
+    if (draining) {
+      // vers le centre : le z donne la taille du pas (1 ou 2 degres), jamais la direction
+      const d = centre - base;
+      i = late ? centre : base + Math.sign(d) * Math.min(Math.abs(d), Math.max(1, Math.min(2, Math.abs(Math.round(z)))));
+    } else {
+      i = Math.max(0, Math.min(notes.length - 1, base + Math.round(z * gain)));
+    }
+    if (play(notes[i], now) && level >= 2 && !draining) playChord(notes[i], notes, now);
     count++;
-    const home = count > 1 && Math.abs(i - centre) <= cfg.maison;
+    const home = (count > 1 || draining) && Math.abs(i - centre) <= cfg.maison;
     const edge = i === 0 || i === notes.length - 1;
     if (home || edge) phase = 'cadence';
     return notes[i];
@@ -173,7 +193,19 @@ export function createEngine(out) {
     });
   }
 
-  // Fin de scene (l'envie retombe) : la note et l'accord finissent leur duree
+  // Fin de scene (l'envie retombe) : la phrase continue vers sa cadence, voir
+  // sample(). Renvoie vrai si c'est deja fini (aucune note ne sonnait).
+  function finish(now) {
+    if (phase === 'silence' || sounding == null) { rest(now); return true; }
+    if (phase === 'grace') phase = 'cadence';   // la note posee sur le centre est deja une fin
+    if (!draining) { draining = true; drainStart = now; }
+    return false;
+  }
+
+  // La scene revient avant la fin de la phrase : elle reprend librement.
+  function resume() { draining = false; }
+
+  // Arret sans phrase a finir : la note et l'accord finissent leur duree
   // minimale puis s'eteignent ; la scene suivante repartira du centre.
   function rest(now) {
     if (sounding != null) release(sounding, 'm', start + cfg.minDur, now);
@@ -181,6 +213,7 @@ export function createEngine(out) {
     releaseChord(now);
     phase = 'silence';
     count = 0;
+    draining = false;
   }
 
   function panic() {
@@ -193,10 +226,11 @@ export function createEngine(out) {
     phase = 'silence';
     count = 0;
     zRef = 0;
+    draining = false;
   }
 
   return {
-    configure, sample, tick, rest, panic,
-    get state() { return { sounding, chord: [...chord], phase, count }; },
+    configure, sample, tick, finish, resume, rest, panic,
+    get state() { return { sounding, chord: [...chord], phase, count, draining }; },
   };
 }

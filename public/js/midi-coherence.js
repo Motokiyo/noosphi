@@ -12,7 +12,10 @@
    tirage neuf. La compter fabriquerait une fausse coherence.
 
    Paliers avec hysteresis (on entre a `in`, on ne sort que sous `out`)
-   pour que la musique ne clignote pas.
+   pour que la musique ne clignote pas. Le palier « coherence » (accords)
+   se regle avec `accord` ; le palier « forte » suit 0,5 au-dessus. Les
+   paliers lisent |C| : meme musique en + et en -. La valeur signee `s`
+   sert au silence choisi (midi-envie.js).
    ============================================================ */
 
 export const LEVELS = [
@@ -22,7 +25,18 @@ export const LEVELS = [
   { name: 'forte',     in: 2.5, out: 2.2 },
 ];
 
-export function createCoherence({ window = 60 } = {}) {
+// Paliers avec le seuil d'accords voulu (2 par defaut), jamais sous l'approche
+export function levelsFor(accord = 2) {
+  const a = Math.max(LEVELS[1].in + 0.1, accord);
+  return [
+    LEVELS[0], LEVELS[1],
+    { name: 'cohérence', in: a, out: a - 0.3 },
+    { name: 'forte', in: a + 0.5, out: a + 0.2 },
+  ];
+}
+
+export function createCoherence({ window = 60, accord = 2 } = {}) {
+  let levels = levelsFor(accord);
   const values = [];
   let last = null;
   let level = 0;
@@ -32,24 +46,30 @@ export function createCoherence({ window = 60 } = {}) {
     last = z;
     values.push(z);
     while (values.length > window) values.shift();
-    const c = Math.abs(values.reduce((a, b) => a + b, 0)) / Math.sqrt(values.length);
-    while (level < LEVELS.length - 1 && c >= LEVELS[level + 1].in) level++;
-    while (level > 0 && c < LEVELS[level].out) level--;
-    return state(c);
+    const c = Math.abs(signed());
+    while (level < levels.length - 1 && c >= levels[level + 1].in) level++;
+    while (level > 0 && c < levels[level].out) level--;
+    return state();
   }
 
-  function state(c = current()) {
+  function state() {
+    const s = signed();
+    const c = Math.abs(s);
     // Niveau continu 0..127 : 0 sous |C| = 1, 127 a |C| = 3
     const cc = Math.round(Math.max(0, Math.min(1, (c - 1) / 2)) * 127);
-    return { c, level, name: LEVELS[level].name, cc, n: values.length };
+    return { s, c, level, name: levels[level].name, cc, n: values.length };
   }
 
-  function current() {
+  function signed() {
     if (!values.length) return 0;
-    return Math.abs(values.reduce((a, b) => a + b, 0)) / Math.sqrt(values.length);
+    return values.reduce((a, b) => a + b, 0) / Math.sqrt(values.length);
+  }
+
+  function configure({ accord: a } = {}) {
+    if (a != null) levels = levelsFor(a);
   }
 
   function reset() { values.length = 0; last = null; level = 0; }
 
-  return { add, reset, get state() { return state(); } };
+  return { add, reset, configure, get state() { return state(); } };
 }

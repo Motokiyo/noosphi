@@ -1,7 +1,7 @@
 # INDEX.md — Catalogue wiki Noosfeerique
 
 > Lis ceci EN PREMIER. Ouvre les fichiers SEULEMENT pour les sections liees a ta tache.
-> Mis a jour : 08/04/2026
+> Mis a jour : 16/10/2026
 
 ## CLAUDE.md — instructions dev
 
@@ -29,6 +29,19 @@
 - `js/three.module.js` — Three.js standalone 570KB
 - `css/experience.css` — styles mobile-first
 - `sw.js` — service worker v4, cache offline
+
+## U1 virtuel — sortie MIDI vers MainStage (z-score -> phrases)
+
+- Notice complete : `docs/MIDI-MAINSTAGE.md` (reglages, paliers, voix, passages, vieux Mac)
+- En ligne : 1.2.0 (envie de jouer). Branche `feat/midi-voix-passages` = 1.3.0 pour SiO2, NON commitee au 16/10/2026
+- Modules (logique pure, tests `node --test test/*.test.mjs`, 58 OK) :
+  `midi-engine.js` lead, `midi-coherence.js` Stouffer 60 s, `midi-envie.js` zone de silence -bas/+haut,
+  `midi-back.js` nappe (piliers I/IV/V, tendance 30 s), `midi-scene.js` passages sans rupture, `midi.js` sortie + panneau
+- Canaux : lead 1, accords 2, nappe 3 ; CC 20 = coherence (0 sous 1, 127 a 3) ; CC 11 = fondu (option)
+- A faire apres l'ecoute d'Alexandre : zones de declenchement separees nappe / jeu (moments nappe seule, les deux, jeu seul)
+- Sons SiO2 retenus sur le vieux Mac (a valider a l'oreille) : nappe Alchemy, lead verre (Glass Marimba) ou flute, accords metal (bols, cors)
+- NE PAS CONFONDRE avec Thetys (le vrai U1 sur la plante) : `../../VegeOhm/docs/thetys-oui-non/`
+- `public/u1-corrige.html` (commit 0dcff50) : page qui lit le vrai U1 en Web MIDI et recoud ses sauts
 
 ## Sources de donnees (5 actives)
 

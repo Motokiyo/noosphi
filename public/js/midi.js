@@ -8,9 +8,17 @@
    suit le niveau de coherence : il ne fait rien tant qu'on ne le
    branche pas dans MainStage. Volumes et sons se reglent dans MainStage.
 
-   L'envie (midi-envie.js) decide des scenes : il ne joue que quand la
-   coherence de la derniere minute depasse le seuil d'envie, s'engage pour
-   une minute, et reprend une minute de plus tant que ca tient.
+   Voix back (midi-back.js) : nappes sur les piliers I, IV, V, qui suivent
+   la tendance lente du z, sur son propre canal.
+
+   L'envie (midi-envie.js) decide des scenes : silence tant que la coherence
+   signee de la derniere minute reste entre -bas et +haut ; hors de cette
+   zone il s'engage pour une minute, et reprend tant que ca tient.
+
+   Passages, jamais abrupts : a l'entree, la nappe vient d'abord et la lead
+   `entree` s apres ; a la sortie, la lead finit sa phrase jusqu'a sa
+   cadence (l'accord avec elle), puis la nappe s'eteint `queue` s plus tard.
+   En option, un fondu sur le controleur 11 (expression) des trois canaux.
 
    Diagnostic : ?midi=debug ecrit chaque seconde dans la console ce que
    le module recoit et decide.
@@ -19,10 +27,14 @@
 import { SCALES, ENGINE_DEFAULTS, createEngine } from './midi-engine.js';
 import { createCoherence } from './midi-coherence.js';
 import { ENVIE_DEFAULTS, createEnvie } from './midi-envie.js';
+import { BACK_DEFAULTS, createBack } from './midi-back.js';
+import { createScene } from './midi-scene.js';
 
 const STORAGE_KEY = 'noosphi_midi';
 const VELOCITY = 100;          // frappe fixe, melodie et harmonie : les volumes se reglent dans MainStage
 const CC_COHERENCE = 20;       // numero libre dans la norme MIDI : n'agit que si on l'assigne
+const CC_EXPRESSION = 11;      // fondu d'entree et de sortie (option)
+const EXPR_PAS = 100;          // une valeur de fondu toutes les 100 ms
 const SAMPLE_MS = 1000;        // lecture du z une fois par seconde (le Sample Rate du U1)
 const NOTE_NAMES = ['Do','Do#','Ré','Ré#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
 
@@ -32,7 +44,14 @@ const DEFAULTS = {
   outputId: null,
   channel: 1,
   channelHarmony: 2,
-  envie: ENVIE_DEFAULTS.seuil,   // 0 = joue toujours
+  channelBack: 3,
+  envieHaut: ENVIE_DEFAULTS.haut,  // joue des que la coherence >= +haut
+  envieBas: ENVIE_DEFAULTS.bas,    // joue des que la coherence <= -bas ; 0 et 0 = joue toujours
+  accord: 2,                       // coherence (+ ou -) a partir de laquelle viennent les accords
+  backTenue: BACK_DEFAULTS.tenueMin / 1000,   // s
+  entree: 4,         // s : la lead entre apres la nappe
+  queue: 4,          // s : la nappe s'eteint apres la fin de la phrase
+  fondu: 'non',      // 'oui' : fondu par CC 11 sur les trois canaux
   gamme: 'app',      // 'app' : gamme choisie dans l'app ; 'u1' : La majeur ; 'chromatic'
 };
 
@@ -44,21 +63,31 @@ let clock = null;
 let lastCc = -1;
 let panel = null;
 
-const coherence = createCoherence({ window: 60 });
-const envie = createEnvie({ seuil: settings.envie });
+const coherence = createCoherence({ window: 60, accord: settings.accord });
+const envie = createEnvie({ haut: settings.envieHaut, bas: settings.envieBas });
 const DEBUG = new URLSearchParams(location.search).get('midi') === 'debug';
 
 // Chaque message part date : le systeme MIDI du Mac le joue a l'heure dite,
 // meme si Chrome arrondit les minuteurs d'une fenetre cachee.
-const channelOf = voice => (voice === 'h' ? settings.channelHarmony : settings.channel) - 1;
+const channelOf = voice => (voice === 'h' ? settings.channelHarmony : voice === 'b' ? settings.channelBack : settings.channel) - 1;
 const engine = createEngine({
   noteOn: (n, voice, at) => send([0x90 | channelOf(voice), n, VELOCITY], at),
   noteOff: (n, voice, at) => send([0x80 | channelOf(voice), n, 0], at),
 });
+const back = createBack({
+  noteOn: (n, at) => send([0x90 | channelOf('b'), n, VELOCITY], at),
+  noteOff: (n, at) => send([0x80 | channelOf('b'), n, 0], at),
+});
+const conductor = createScene({ engine, back, envie, coherence });
+let lastExpr = -1;    // derniere valeur de fondu CC 11 envoyee
 
 function loadSettings() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') };
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    // Reglage d'avant la zone de silence : un seul seuil, pour les deux bords
+    if (saved.envie != null && saved.envieHaut == null) { saved.envieHaut = saved.envie; saved.envieBas = saved.envie; }
+    delete saved.envie;
+    return { ...DEFAULTS, ...saved };
   } catch { return { ...DEFAULTS }; }
 }
 
@@ -66,11 +95,16 @@ function saveSettings() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
 }
 
+let lastAt = 0;   // heure du dernier message date (Chrome ne sait pas les annuler)
+
 function send(bytes, at) {
   if (!output) return;
-  if (at != null && at > performance.now()) output.send(bytes, at);
+  if (at != null && at > performance.now()) { output.send(bytes, at); lastAt = Math.max(lastAt, at); }
   else output.send(bytes);
 }
+
+// Juste apres le dernier message date : ce qui est envoye la passe apres lui
+const afterScheduled = () => Math.max(performance.now(), lastAt + 5);
 
 // Gamme et tonique selon le reglage (le mode « libre » de l'app devient chromatique)
 function currentScale() {
@@ -87,7 +121,30 @@ function configureEngine() {
     low: settings.low, high: settings.high, centre: settings.centre, gain: settings.gain,
     seuil: settings.seuil, maison: settings.maison, minDur: settings.minDur,
   }, intervals, root);
-  envie.configure({ seuil: settings.envie });
+  back.configure({ tenueMin: settings.backTenue * 1000 }, root, settings.centre, settings.low, settings.high);
+  envie.configure({ haut: settings.envieHaut, bas: settings.envieBas });
+  coherence.configure({ accord: settings.accord });
+}
+
+const allChannels = () => [settings.channel, settings.channelHarmony, settings.channelBack];
+
+function sendExpressionValue(v, at) {
+  lastExpr = v;
+  allChannels().forEach(ch => send([0xB0 | (ch - 1), CC_EXPRESSION, v], at));
+}
+
+// Fondu CC 11 : envoie, dates a l'avance, les valeurs de la seconde qui vient.
+// Fondu coupe en cours de route : on rend le plein volume, une fois.
+function sendExpression(now) {
+  if (settings.fondu !== 'oui') {
+    if (lastExpr !== -1 && lastExpr !== 127) sendExpressionValue(127);
+    lastExpr = -1;
+    return;
+  }
+  for (let t = now; t < now + SAMPLE_MS; t += EXPR_PAS) {
+    const v = Math.round(conductor.exprAt(t));
+    if (v !== lastExpr) sendExpressionValue(v, t);
+  }
 }
 
 // Appele par experience.js quand cette fenetre ouvre ou quitte une session
@@ -111,23 +168,20 @@ export function midiZ(z) {
 function onSample() {
   const now = performance.now();
   const z = latestZ;
-  const coh = coherence.add(z);
+  configureEngine();   // suit un changement de gamme dans l'app
+  const at = z != null && isFinite(z) ? now + (Math.abs(z) % 1) * SAMPLE_MS : now;
+  const { coh, scene, note, attend } = conductor.step(z, now, {
+    entree: settings.entree * 1000, queue: settings.queue * 1000, at,
+  });
   if (coh.cc !== lastCc) {
     lastCc = coh.cc;
-    send([0xB0 | (settings.channel - 1), CC_COHERENCE, coh.cc]);
-    send([0xB0 | (settings.channelHarmony - 1), CC_COHERENCE, coh.cc]);
+    allChannels().forEach(ch => send([0xB0 | (ch - 1), CC_COHERENCE, coh.cc]));
   }
-  const scene = envie.update(coh.c, coh.n, now);
-  if (scene.change && !scene.joue) engine.rest(now);
-  let note = null;
-  if (scene.joue && z != null && isFinite(z)) {
-    configureEngine();   // suit un changement de gamme dans l'app
-    note = engine.sample(z, now + (Math.abs(z) % 1) * SAMPLE_MS, coh.level);
-  }
+  sendExpression(now);
   // Relachements prevus avant la prochaine lecture, envoyes dates des maintenant
   engine.tick(now + SAMPLE_MS);
-  updateReadout(note, coh, scene);
-  if (DEBUG) console.log(`[midi] ${Math.round(now)} z=${z} C=${coh.c.toFixed(2)} palier=${coh.level} joue=${scene.joue} note=${note} phase=${engine.state.phase}`);
+  updateReadout(note, coh, scene, attend);
+  if (DEBUG) console.log(`[midi] ${Math.round(now)} z=${z} C=${coh.s.toFixed(2)} palier=${coh.level} joue=${scene.joue} note=${note} phase=${engine.state.phase} fin=${engine.state.draining} back=${back.state.sounding}`);
 }
 
 function startClock() {
@@ -141,8 +195,17 @@ function stopClock() {
 
 export function midiPanic() {
   engine.panic();
-  if (output && output.clear) output.clear();   // annule les messages dates pas encore partis
-  for (let ch = 0; ch < 16; ch++) send([0xB0 | ch, 123, 0]);   // All Notes Off
+  back.panic();
+  conductor.panic();   // garde le fondu en cours : une panique ne coupe pas le volume
+  if (output && output.clear) output.clear();   // Firefox seulement : annule les messages dates
+  // All Notes Off tout de suite, et encore apres le dernier message date :
+  // Chrome ne sait pas annuler une note deja datee dans la seconde qui vient
+  const after = afterScheduled();
+  for (let ch = 0; ch < 16; ch++) {
+    send([0xB0 | ch, 123, 0]);
+    if (after > performance.now()) send([0xB0 | ch, 123, 0], after);
+  }
+  lastExpr = -1;   // le fondu sera renvoye en entier a la prochaine lecture
 }
 
 async function ensureAccess() {
@@ -180,9 +243,29 @@ function pickOutput() {
 function setEnabled(on) {
   settings.enabled = on;
   saveSettings();
-  if (on) { envie.reset(); configureEngine(); startClock(); }
-  else { stopClock(); midiPanic(); }
+  if (on) {
+    envie.reset();
+    coherence.reset();   // pas de cohérence périmée après une pause
+    back.reset();
+    conductor.reset();
+    lastExpr = -1;
+    configureEngine();
+    startClock();
+  }
+  else {
+    stopClock();
+    midiPanic();
+  }
   pickOutput();
+  // Plein volume rendu a MainStage : a l'arret avec le fondu, et a l'activation
+  // sans fondu (une seance precedente a pu le laisser a 0)
+  if (!on ? settings.fondu === 'oui' : settings.fondu !== 'oui') restoreExpression();
+}
+
+function restoreExpression() {
+  sendExpressionValue(127);
+  sendExpressionValue(127, afterScheduled());
+  lastExpr = -1;
 }
 
 // ============================================================
@@ -204,18 +287,21 @@ function setStatus(msg) {
   if (panel) panel.querySelector('[data-status]').textContent = msg;
 }
 
-function updateReadout(note, coh, scene) {
+function updateReadout(note, coh, scene, attend) {
   if (!panel) return;
   const z = latestZ != null && isFinite(latestZ) ? latestZ.toFixed(2) : '—';
-  const { sounding, phase } = engine.state;
+  const { sounding, phase, draining } = engine.state;
   const shown = note ?? sounding;
+  const nappe = back.state.sounding;
   panel.querySelector('[data-readout]').textContent =
-    `z ${z}  ·  ${shown != null ? `${noteName(shown)} (${shown})` : '—'}  ·  ${phase}`;
-  panel.querySelector('[data-envie]').textContent = !scene.joue ? 'Se tait, écoute'
-    : scene.reste == null ? 'Joue (sans envie)'
+    `z ${z}  ·  lead ${shown != null ? noteName(shown) : '—'}  ·  back ${nappe != null ? noteName(nappe) : '—'}  ·  ${phase}`;
+  panel.querySelector('[data-envie]').textContent = !scene.joue
+    ? (draining ? 'Finit sa phrase' : back.state.active ? 'La nappe s’éteint' : 'Se tait, écoute')
+    : attend ? 'Entre · la nappe d’abord'
+    : scene.reste == null ? 'Joue (sans silence)'
     : `Joue · fait le point dans ${Math.ceil(scene.reste / 1000)} s`;
   panel.querySelector('[data-coherence]').textContent =
-    `Cohérence ${coh.c.toFixed(2)} · ${coh.name}`;
+    `Cohérence ${coh.s >= 0 ? '+' : '−'}${coh.c.toFixed(2)} · ${coh.name}`;
   panel.querySelector('[data-bar]').style.width = `${Math.round(coh.cc / 1.27)}%`;
 }
 
@@ -304,9 +390,12 @@ function buildPanel() {
   panel.append(row('Sortie', output));
 
   panel.append(
-    numberField('Seuil d’envie (0 = toujours)', 'envie', 0, 4, 0.1),
-    numberField('Canal mélodie', 'channel', 1, 16, 1, midiPanic),
-    numberField('Canal harmonie', 'channelHarmony', 1, 16, 1, midiPanic),
+    numberField('Joue au-dessus de +', 'envieHaut', 0, 4, 0.1),
+    numberField('Joue au-dessous de −', 'envieBas', 0, 4, 0.1),
+    numberField('Accords dès ± (cohérence)', 'accord', 1.6, 4, 0.1),
+    numberField('Canal lead', 'channel', 1, 16, 1, midiPanic),
+    numberField('Canal accords', 'channelHarmony', 1, 16, 1, midiPanic),
+    numberField('Canal back (nappes)', 'channelBack', 1, 16, 1, midiPanic),
     selectField('Gamme', 'gamme', [
       ['app', 'Celle de l’app'],
       ['u1', 'La majeur (U1)'],
@@ -319,6 +408,10 @@ function buildPanel() {
     numberField('Seuil de mouvement', 'seuil', 0.1, 5, 0.1),
     numberField('Maison (± degrés)', 'maison', 0, 6, 1),
     numberField('Durée min. (ms)', 'minDur', 50, 5000, 50),
+    numberField('Tenue min. back (s)', 'backTenue', 2, 60, 1),
+    numberField('Entrée de la lead (s)', 'entree', 0, 20, 1),
+    numberField('Queue de la back (s)', 'queue', 0, 30, 1),
+    selectField('Fondu CC 11', 'fondu', [['non', 'Non'], ['oui', 'Oui']]),
   );
 
   const buttons = el('div', { className: 'midi-buttons' });
@@ -374,4 +467,7 @@ if (new URLSearchParams(location.search).has('midi')) {
   settings.enabled = false;   // jamais de MIDI sans le panneau visible
 }
 
-window.addEventListener('pagehide', midiPanic);
+window.addEventListener('pagehide', () => {
+  midiPanic();
+  if (settings.enabled && settings.fondu === 'oui') restoreExpression();
+});

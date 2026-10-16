@@ -1,5 +1,13 @@
 # Changelog — Noosfeerique
 
+## [1.3.0] — non publiée (branche feat/midi-voix-passages)
+
+- Silence choisi : zone de silence entre −bas et +haut sur la cohérence signée de la dernière minute, deux réglages indépendants (1,5 et 1,5 par défaut, 0 et 0 = joue toujours). L'ancien seuil d'envie est repris pour les deux bords
+- Voix back (canal 3, `midi-back.js`) : nappes sur les piliers I, IV, V, qui suivent la tendance des 30 dernières secondes, tenue minimale 10 s, passage lié
+- Accords : seuil réglable (« Accords dès ± », 2 par défaut), même accord en + et en −
+- Passages sans rupture (`midi-scene.js`) : à l'entrée la nappe d'abord, la lead 4 s après ; à la sortie la lead finit sa phrase vers le centre (garde-fou 15 s), l'accord tient jusqu'à la cadence, la nappe tient 4 s de plus. Fondu CC 11 en option
+- Service worker v10
+
 ## [1.2.0] — 2026-10-07
 
 - L'envie de jouer : le U1 virtuel ne joue que quand la cohérence de la dernière minute atteint le seuil d'envie (1,5), s'engage pour une minute et reprend une minute de plus tant que ça tient. Seuil réglable sur le panneau, 0 = joue toujours

@@ -27,6 +27,9 @@ App artistique mesurant la conscience collective en temps reel via des generateu
 - `js/zindex.js` — fonctions stats (NE PAS TOUCHER)
 - `js/midi-engine.js` — moteur de phrases MIDI « U1 virtuel » (logique pure, tests : `node --test test/*.test.mjs`)
 - `js/midi-coherence.js` — mesure de cohérence (Stouffer glissant 60 s, paliers avec hystérésis)
+- `js/midi-envie.js` — silence choisi (zone −bas / +haut sur la cohérence signée, engagement d'une minute)
+- `js/midi-back.js` — voix back, nappes sur les piliers I, IV, V (tendance 30 s)
+- `js/midi-scene.js` — conduite des scènes : entrées et sorties sans rupture (la phrase finit, la nappe tient), fondu CC 11
 - `js/midi.js` — sortie Web MIDI + panneau, visible seulement avec `?midi=1` (notice : docs/MIDI-MAINSTAGE.md)
 - `js/three.module.js` — Three.js standalone 570KB
 - `assets/icons/` — icon-512 (sphere Franck), icon-192, apple-touch-icon, favicons
