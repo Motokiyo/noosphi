@@ -33,7 +33,7 @@
 ## U1 virtuel — sortie MIDI vers MainStage (z-score -> phrases)
 
 - Notice complete : `docs/MIDI-MAINSTAGE.md` (reglages, paliers, voix, passages, vieux Mac)
-- En ligne : 1.2.0 (envie de jouer). Branche `feat/midi-voix-passages` = 1.3.0 pour SiO2, NON commitee au 16/10/2026
+- En ligne : 1.2.0 (envie de jouer). Branche `feat/midi-voix-passages` = 1.3.0 pour SiO2, poussee sur GitHub le 16/10/2026, non publiee
 - Modules (logique pure, tests `node --test test/*.test.mjs`, 58 OK) :
   `midi-engine.js` lead, `midi-coherence.js` Stouffer 60 s, `midi-envie.js` zone de silence -bas/+haut,
   `midi-back.js` nappe (piliers I/IV/V, tendance 30 s), `midi-scene.js` passages sans rupture, `midi.js` sortie + panneau
