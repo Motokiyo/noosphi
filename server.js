@@ -206,6 +206,59 @@ async function getQciAccessToken() {
   throw new Error('QCI auth failed');
 }
 
+// === CICADA : cle quantique de Franck Laharrague (temple-pc, par Tailscale) ===
+// Lue par le serveur seul, une fois par seconde, et seulement tant qu'une page
+// la demande (pas de lecture pour rien). 250 octets = 10 essais de 200 bits,
+// methode EGG comme les autres sources. Reservee (experiences de la Napp) ou
+// injoignable : status 'off', et la page ne montre pas la case.
+// Acces : QRNG_FRANCK_URL et QRNG_FRANCK_TOKEN, dans le coffre (api-keys/qrng-franck.env).
+const fs = require('fs');
+const os = require('os');
+const cicadaConf = (() => {
+  const fichiers = [process.env.QRNG_FRANCK_ENV, '/root/galaad-credentials/api-keys/qrng-franck.env',
+    path.join(os.homedir(), 'Territoire/Galaad-credentials/api-keys/qrng-franck.env')].filter(Boolean);
+  for (const f of fichiers) {
+    try {
+      const c = {};
+      fs.readFileSync(f, 'utf8').split('\n').forEach(l => {
+        const i = l.indexOf('=');
+        if (i > 0 && !l.startsWith('#')) c[l.slice(0, i).trim()] = l.slice(i + 1).trim();
+      });
+      if (c.QRNG_FRANCK_URL && c.QRNG_FRANCK_TOKEN) return c;
+    } catch {}
+  }
+  return null;
+})();
+const cicada = { z: null, t: 0, bloc: null, etat: cicadaConf ? 'en attente' : 'non configuree', demande: 0 };
+
+async function lireCicada() {
+  if (!cicadaConf || Date.now() - cicada.demande > 10000) return;
+  try {
+    const r = await fetch(`${cicadaConf.QRNG_FRANCK_URL}/bits?octets=250`, {
+      headers: { Authorization: `Bearer ${cicadaConf.QRNG_FRANCK_TOKEN}` },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (r.status === 423) { cicada.etat = 'reservee'; cicada.z = null; return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.fin) { cicada.etat = 'reservee'; cicada.z = null; return; }
+    if (!d.hex || d.bloc === cicada.bloc) return;   // meme bloc : pas de nouveau tirage
+    const z = bytesToEggZ(Buffer.from(d.hex, 'hex'));
+    if (z == null || !isFinite(z)) return;
+    Object.assign(cicada, { z, t: Date.now(), bloc: d.bloc, etat: 'active' });
+  } catch {
+    cicada.etat = 'injoignable';
+    cicada.z = null;
+  }
+}
+if (cicadaConf) setInterval(lireCicada, 1000);
+
+app.get('/api/cicada', (req, res) => {
+  cicada.demande = Date.now();
+  const frais = cicada.z != null && Date.now() - cicada.t < 3000;
+  res.json(frais ? { status: 'ok', zIndex: cicada.z, bloc: cicada.bloc } : { status: 'off', etat: cicada.etat });
+});
+
 app.get('/api/qci', async (req, res) => {
   const t0 = Date.now();
 

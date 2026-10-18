@@ -851,19 +851,30 @@ function midiSourceZ(displayZ) {
 // une fausse coherence, donc affichage seulement. Seules les sources qui
 // repondent ont une case.
 const MIDI_ON = new URLSearchParams(location.search).has('midi');
-const JEU_DEFAUT = { local: true, telephones: true, qci: false };
+const JEU_DEFAUT = { local: true, telephones: true, qci: false, cicada: false };
 const jeuSources = (() => {
   try { return { ...JEU_DEFAUT, ...JSON.parse(localStorage.getItem('noosphi_jeu_sources') || '{}') }; }
   catch { return { ...JEU_DEFAUT }; }
 })();
 let telephonesActifs = 0;   // telephones qui ont envoye un z depuis moins de 3 s
 let dernierZJoue = null;    // dernier z parti vers MainStage (courbe « Joue »)
+let dernierZTrace = null;   // derniere valeur posee sur la courbe « Combine »
+let cicadaZ = null;         // cle quantique de Franck (Cicada), lue par le serveur
+
+// Cicada : seulement avec l'U1 virtuel, hors du « Combine » de l'app publique
+async function fetchCicada() {
+  try {
+    const d = await fetch('/api/cicada').then(r => r.json());
+    cicadaZ = d.status === 'ok' && isFinite(d.zIndex) ? d.zIndex : null;
+  } catch { cicadaZ = null; }
+}
 
 // z de cet ordinateur selon les cases : son generateur, QCI, les deux ou rien
 function hostJeuZ() {
   const z = [];
   if (jeuSources.local && localReady) z.push(currentZ);
   if (jeuSources.qci && apiZScores.qci != null && isFinite(apiZScores.qci)) z.push(apiZScores.qci);
+  if (jeuSources.cicada && cicadaZ != null) z.push(cicadaZ);
   return z.length ? z.reduce((a, b) => a + b, 0) / Math.sqrt(z.length) : null;
 }
 
@@ -873,6 +884,7 @@ function texteZJoue() {
   if (isCollective && jeuSources.telephones) parts.push(`${telephonesActifs} téléphone${telephonesActifs > 1 ? 's' : ''}`);
   if (jeuSources.local) parts.push('cet ordi');
   if (jeuSources.qci) parts.push(apiZScores.qci != null ? 'QCI' : 'QCI (muet)');
+  if (jeuSources.cicada) parts.push(cicadaZ != null ? 'Cicada' : 'Cicada (muette)');
   return 'z joué : ' + (parts.length ? parts.join(' + ') : 'aucune source');
 }
 
@@ -883,6 +895,7 @@ function majCasesSession() {
   const repond = {
     combined: true, local: localReady, telephones: isCollective && telephonesActifs > 0,
     gcp: apiZScores.gcp != null, qrng: false, nist: false, qci: apiZScores.qci != null,
+    cicada: cicadaZ != null,
   };
   document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
     label.classList.toggle('hidden', !repond[label.dataset.key]);
@@ -957,6 +970,12 @@ function combineAndUpdate() {
   // et le chiffre du centre sont le z qui part vers MainStage, selon les cases
   const zJoue = MIDI_ON ? midiSourceZ(displayZ) : null;
   dernierZJoue = zJoue != null && isFinite(zJoue) ? zJoue : null;
+  // Note a l'instant ou il part, pour ne pas decaler la courbe
+  // (une seule fois par valeur : cette fonction tourne plusieurs fois par seconde)
+  if (MIDI_ON && dernierZJoue != null && dernierZJoue !== dernierZTrace) {
+    dernierZTrace = dernierZJoue;
+    pushHistory('combined', Date.now(), dernierZJoue);
+  }
   recordSessionTick(dernierZJoue ?? displayZ);
 }
 
@@ -1180,8 +1199,9 @@ const COLORS = {
   qrng: '#FF8800',
   nist: '#00CC66',
   qci: '#C9A24D',
+  cicada: '#FF5FA2',
 };
-const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI' };
+const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI', cicada: 'Cicada' };
 // Used for graph-overlay source dots (excludes 'combined' which has no API slot)
 const SOURCE_META = [
   { key: 'local', color: '#00E5FF', label: 'Local' },
@@ -1197,6 +1217,7 @@ const zHistory = {
   qrng: [],
   nist: [],
   qci: [],
+  cicada: [],
 };
 
 function recordHistory() {
@@ -1206,14 +1227,17 @@ function recordHistory() {
   if (localReady) allZ.push(currentZ);
   Object.values(apiZScores).forEach(z => { if (z != null && isFinite(z)) allZ.push(z); });
   // Avec l'U1 virtuel, la courbe principale est le z joue, pas le melange de tout
-  const cz = MIDI_ON ? dernierZJoue : computeStoufferZ(allZ);
-  if (cz != null) pushHistory('combined', now, cz);
+  if (!MIDI_ON) {
+    const cz = computeStoufferZ(allZ);
+    if (cz != null) pushHistory('combined', now, cz);
+  }
   // Individual
   if (localReady) pushHistory('local', now, currentZ);
   if (apiZScores.gcp != null) pushHistory('gcp', now, apiZScores.gcp);
   if (apiZScores.qrng != null) pushHistory('qrng', now, apiZScores.qrng);
   if (apiZScores.nist != null) pushHistory('nist', now, apiZScores.nist);
   if (apiZScores.qci != null) pushHistory('qci', now, apiZScores.qci);
+  if (cicadaZ != null) pushHistory('cicada', now, cicadaZ);
 }
 
 function pushHistory(key, t, z) {
@@ -1540,7 +1564,7 @@ let sessionChart = null;
 let currentCollectiveCode = null;
 const btnPauseSession = document.getElementById("btn-pause-session");
 const pauseLabel = document.getElementById("pause-label");
-const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true, cicada: true };
 
 // Sessions history from main setup screen
 document.getElementById('btn-session-history-main').addEventListener('click', () => {
@@ -1780,6 +1804,7 @@ function recordSessionTick(displayZ) {
     qrng: apiZScores.qrng,
     nist: apiZScores.nist,
     qci: apiZScores.qci,
+    cicada: cicadaZ,
   };
   sessionData.push(point);
 
@@ -1862,7 +1887,6 @@ if (MIDI_ON) {
       if (key !== 'telephones') sessionVisibility[key] = jeuSources[key];
     } else if (key === 'combined') {
       label.title = 'Le z qui part vers MainStage, selon les cases';
-      label.querySelector('span:last-child').textContent = 'Joué';
     } else {
       label.title = 'Affichage seulement : une valeur par minute, ne joue pas';
       label.querySelector('span:last-child').textContent += ' · vue';
@@ -2210,6 +2234,9 @@ function init() {
   // QCI every 1s (25 bytes/req = ~52% of 1B free quota)
   fetchQCI();
   setInterval(fetchQCI, 1000);
+
+  // Cicada de Franck : seulement pour l'U1 virtuel
+  if (MIDI_ON) { fetchCicada(); setInterval(fetchCicada, 1000); }
 
   // ANU + NIST + local server every 60s (rate-limited)
   fetchSlow();
