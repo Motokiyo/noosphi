@@ -256,3 +256,19 @@ Dans chaque patch : une tranche **Instrument externe** (entrée MIDI Aucun, sort
 Un patch sans cette tranche garde le genre du patch précédent. Pour qu'il revienne au réglage général, lui donner `0-generale`. Le panneau MIDI affiche la ligne « Gamme du patch ».
 
 **Ne jamais envoyer de changement de programme vers Retour Noos.** MainStage écoute aussi ce bus et saute vers le patch qui porte ce numéro (essai du 18/10/2026 : le patch « le plateau de nuit » renvoyait sans cesse sur Celeste, et MainStage s'est figé une minute).
+
+## Ce qui fait jouer l'U1 virtuel (sources du z)
+
+Dans l'écran de session, avec `?midi=1`, les cases décident vraiment du z envoyé à MainStage. La ligne « z joué » du panneau dit ce qui joue.
+
+- **Local** : le générateur de cet ordinateur.
+- **Téléphones · N** : en séance collective, les téléphones qui ont envoyé un z depuis moins de 3 s. La case n'apparaît qu'à partir d'un téléphone actif.
+- **QCI** : générateur quantique de Quantum Computing Inc., un z par seconde.
+- **Cicada** : clé quantique de Franck Laharrague (temple-pc, par Tailscale), lue par le serveur en ligne. N'apparaît que si la clé répond ; réservée aux expériences de la Napp du 10 au 18/11, elle disparaît alors d'elle-même.
+- **Princeton, ANU, NIST** : affichage seulement (« vue »). Une valeur par minute : les jouer répéterait la même valeur et fabriquerait une fausse cohérence.
+
+Par défaut : Local + Téléphones. La courbe « Combine » est le z joué. En séance collective elle suit « Local » avec environ une seconde de retard : le tirage de l'ordinateur passe par le serveur, qui le combine avec les téléphones (chaque tirage ne compte qu'une fois).
+
+Les réglages du panneau sont propres à chaque adresse (page d'essai du MacBook, page en ligne). Pour les reporter : « Copier mes réglages » d'un côté, « Coller mes réglages » puis Cmd+V de l'autre. La sortie MIDI se choisit à la main dans chaque fenêtre.
+
+Les sessions enregistrées restent dans le navigateur qui les a faites (50 au plus), aucune copie sur le serveur.
