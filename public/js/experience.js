@@ -857,6 +857,7 @@ const jeuSources = (() => {
   catch { return { ...JEU_DEFAUT }; }
 })();
 let telephonesActifs = 0;   // telephones qui ont envoye un z depuis moins de 3 s
+let dernierZJoue = null;    // dernier z parti vers MainStage (courbe « Joue »)
 
 // z de cet ordinateur selon les cases : son generateur, QCI, les deux ou rien
 function hostJeuZ() {
@@ -952,8 +953,11 @@ function combineAndUpdate() {
     return `<span class="live-z-source-dot ${active ? 'active' : ''}" style="background:${s.color}" title="${s.label}"></span>`;
   }).join('');
 
-  // Feed session recording
-  recordSessionTick(displayZ);
+  // Feed session recording. Avec l'U1 virtuel, la courbe principale (« Joue »)
+  // et le chiffre du centre sont le z qui part vers MainStage, selon les cases
+  const zJoue = MIDI_ON ? midiSourceZ(displayZ) : null;
+  dernierZJoue = zJoue != null && isFinite(zJoue) ? zJoue : null;
+  recordSessionTick(dernierZJoue ?? displayZ);
 }
 
 // ============================================================
@@ -1201,7 +1205,8 @@ function recordHistory() {
   const allZ = [];
   if (localReady) allZ.push(currentZ);
   Object.values(apiZScores).forEach(z => { if (z != null && isFinite(z)) allZ.push(z); });
-  const cz = computeStoufferZ(allZ);
+  // Avec l'U1 virtuel, la courbe principale est le z joue, pas le melange de tout
+  const cz = MIDI_ON ? dernierZJoue : computeStoufferZ(allZ);
   if (cz != null) pushHistory('combined', now, cz);
   // Individual
   if (localReady) pushHistory('local', now, currentZ);
@@ -1855,7 +1860,10 @@ if (MIDI_ON) {
       label.classList.toggle('active', jeuSources[key]);
       label.querySelector('input').checked = jeuSources[key];
       if (key !== 'telephones') sessionVisibility[key] = jeuSources[key];
-    } else if (key !== 'combined') {
+    } else if (key === 'combined') {
+      label.title = 'Le z qui part vers MainStage, selon les cases';
+      label.querySelector('span:last-child').textContent = 'Joué';
+    } else {
       label.title = 'Affichage seulement : une valeur par minute, ne joue pas';
       label.querySelector('span:last-child').textContent += ' · vue';
     }
