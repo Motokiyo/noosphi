@@ -72,8 +72,9 @@ socket.on('collective:joined', () => {
   if (!noticeShown) {
     noticeShown = true;
     const notice = document.getElementById('notice');
+    if (document.fullscreenEnabled) document.getElementById('plein-ecran').classList.remove('hidden');
     notice.classList.add('show');
-    setTimeout(() => notice.classList.remove('show'), 10000);
+    setTimeout(() => notice.classList.remove('show'), 12000);
   }
 });
 
@@ -100,6 +101,13 @@ document.addEventListener('visibilitychange', () => {
 setInterval(() => {
   if (joined && socket.connected) socket.emit('collective:z', { z: eggZ() });
 }, 1000);
+
+// Plein ecran au premier toucher : la barre du navigateur disparait (Android ;
+// l'iPhone ne le permet pas pour une page web)
+document.addEventListener('click', e => {
+  if (!joined || e.target.closest('.panel') || document.fullscreenElement || !document.fullscreenEnabled) return;
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+});
 
 document.getElementById('btn-join').addEventListener('click', () => join(codeInput.value));
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') join(codeInput.value); });

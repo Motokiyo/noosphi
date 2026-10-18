@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Noosfeerique · Public</title>
@@ -14,6 +15,7 @@
        Noir pur (un ecran OLED n'allume pas ses pixels noirs : peu de batterie,
        pas de lumiere dans la salle), aucune 3D, aucun son. */
     :root {
+      color-scheme: dark;                /* barres du navigateur en sombre quand il le permet */
       --bg: #000;
       --glow: 201, 162, 77;              /* or de la charte */
       --text: rgba(255, 255, 255, 0.35);
@@ -71,8 +73,9 @@
   </div>
 
   <div class="notice" id="notice" aria-live="polite">
-    <strong>Merci de passer votre téléphone en « Ne pas déranger ».</strong>
+    <strong>Merci de passer votre téléphone en « Ne pas déranger » et de baisser la luminosité.</strong>
     Gardez cette page ouverte, écran posé : votre téléphone participe au concert.
+    <span class="plein-ecran hidden" id="plein-ecran"><br>Touchez l’écran pour le passer en plein écran.</span>
   </div>
 
   <div class="status" id="status"></div>
