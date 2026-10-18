@@ -540,6 +540,61 @@ function sphereField() {
   return row('Sphère', select);
 }
 
+// Reglages d'une page a l'autre (page d'essai du MacBook -> page en ligne) :
+// chaque adresse a sa propre memoire. « Copier » met les reglages dans le
+// presse-papier ; « Coller » les reprend et recharge la page. La sortie MIDI
+// et l'etat actif/pause restent ceux de la page qui colle (les identifiants
+// de sortie changent d'un profil Chrome a l'autre).
+const CLES_REGLAGES = [STORAGE_KEY, 'noosphi_scale', 'noosphi_jeu_sources', 'noosphi_sphere'];
+
+function reglagesButtons() {
+  const wrap = el('div');
+  const buttons = el('div', { className: 'midi-buttons' });
+  const copier = el('button', { type: 'button' }, 'Copier mes réglages');
+  const coller = el('button', { type: 'button' }, 'Coller mes réglages');
+  const zone = el('textarea', { className: 'midi-coller hidden', placeholder: 'Cmd+V ici' });
+  const note = el('div', { className: 'midi-note' }, '');
+
+  copier.addEventListener('click', async () => {
+    saveSettings();
+    const data = {};
+    CLES_REGLAGES.forEach(k => { try { const v = localStorage.getItem(k); if (v != null) data[k] = v; } catch {} });
+    const texte = JSON.stringify({ noosfeerique: 1, reglages: data });
+    try { await navigator.clipboard.writeText(texte); }
+    catch {
+      zone.value = texte; zone.classList.remove('hidden'); zone.select();
+      document.execCommand('copy'); zone.classList.add('hidden');
+    }
+    note.textContent = 'Réglages copiés. Dans l’autre fenêtre : « Coller mes réglages ».';
+  });
+
+  coller.addEventListener('click', () => {
+    zone.value = '';
+    zone.classList.remove('hidden');
+    zone.focus();
+    note.textContent = 'Appuie sur Cmd+V.';
+  });
+
+  zone.addEventListener('paste', e => {
+    e.preventDefault();
+    let recu;
+    try { recu = JSON.parse(e.clipboardData.getData('text')); } catch {}
+    if (!recu || recu.noosfeerique !== 1 || !recu.reglages) { note.textContent = 'Ce ne sont pas des réglages Noosfeerique.'; return; }
+    const ici = { outputId: settings.outputId, enabled: settings.enabled };
+    Object.entries(recu.reglages).forEach(([k, v]) => {
+      if (!CLES_REGLAGES.includes(k)) return;
+      if (k === STORAGE_KEY) { try { v = JSON.stringify({ ...JSON.parse(v), ...ici }); } catch { return; } }
+      try { localStorage.setItem(k, v); } catch {}
+    });
+    note.textContent = 'Réglages repris, la page se recharge…';
+    setTimeout(() => location.reload(), 600);
+  });
+
+  buttons.append(copier, coller);
+  wrap.append(buttons, zone, note);
+  return wrap;
+}
+
 // Pour relier les boutons MainStage avec « Apprendre » : envoie le message une fois
 function testPatchButtons() {
   const wrap = el('div', { className: 'midi-buttons' });
@@ -591,6 +646,9 @@ function buildPanel() {
     .midi-qr.hidden { display: none; }
     .midi-title { margin: 10px 0 2px; color: #4EC9C6; font-weight: 600; }
     .midi-note { color: rgba(255,255,255,.5); font-size: 11px; }
+    .midi-coller { width: 100%; height: 40px; margin-top: 6px; background: transparent; color: #fff;
+      border: 1px dashed #4EC9C6; border-radius: 6px; font: 11px Inter, sans-serif; }
+    .midi-coller.hidden { display: none; }
   `);
   document.head.append(style);
 
@@ -651,6 +709,8 @@ function buildPanel() {
     numberField('Entrée de la lead (s)', 'entree', 0, 20, 1),
     numberField('Queue de la back (s)', 'queue', 0, 30, 1),
     selectField('Fondu CC 11', 'fondu', [['non', 'Non'], ['oui', 'Oui']]),
+    title('Réglages d’une page à l’autre'),
+    reglagesButtons(),
   );
 
   const buttons = el('div', { className: 'midi-buttons' });
