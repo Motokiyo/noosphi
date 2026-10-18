@@ -54,6 +54,24 @@
       text-align: center; font-size: 12px; transition: opacity 3s ease; }
     .status.faded { opacity: .25; }
     .hidden { display: none; }
+    /* Sphere et z, a peine visibles : la premiere minute, puis a chaque toucher,
+       pour montrer qu'on est bien dans la seance. Dessin plat, sans 3D. */
+    .sphere {
+      position: absolute; top: 50%; left: 50%;
+      width: 56vmin; height: 56vmin; margin: -28vmin 0 0 -28vmin; border-radius: 50%;
+      background: radial-gradient(circle at 38% 34%, rgba(245,245,242,.22) 0%, rgba(245,245,242,.08) 38%, rgba(245,245,242,.02) 70%, transparent 72%);
+      opacity: 0; transition: opacity 3s ease; pointer-events: none;
+    }
+    .zvaleur {
+      position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%);
+      text-align: center; font-size: 13vmin; font-weight: 200; letter-spacing: .02em;
+      color: rgba(255,255,255,.55); font-variant-numeric: tabular-nums;
+      opacity: 0; transition: opacity 3s ease; pointer-events: none;
+    }
+    .zvaleur small { display: block; font-size: 11px; letter-spacing: .25em; color: var(--text); margin-top: 6px; }
+    body.visible .sphere { opacity: 1; }
+    body.visible .zvaleur { opacity: 1; }
+    body.avis .zvaleur { opacity: 0; }     /* le message d'arrivee passe d'abord */
     /* Rappel a l'arrivee : quelques secondes, puis la page redevient noire */
     .notice { position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%);
       text-align: center; color: var(--text-strong); font-size: 16px; line-height: 1.6;
@@ -64,6 +82,8 @@
 </head>
 <body>
   <div class="glow" aria-hidden="true"></div>
+  <div class="sphere" aria-hidden="true"></div>
+  <div class="zvaleur" id="zvaleur">0.00<small>Z-SCORE DE LA SÉANCE</small></div>
 
   <div class="panel" id="join">
     <h1>NOOSFEERIQUE</h1>

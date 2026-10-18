@@ -37,6 +37,14 @@ let joined = false;
 let wakeLock = null;
 let fadeTimer = null;
 let noticeShown = false;
+let visibleTimer = null;
+
+// Sphere et z a peine visibles pendant `ms`, puis retour au noir
+function montrer(ms) {
+  document.body.classList.add('visible');
+  clearTimeout(visibleTimer);
+  visibleTimer = setTimeout(() => document.body.classList.remove('visible'), ms);
+}
 
 function setStatus(text, fade = true) {
   statusEl.textContent = text;
@@ -74,7 +82,9 @@ socket.on('collective:joined', () => {
     const notice = document.getElementById('notice');
     if (document.fullscreenEnabled) document.getElementById('plein-ecran').classList.remove('hidden');
     notice.classList.add('show');
-    setTimeout(() => notice.classList.remove('show'), 12000);
+    document.body.classList.add('avis');
+    setTimeout(() => { notice.classList.remove('show'); document.body.classList.remove('avis'); }, 12000);
+    montrer(60000);   // la premiere minute : on voit qu'on est arrive
   }
 });
 
@@ -83,6 +93,13 @@ socket.on('collective:error', msg => {
   document.body.classList.remove('connected');
   joinPanel.classList.remove('hidden');
   setStatus(msg, false);
+});
+
+// z de la seance (telephones + ordinateur du concert), affiche quand la sphere est visible
+socket.on('collective:z-update', ({ collectiveZ }) => {
+  if (joined && collectiveZ != null && isFinite(collectiveZ)) {
+    document.getElementById('zvaleur').firstChild.textContent = collectiveZ.toFixed(2);
+  }
 });
 
 socket.on('collective:update', state => {
@@ -104,8 +121,12 @@ setInterval(() => {
 
 // Plein ecran au premier toucher : la barre du navigateur disparait (Android ;
 // l'iPhone ne le permet pas pour une page web)
+// Un toucher : la sphere et le z reviennent a peine quelques secondes (on voit
+// qu'on est toujours en ligne), et plein ecran la ou c'est permis
 document.addEventListener('click', e => {
-  if (!joined || e.target.closest('.panel') || document.fullscreenElement || !document.fullscreenEnabled) return;
+  if (!joined || e.target.closest('.panel')) return;
+  montrer(8000);
+  if (document.fullscreenElement || !document.fullscreenEnabled) return;
   document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
 });
 
