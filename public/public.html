@@ -52,6 +52,12 @@
       text-align: center; font-size: 12px; transition: opacity 3s ease; }
     .status.faded { opacity: .25; }
     .hidden { display: none; }
+    /* Rappel a l'arrivee : quelques secondes, puis la page redevient noire */
+    .notice { position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%);
+      text-align: center; color: var(--text-strong); font-size: 16px; line-height: 1.6;
+      opacity: 0; pointer-events: none; transition: opacity 2s ease; }
+    .notice strong { display: block; font-weight: 400; color: rgba(var(--glow), .85); margin-bottom: 8px; }
+    .notice.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -62,6 +68,11 @@
     <p>Entrez le code de la séance</p>
     <input id="code" type="text" maxlength="9" placeholder="NOOS-ABCD" autocomplete="off" autocapitalize="characters">
     <button id="btn-join" type="button">Rejoindre</button>
+  </div>
+
+  <div class="notice" id="notice" aria-live="polite">
+    <strong>Merci de passer votre téléphone en « Ne pas déranger ».</strong>
+    Gardez cette page ouverte, écran posé : votre téléphone participe au concert.
   </div>
 
   <div class="status" id="status"></div>

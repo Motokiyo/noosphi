@@ -55,3 +55,10 @@ test('au hasard pur, seuil 1,5 : joue entre 30 et 55 % du temps', async () => {
   const part = joue / N;
   assert.ok(part > 0.3 && part < 0.55, `part jouee ${part}`);
 });
+
+test('engagement reglable : 30 s, puis il refait le point', () => {
+  const e = createEnvie({ seuil: 1.5, engagement: 30000 });
+  assert.equal(e.update(2, 60, 0).joue, true);
+  assert.equal(e.update(0, 60, 29000).joue, true);    // finit ses 30 s
+  assert.equal(e.update(0, 60, 30000).joue, false);   // point : la coherence est retombee
+});

@@ -4,7 +4,7 @@
    ============================================================ */
 
 import * as THREE from 'three';
-import { midiZ, midiSessionCode } from './midi.js';
+import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -709,17 +709,31 @@ function lerpVisuals(dt) {
 // Animation Loop
 // ============================================================
 const clock = new THREE.Clock();
-// Mode concert (?concert=1) : la sphere est dessinee une fois puis figee.
-// La carte graphique ne travaille plus, pour un vieux Mac qui joue en MIDI.
+// Mode concert (?concert=1), pour un vieux Mac qui joue en MIDI : la sphere
+// tourne a CONCERT_FPS images par seconde au lieu de 60, ou reste figee si
+// le panneau MIDI le demande (localStorage noosphi_sphere = 'figee').
 const CONCERT = new URLSearchParams(location.search).has('concert');
+const CONCERT_FPS = 20;
+let sphereFigee = false;
+let lastFrame = 0;
+try { sphereFigee = CONCERT && localStorage.getItem('noosphi_sphere') === 'figee'; } catch {}
+window.addEventListener('noosphi:sphere', e => {
+  sphereFigee = CONCERT && e.detail === 'figee';
+  clock.getDelta();   // pas de saut a la reprise
+});
 
-function animate() {
+function animate(now = 0) {
   requestAnimationFrame(animate);
-  const dt = clock.getDelta();
+  if (CONCERT) {
+    if (sphereFigee || now - lastFrame < 1000 / CONCERT_FPS) return;
+    lastFrame = now;
+  }
+  const dt = Math.min(clock.getDelta(), 0.25);
 
-  // Slow rotation
-  sphere.rotation.y += 0.003;
-  sphere.rotation.x += 0.001;
+  // Slow rotation (meme vitesse a 20 images/s qu'a 60)
+  const pas = CONCERT ? 60 / CONCERT_FPS : 1;
+  sphere.rotation.y += 0.003 * pas;
+  sphere.rotation.x += 0.001 * pas;
 
   lerpVisuals(dt);
   renderer.render(scene, camera);
@@ -826,10 +840,55 @@ function computeStoufferZ(zArray) {
 // qu'une fois par minute (Princeton, serveur) fabriquerait une fausse coherence.
 // En session collective : le z combine des telephones et de cet ordinateur.
 function midiSourceZ(displayZ) {
-  if (isCollective) return collectiveFreshZ;   // le MIDI n'ajoute qu'une fois une valeur identique
+  if (isCollective) return jeuSources.telephones ? collectiveFreshZ : hostJeuZ();   // le MIDI n'ajoute qu'une fois une valeur identique
   if (selectedSource !== 'combined') return displayZ;
-  const fresh = [localReady ? currentZ : null, apiZScores.qci].filter(z => z != null && isFinite(z));
-  return fresh.length ? fresh.reduce((a, b) => a + b, 0) / Math.sqrt(fresh.length) : null;
+  return hostJeuZ();
+}
+
+// Sources du z joue par l'U1 virtuel (?midi) : en session, les cases « Local »
+// (cet ordi), « QCI » et « Telephones » (session collective) decident vraiment
+// de ce qui joue. Princeton, ANU, NIST : une valeur par minute, ils fabriqueraient
+// une fausse coherence, donc affichage seulement. Seules les sources qui
+// repondent ont une case.
+const MIDI_ON = new URLSearchParams(location.search).has('midi');
+const JEU_DEFAUT = { local: true, telephones: true, qci: false };
+const jeuSources = (() => {
+  try { return { ...JEU_DEFAUT, ...JSON.parse(localStorage.getItem('noosphi_jeu_sources') || '{}') }; }
+  catch { return { ...JEU_DEFAUT }; }
+})();
+let telephonesActifs = 0;   // telephones qui ont envoye un z depuis moins de 3 s
+
+// z de cet ordinateur selon les cases : son generateur, QCI, les deux ou rien
+function hostJeuZ() {
+  const z = [];
+  if (jeuSources.local && localReady) z.push(currentZ);
+  if (jeuSources.qci && apiZScores.qci != null && isFinite(apiZScores.qci)) z.push(apiZScores.qci);
+  return z.length ? z.reduce((a, b) => a + b, 0) / Math.sqrt(z.length) : null;
+}
+
+function texteZJoue() {
+  if (!isCollective && selectedSource !== 'combined') return `z joué : ${selectedSource} (menu des sources)`;
+  const parts = [];
+  if (isCollective && jeuSources.telephones) parts.push(`${telephonesActifs} téléphone${telephonesActifs > 1 ? 's' : ''}`);
+  if (jeuSources.local) parts.push('cet ordi');
+  if (jeuSources.qci) parts.push(apiZScores.qci != null ? 'QCI' : 'QCI (muet)');
+  return 'z joué : ' + (parts.length ? parts.join(' + ') : 'aucune source');
+}
+
+// Cases de la session : seules les sources qui repondent, et la case
+// Telephones en session collective
+function majCasesSession() {
+  if (!MIDI_ON) return;
+  const repond = {
+    combined: true, local: localReady, telephones: isCollective && telephonesActifs > 0,
+    gcp: apiZScores.gcp != null, qrng: false, nist: false, qci: apiZScores.qci != null,
+  };
+  document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+    label.classList.toggle('hidden', !repond[label.dataset.key]);
+  });
+  const tel = document.querySelector('#session-toggles [data-key="telephones"] span:last-child');
+  if (tel) tel.textContent = `Téléphones · ${telephonesActifs}`;
+  midiZJoue(texteZJoue());
 }
 
 function combineAndUpdate() {
@@ -883,6 +942,7 @@ function combineAndUpdate() {
   updateVisuals(displayZ);
   updateAudio(displayZ);
   midiZ(midiSourceZ(displayZ));
+  majCasesSession();
 
   // Update live z-score in graph overlay
   graphZValue.textContent = displayZ.toFixed(2);
@@ -1775,10 +1835,32 @@ document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
     const nowActive = !label.classList.contains('active');
     label.classList.toggle('active', nowActive);
     label.querySelector('input').checked = nowActive;
+    if (MIDI_ON && key in jeuSources) {
+      jeuSources[key] = nowActive;
+      try { localStorage.setItem('noosphi_jeu_sources', JSON.stringify(jeuSources)); } catch {}
+      majCasesSession();
+    }
+    if (key === 'telephones') return;   // pas une courbe
     sessionVisibility[key] = nowActive;
     updateSessionChart();
   });
 });
+
+// Avec l'U1 virtuel : les cases partent de ce qui joue, et Princeton / ANU /
+// NIST se disent « vue » (ils ne jouent jamais)
+if (MIDI_ON) {
+  document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+    const key = label.dataset.key;
+    if (key in jeuSources) {
+      label.classList.toggle('active', jeuSources[key]);
+      label.querySelector('input').checked = jeuSources[key];
+      if (key !== 'telephones') sessionVisibility[key] = jeuSources[key];
+    } else if (key !== 'combined') {
+      label.title = 'Affichage seulement : une valeur par minute, ne joue pas';
+      label.querySelector('span:last-child').textContent += ' · vue';
+    }
+  });
+}
 
 // ============================================================
 // Saved Sessions List
@@ -2063,17 +2145,23 @@ if (socket) {
     if (state) sessionParticipants.textContent = `${state.participantCount} connecte${state.participantCount > 1 ? 's' : ''}`;
   });
 
-  socket.on('collective:z-fresh', ({ z }) => { collectiveFreshZ = z; });
+  socket.on('collective:z-fresh', ({ z, telephones }) => {
+    collectiveFreshZ = z;
+    if (telephones != null) telephonesActifs = telephones;
+  });
 
-  socket.on('collective:z-update', ({ collectiveZ: cz, participantCount }) => {
+  socket.on('collective:z-update', ({ collectiveZ: cz, participantCount, telephones }) => {
     collectiveZ = cz;
+    if (telephones != null) telephonesActifs = telephones;
     sessionParticipants.textContent = `${participantCount} connecte${participantCount > 1 ? 's' : ''}`;
   });
 
   // Send local z-score to collective every second
   setInterval(() => {
-    if (sessionActive && isCollective && localReady) {
-      socket.emit('collective:z', { z: currentZ });
+    if (sessionActive && isCollective) {
+      // Avec l'U1 virtuel, cet ordi envoie ce que ses cases cochent (ou rien)
+      const z = MIDI_ON ? hostJeuZ() : (localReady ? currentZ : null);
+      if (z != null) socket.emit('collective:z', { z });
     }
   }, 1000);
 }
@@ -2085,6 +2173,7 @@ btnStopSession.addEventListener('click', () => {
     isCollective = false;
     collectiveZ = null;
     collectiveFreshZ = null;
+    telephonesActifs = 0;
     currentCollectiveCode = null;
     midiSessionCode(null);
     sessionParticipants.classList.add('hidden');
@@ -2099,7 +2188,8 @@ btnStopSession.addEventListener('click', () => {
 // ============================================================
 function init() {
   // Start animation loop
-  if (CONCERT) renderer.render(scene, camera); else animate();
+  renderer.render(scene, camera);   // premiere image, meme figee
+  animate();
 
   // Start local Z-score engine (1 tick/second)
   tickLocalZ();

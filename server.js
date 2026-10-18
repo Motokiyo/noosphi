@@ -393,8 +393,16 @@ function startFreshTick(code) {
     if (!fresh.length) return;
     fresh.forEach(p => { p.fresh = false; });
     const z = fresh.reduce((a, p) => a + p.z, 0) / Math.sqrt(fresh.length);
-    io.to(code).emit('collective:z-fresh', { z, n: fresh.length });
+    io.to(code).emit('collective:z-fresh', { z, n: fresh.length, telephones: telephonesActifs(session) });
   }, 1000);
+}
+
+// Participants autres que l'hote ayant envoye un z depuis moins de 3 s :
+// ceux qui jouent vraiment (un telephone en veille n'est plus compte)
+function telephonesActifs(session) {
+  const now = Date.now();
+  return [...session.participants.entries()]
+    .filter(([id, p]) => id !== session.host && p.t && now - p.t < 3000).length;
 }
 
 function generateCode() {
@@ -446,6 +454,7 @@ io.on('connection', (socket) => {
     io.to(currentRoom).emit('collective:z-update', {
       collectiveZ,
       participantCount: session.participants.size,
+      telephones: telephonesActifs(session),
       participants: [...session.participants.entries()].map(([id, p]) => ({
         name: p.name, z: p.z, isYou: id === socket.id,
       })),

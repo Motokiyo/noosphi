@@ -36,6 +36,7 @@ let code = null;
 let joined = false;
 let wakeLock = null;
 let fadeTimer = null;
+let noticeShown = false;
 
 function setStatus(text, fade = true) {
   statusEl.textContent = text;
@@ -67,6 +68,13 @@ socket.on('collective:joined', () => {
   document.body.classList.add('connected');
   keepAwake();
   setStatus(`Vous participez · ${code} · gardez cette page ouverte`);
+  // Rappel une seule fois, pas a chaque reconnexion
+  if (!noticeShown) {
+    noticeShown = true;
+    const notice = document.getElementById('notice');
+    notice.classList.add('show');
+    setTimeout(() => notice.classList.remove('show'), 10000);
+  }
 });
 
 socket.on('collective:error', msg => {

@@ -18,6 +18,12 @@
      cadence ; l'accord qui sonne tient jusque-la et part avec elle.
      Garde-fou : apres `finMax` ms, la lead rejoint le centre ; la note
      finale tient alors au plus `finTenue` ms si le z ne bouge plus.
+   - TRAITS (option, `traits`) : sur un grand mouvement du z (au moins
+     `traitSaut`), la melodie ne saute plus, elle court jusqu'a sa note :
+     quelques notes de passage de la gamme (au plus `traitMax`), espacees
+     de `traitPas` ms, avant de se poser. Un z calme ne change rien : les
+     tenues restent. Le trait doit finir avant `fin` (la lecture suivante),
+     sinon la melodie saute comme avant.
    ============================================================ */
 export const SCALES = {
   chromatic:  [0,1,2,3,4,5,6,7,8,9,10,11],
@@ -37,6 +43,10 @@ export const ENGINE_DEFAULTS = {
   minDur: 500,       // duree minimale d'une note (ms)
   finMax: 15000,     // fin de scene : au-dela, la lead rejoint le centre sans attendre le z
   finTenue: 4000,    // fin de scene : tenue maximale de la note finale
+  traits: false,     // traits rapides sur les grands mouvements du z
+  traitSaut: 2,      // mouvement du z qui declenche un trait
+  traitMax: 4,       // notes de passage au plus
+  traitPas: 110,     // ecart entre deux notes du trait (ms), resserre s'il manque de place
 };
 
 // Notes MIDI de la gamme entre low et high. root = tonique (0 = Do, 9 = La)
@@ -125,9 +135,29 @@ export function createEngine(out) {
     chordStart = now;
   }
 
+  // Notes de passage de `base` vers `target` (indices dans `notes`), a partir de `now`.
+  // Renvoie l'heure de la note d'arrivee, ou `now` s'il n'y a pas de trait.
+  function trait(notes, base, target, now, fin) {
+    const ecart = target - base;
+    const n = Math.min(cfg.traitMax, Math.abs(ecart) - 1);
+    if (n < 1 || fin == null) return now;
+    const pas = Math.min(cfg.traitPas, (fin - now - 20) / (n + 1));
+    if (pas < 40) return now;   // pas la place avant la lecture suivante : la melodie saute
+    if (sounding != null) release(sounding, 'm', Math.max(now, start + cfg.minDur), now);
+    sounding = null;
+    for (let k = 1; k <= n; k++) {
+      const note = notes[base + Math.round(ecart * k / (n + 1))];
+      const t = now + (k - 1) * pas;
+      on(note, 'm', t);
+      offs.set(`m:${note}`, t + pas * 0.9);
+    }
+    return now + n * pas;
+  }
+
   // Une mesure du z (une fois par seconde), avec le palier de coherence (0 a 3).
+  // `fin` = heure de la lecture suivante (les traits doivent finir avant).
   // Renvoie la note de melodie jouee, ou null.
-  function sample(z, now, level = 0) {
+  function sample(z, now, level = 0, fin = null) {
     if (z == null || !isFinite(z)) return null;
     if (draining) level = Math.min(level, 2);   // pas de note posee en fin de scene
     const notes = notesFor(level);
@@ -153,7 +183,8 @@ export function createEngine(out) {
     const gain = level >= 1 ? 1 : cfg.gain;                    // pas conjoints, une ligne chantable
     const late = draining && phase === 'phrase' && now - drainStart >= cfg.finMax;
     const held = draining && phase === 'cadence' && now - start >= cfg.finTenue;
-    if (!late && !held && Math.abs(z - zRef) < seuil) return null;
+    const mouvement = Math.abs(z - zRef);
+    if (!late && !held && mouvement < seuil) return null;
     zRef = z;
 
     if (phase === 'cadence') {          // ce mouvement ouvre le silence
@@ -175,7 +206,9 @@ export function createEngine(out) {
     } else {
       i = Math.max(0, Math.min(notes.length - 1, base + Math.round(z * gain)));
     }
-    if (play(notes[i], now) && level >= 2 && !draining) playChord(notes[i], notes, now);
+    let t = now;
+    if (cfg.traits && !draining && count > 0 && mouvement >= cfg.traitSaut) t = trait(notes, base, i, now, fin);
+    if (play(notes[i], t) && level >= 2 && !draining) playChord(notes[i], notes, t);
     count++;
     const home = (count > 1 || draining) && Math.abs(i - centre) <= cfg.maison;
     const edge = i === 0 || i === notes.length - 1;
