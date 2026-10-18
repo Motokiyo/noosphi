@@ -264,7 +264,7 @@ Dans l'écran de session, avec `?midi=1`, les cases décident vraiment du z envo
 - **Local** : le générateur de cet ordinateur.
 - **Téléphones · N** : en séance collective, les téléphones qui ont envoyé un z depuis moins de 3 s. La case n'apparaît qu'à partir d'un téléphone actif.
 - **QCI** : générateur quantique de Quantum Computing Inc., un z par seconde.
-- **Cicada** : clé quantique de Franck Laharrague (temple-pc, par Tailscale), lue par le serveur en ligne. N'apparaît que si la clé répond ; réservée aux expériences de la Napp du 10 au 18/11, elle disparaît alors d'elle-même.
+- **Noosféérique** : la clé quantique Cicada de Franck Laharrague (temple-pc, par Tailscale), lue par le serveur en ligne. N'apparaît que si la clé répond ; réservée aux expériences de la Napp du 10 au 18/11, elle disparaît alors d'elle-même.
 - **Princeton, ANU, NIST** : affichage seulement (« vue »). Une valeur par minute : les jouer répéterait la même valeur et fabriquerait une fausse cohérence.
 
 Par défaut : Local + Téléphones. La courbe « Combine » est le z joué. En séance collective elle suit « Local » avec environ une seconde de retard : le tirage de l'ordinateur passe par le serveur, qui le combine avec les téléphones (chaque tirage ne compte qu'une fois).

@@ -884,7 +884,7 @@ function texteZJoue() {
   if (isCollective && jeuSources.telephones) parts.push(`${telephonesActifs} téléphone${telephonesActifs > 1 ? 's' : ''}`);
   if (jeuSources.local) parts.push('cet ordi');
   if (jeuSources.qci) parts.push(apiZScores.qci != null ? 'QCI' : 'QCI (muet)');
-  if (jeuSources.cicada) parts.push(cicadaZ != null ? 'Cicada' : 'Cicada (muette)');
+  if (jeuSources.cicada) parts.push(cicadaZ != null ? 'Noosféérique' : 'Noosféérique (muette)');
   return 'z joué : ' + (parts.length ? parts.join(' + ') : 'aucune source');
 }
 
@@ -1201,7 +1201,7 @@ const COLORS = {
   qci: '#C9A24D',
   cicada: '#FF5FA2',
 };
-const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI', cicada: 'Cicada' };
+const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
 // Used for graph-overlay source dots (excludes 'combined' which has no API slot)
 const SOURCE_META = [
   { key: 'local', color: '#00E5FF', label: 'Local' },
