@@ -233,6 +233,10 @@ Script de tous les instruments : `tools/scripter/tessiture-instruments.js`, mêm
 
 Pour un autre instrument : Scripter dans un MIDI FX, puis menu des réglages en haut du Scripter, préréglage **« Tessiture instruments »** (enregistré le 17/10/2026 sur le vieux Mac, `~/Music/Audio Music Apps/Plug-In Settings/Scripter/`), puis choisir l'instrument dans le menu « Instrument ». À défaut : « Open Script in Editor », coller le script, « Run Script ». Garder au moins 12 notes entre les deux bornes.
 
+## Fader de patch (volume de tout le patch)
+
+MainStage n'a pas de fader de patch tout prêt. Dans chaque patch, toutes les tranches qui sonnent sortent sur un même **Bus** (par exemple Bus 10, inutilisé ailleurs dans le concert) ; MainStage crée une tranche **Aux** qui reçoit ce bus et sort sur la sortie principale. Son fader, renommé « Patch », monte ou baisse tout le patch sans toucher aux équilibres entre tranches. La tranche « Instrument externe » de la gamme reste hors du bus (elle ne sonne pas). Mis en place et vérifié par Alexandre le 20/10/2026. Les départs vers une réverbe commune du concert partent des tranches et ne suivent pas ce fader.
+
 ## Rythmique en 7 temps (Scripter, dans MainStage)
 
 Le programme n'a pas de tempo : c'est le z qui place ses notes. Pour une rythmique, on passe par l'horloge du concert MainStage, dans deux Scripters qui partagent la même grille (même horloge, même pas 1). Sur cette version de MainStage, une tranche n'a qu'un effet MIDI, d'où un script qui fait tout.
