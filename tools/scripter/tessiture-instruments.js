@@ -3,6 +3,8 @@
 		Le menu « Instrument » règle les deux bornes. Les notes de la tessiture
 		ne bougent pas ; une note trop grave joue dans l'octave la plus basse,
 		une note trop aiguë dans l'octave la plus haute.
+		« Transposition » décale les notes reçues avant le repli : la zone
+		centrale de l'app peut ainsi tomber au milieu de l'instrument.
 		Pour des bornes à soi, choisir « Réglage libre » d'abord, puis tourner
 		les deux boutons (sinon l'instrument choisi reprend ses bornes au
 		prochain chargement). DEFAUT = l'instrument choisi au premier lancement.
@@ -37,7 +39,7 @@ var INSTRUMENTS = [
 		{ nom: "Alto", grave: 48, aigue: 84 },                // Do2 à Do5
 		{ nom: "Violoncelle", grave: 36, aigue: 76 },         // Do1 à Mi4
 		{ nom: "Contrebasse", grave: 28, aigue: 55 },         // Mi0 à Sol2
-		{ nom: "Hang / Halo (Pan Drums)", grave: 48, aigue: 84 },  // Do2 à Do5, évite les changements de frappe Do1 à Mi1
+		{ nom: "Hang / Halo (Pan Drums)", grave: 65, aigue: 96, octaves: 2 },   // F3 à C6, transposition +2 octaves choisie à l'écoute (noms MainStage), bornes trouvées à l'oreille : silence sous F3 et au-dessus de C6
 		{ nom: "Réglage libre" },
 ];
 var DEFAUT = 6;   // Cor (changer ce numéro pour un autre instrument par défaut)
@@ -45,11 +47,12 @@ var DEFAUT = 6;   // Cor (changer ce numéro pour un autre instrument par défau
 var ACTIVE_NOTES = {};
 var HIGH_RANGE;
 var LOW_RANGE;
+var TRANSPOSE = 0;   // en demi-tons, appliqué avant le repli à l'octave
 
 function HandleMIDI (event) {	
 		if (event instanceof NoteOn) {
 				var originalNote = event.pitch;
-				var newNote = originalNote;
+				var newNote = originalNote + TRANSPOSE;
 			
 				if (newNote > HIGH_RANGE) {
 						while (newNote > HIGH_RANGE) {
@@ -100,7 +103,11 @@ function ParameterChanged (param, value) {
 						if (instrument && instrument.grave != null) {
 								SetParameter(0, instrument.aigue);
 								SetParameter(1, instrument.grave);
+								SetParameter(3, 2 + (instrument.octaves || 0));
 						}
+						break;
+				case 3:
+						TRANSPOSE = (value - 2) * 12;
 						break;
 				default:
 						//nothing
@@ -116,23 +123,31 @@ function ParameterChanged (param, value) {
 		}
 }
 
+// Noms des notes comme sur le clavier de MainStage (60 = C3)
+var NOMS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+var NOTES = [];
+for (var n = 0; n < 128; n++) {
+		NOTES.push(NOMS[n % 12] + (Math.floor(n / 12) - 2));
+}
+
 var PluginParameters = [{
 		name:"Note la plus aiguë",
-		type:"linear",
-		minValue:0,
-		maxValue:127,
-		numberOfSteps:127,
+		type:"menu",
+		valueStrings:NOTES,
 		defaultValue:INSTRUMENTS[DEFAUT].aigue
 }, {
 		name:"Note la plus grave",
-		type:"linear",
-		minValue:0,
-		maxValue:127,
-		numberOfSteps:127,
+		type:"menu",
+		valueStrings:NOTES,
 		defaultValue:INSTRUMENTS[DEFAUT].grave
 }, {
 		name:"Instrument",
 		type:"menu",
 		valueStrings:INSTRUMENTS.map(function (i) { return i.nom; }),
 		defaultValue:DEFAUT
+}, {
+		name:"Transposition",
+		type:"menu",
+		valueStrings:["-2 octaves", "-1 octave", "Aucune", "+1 octave", "+2 octaves"],
+		defaultValue:2
 }];
