@@ -5,6 +5,9 @@
 
 import * as THREE from 'three';
 import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
+import { createSeance, zAffiche, versCSV, versJSON, texteResume } from './seance.js';
+
+const APP_VERSION = '1.4.0';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -68,6 +71,7 @@ const AUDIO_RAMP_TIME    = 0.5;  // seconds — pitch/filter/gain transitions
 // ---- DOM refs ----
 const canvas = document.getElementById('sphere-canvas');
 const zDisplay = document.getElementById('z-display');
+const zDisplayLabel = document.querySelector('.z-indicator .z-label');
 const loadingText = document.getElementById('loading-text');
 const audioIndicator = document.getElementById('audio-indicator');
 const sourceDots = document.querySelectorAll('.source-dot');
@@ -698,10 +702,18 @@ function lerpVisuals(dt) {
     spherePhotoEl.style.opacity = 0;
   }
 
-  // Update z-display
+  // Update z-display : pendant un enregistrement, le z de la seance (la maree) ;
+  // la sphere, le son et le MIDI restent sur le z de l'instant
   if (localReady) {
-    zDisplay.textContent = smoothZ.toFixed(2);
-    zDisplay.style.color = zColor(absZ);
+    const aff = zAffiche({ enregistrement: sessionActive, zInstant: smoothZ, zSeance: seance ? seance.resume().zSalle : null });
+    if (zDisplayLabel && zDisplayLabel.textContent !== aff.libelle) zDisplayLabel.textContent = aff.libelle;
+    if (aff.valeur == null) {
+      zDisplay.textContent = '--';
+      zDisplay.style.color = '';
+    } else {
+      zDisplay.textContent = aff.valeur.toFixed(2);
+      zDisplay.style.color = zColor(Math.abs(aff.valeur));
+    }
   }
 }
 
@@ -1559,7 +1571,17 @@ let collectiveFreshZ = null;   // z collectif ou chaque tirage compte une fois (
 let sessionStartTime = null;
 let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
-let sessionMaxZ = 0;
+let seance = null;      // z de la seance (la maree) et son temoin, une valeur par seconde
+const sessionRegleInput = document.getElementById('session-regle');
+
+// Une nouvelle seance commence : z de la seance a zero, affichage remis a neuf
+let sessionRegle = '';
+function debutSeance() {
+  seance = createSeance();
+  sessionRegle = sessionRegleInput ? sessionRegleInput.value.trim() : '';
+  sessionData = [];
+  sessionZMax.textContent = "z de l'instant : --";
+}
 let sessionChart = null;
 let currentCollectiveCode = null;
 const btnPauseSession = document.getElementById("btn-pause-session");
@@ -1740,9 +1762,7 @@ if (btnStartSession) {
 
   sessionActive = true;
   sessionStartTime = Date.now();
-  sessionData = [];
-  sessionMaxZ = 0;
-  sessionZMax.textContent = 'max: --';
+  debutSeance();
   requestWakeLock();
   updateSessionBtnState();
 
@@ -1766,29 +1786,48 @@ if (btnStopSession) {
   if (recIndicator) recIndicator.classList.add('hidden');
   updateSessionBtnState();
 
+  const r = seance ? seance.resume() : { zSalle: null, nSalle: 0, zTemoin: null, nTemoin: 0 };
   const session = {
     id: Date.now().toString(36),
     name: sessionRecName.textContent,
+    regle: sessionRegle,
     startTime: sessionStartTime,
     endTime: Date.now(),
     duration: Math.floor((Date.now() - sessionStartTime) / 1000),
-    maxZ: sessionMaxZ,
+    zSalle: r.zSalle, nSalle: r.nSalle,
+    zTemoin: r.zTemoin, nTemoin: r.nTemoin,
+    secondes: seance ? seance.lignes : [],   // une ligne par seconde, pour l'export
+    version: APP_VERSION,
     data: sessionData,
     comment: '',
   };
 
-  // Save to localStorage
+  // Save to localStorage. Une longue seance pese lourd : si la place manque,
+  // on retire les plus anciennes, puis la courbe detaillee, jamais les secondes
   const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
   saved.unshift(session);
   // Keep max 50 sessions
   if (saved.length > 50) saved.pop();
-  localStorage.setItem('noosphi_sessions', JSON.stringify(saved));
+  let enregistree = false;
+  while (!enregistree) {
+    try { localStorage.setItem('noosphi_sessions', JSON.stringify(saved)); enregistree = true; }
+    catch {
+      if (saved.length > 1) saved.pop();
+      else if (session.data.length) session.data = [];
+      else break;
+    }
+  }
 
   sessionOverlay.classList.remove('open');
   sessionSetup.classList.remove('hidden');
   sessionRecording.classList.add('hidden');
   sessionNameInput.value = '';
+  if (sessionRegleInput) sessionRegleInput.value = '';
   if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
+  seance = null;
+  // A l'arret : le detail de la seance, avec la salle et le temoin
+  if (enregistree) openSessionDetail(session.id);
+  else { loadingText.textContent = texteResume(r); loadingText.classList.remove('hidden'); setTimeout(() => loadingText.classList.add('hidden'), 8000); }
   });
 }
 
@@ -1808,16 +1847,36 @@ function recordSessionTick(displayZ) {
   };
   sessionData.push(point);
 
-  if (Math.abs(displayZ) > Math.abs(sessionMaxZ)) {
-    sessionMaxZ = displayZ;
-    sessionZMax.textContent = `max: ${sessionMaxZ.toFixed(2)}`;
+  // Au centre : le z de la seance, en direct ; dessous, discret, le z de l'instant
+  const zSeance = seance ? seance.resume().zSalle : null;
+  if (zSeance == null) {
+    sessionZValue.textContent = '--';
+    sessionZValue.style.color = '';
+  } else {
+    sessionZValue.textContent = zSeance.toFixed(2);
+    sessionZValue.style.color = zColor(Math.abs(zSeance));
   }
-
-  sessionZValue.textContent = displayZ.toFixed(2);
-  sessionZValue.style.color = zColor(Math.abs(displayZ));
+  sessionZMax.textContent = `z de l'instant : ${displayZ.toFixed(2)}`;
 
   updateSessionChart();
 }
+
+// La maree : une valeur par seconde, sur sa propre horloge (les autres mises a
+// jour tournent a des rythmes variables). La salle = ce qui est ici (telephones
+// de la seance collective, ou en solo cet appareil et la cle Noosfeerique) ;
+// le temoin = les sources lointaines, chaque valeur fraiche une fois.
+// Une valeur qui n'a pas change depuis la seconde d'avant n'est pas recomptee.
+setInterval(() => {
+  if (!sessionActive || sessionPaused || !seance) return;
+  const salle = isCollective
+    ? { telephones: collectiveFreshZ }
+    : { local: localReady ? currentZ : null, cicada: cicadaZ };
+  seance.tick(Date.now(), {
+    salle,
+    nTelephones: isCollective ? telephonesActifs : null,
+    mesures: { gcp: apiZScores.gcp, qrng: apiZScores.qrng, nist: apiZScores.nist, qci: apiZScores.qci },
+  });
+}, 1000);
 
 function updateSessionChart() {
   if (!sessionActive || !sessionOverlay.classList.contains('open')) return;
@@ -1943,6 +2002,28 @@ if (btnSessionToggleSources && sessionTogglesPanel) {
   });
 }
 
+// Les seances d'avant la v1.4.0 n'ont qu'un z max
+function resumeSeance(s) {
+  if ('zSalle' in s) return texteResume(s);
+  return s.maxZ != null ? `z max = ${s.maxZ.toFixed(2)} (ancienne séance)` : '';
+}
+
+// Echappe le texte saisi avant de le poser dans la page
+const echappe = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Deux fichiers : les secondes (CSV, de quoi refaire le calcul) et la fiche (JSON)
+function exporterSeance(s) {
+  const base = `noosfeerique-${new Date(s.startTime).toISOString().slice(0, 16).replace(/[:T]/g, '-')}-${(s.name || 'seance').replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40)}`;
+  const telecharger = (contenu, nom, type) => {
+    const url = URL.createObjectURL(new Blob([contenu], { type }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  telecharger(versCSV(s.secondes || []), base + '.csv', 'text/csv');
+  setTimeout(() => telecharger(versJSON(s, s.version || APP_VERSION), base + '.json', 'application/json'), 300);
+}
+
 function renderSessionsList() {
   const saved = JSON.parse(localStorage.getItem('noosphi_sessions') || '[]');
   if (saved.length === 0) {
@@ -1966,7 +2047,7 @@ function renderSessionsList() {
           <span>${dateStr} ${timeStr}</span>
           <span>${durStr}</span>
         </span>
-        <span class="saved-session-zmax">z max = ${s.maxZ.toFixed(2)}</span>
+        <span class="saved-session-zmax">${resumeSeance(s)}</span>
       </div>
     `;
   }).join('');
@@ -2007,8 +2088,10 @@ function openSessionDetail(id) {
       <span>${dateStr}</span>
       <span>${timeStr}</span>
       <span>${durStr}</span>
-      <span style="color:var(--accent-gold)">z max = ${session.maxZ.toFixed(2)}</span>
     </div>
+    <div class="detail-seance">${resumeSeance(session)}</div>
+    ${session.regle ? `<div class="detail-regle">Règle : ${echappe(session.regle)}</div>` : ''}
+    ${'zSalle' in session ? '<button class="detail-export-btn">Exporter</button>' : ''}
     <textarea class="detail-comment" placeholder="Ajoutez un commentaire..." data-id="${id}">${session.comment || ''}</textarea>
     <div class="detail-toggles">
       ${DETAIL_SOURCES.map(s => `
@@ -2031,6 +2114,9 @@ function openSessionDetail(id) {
     const s = sessions.find(s => s.id === id);
     if (s) { s.comment = e.target.value; localStorage.setItem('noosphi_sessions', JSON.stringify(sessions)); }
   });
+
+  // Export : CSV des secondes + fiche JSON
+  sessionDetailContent.querySelector('.detail-export-btn')?.addEventListener('click', () => exporterSeance(session));
 
   // Delete button
   sessionDetailContent.querySelector('.detail-delete-btn').addEventListener('click', () => {
@@ -2136,8 +2222,7 @@ function onCollectiveSessionStart({ code, name, statusText }) {
   sessionActive = true;
   requestWakeLock();   // un telephone en veille ne tire plus aucun z : on garde l'ecran allume
   sessionStartTime = Date.now();
-  sessionData = [];
-  sessionMaxZ = 0;
+  debutSeance();
   sessionTimerInterval = setInterval(() => {
     sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));
   }, 1000);

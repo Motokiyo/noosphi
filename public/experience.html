@@ -222,6 +222,7 @@
     <!-- Session setup (before recording) -->
     <div class="session-setup" id="session-setup">
       <input type="text" class="session-name-input" id="session-name" placeholder="Nommez votre session..." maxlength="100">
+      <input type="text" class="session-name-input" id="session-regle" placeholder="Règle de la séance (ex. du premier au dernier son du concert)" maxlength="200">
       <button class="session-record-btn" id="btn-start-session">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#FF4444"/></svg>
         <span>Session solo</span>
@@ -288,8 +289,8 @@
       <!-- CENTER: z-score (sphere visible behind) -->
       <div class="session-center-z">
         <span class="session-center-z-value" id="session-z-value">--</span>
-        <span class="live-z-label">z-score</span>
-        <span class="session-z-max" id="session-z-max">max: --</span>
+        <span class="live-z-label">z de la séance</span>
+        <span class="session-z-max" id="session-z-max">z de l'instant : --</span>
       </div>
 
       <!-- BOTTOM: graph + controls -->

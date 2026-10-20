@@ -1152,6 +1152,35 @@ body:has(.session-detail-overlay.open) .header {
   color: #FF4444;
 }
 
+/* ---- z de la seance : la salle et son temoin ---- */
+.detail-seance {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.02em;
+}
+
+.detail-regle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.detail-export-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(78, 201, 198, 0.4);
+  background: none;
+  color: var(--accent-cyan);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.2s ease;
+}
+
+.detail-export-btn:hover {
+  background: rgba(78, 201, 198, 0.1);
+}
+
 /* ---- Sources status (bottom-left, very discreet) ---- */
 .sources-status {
   position: fixed;
