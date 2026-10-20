@@ -15,10 +15,16 @@
       noos<span class="phi">&phi;</span>
       <span class="logo-tagline">Conscience collective en temps r&eacute;el</span>
     </div>
-    <div class="status-badge" id="global-status">
-      <div class="dot-mini"></div>
-      <span id="status-text">Connexion...</span>
-      <span class="info-btn" data-tooltip="Nombre de sources de donn&eacute;es connect&eacute;es. 4/4 = tout fonctionne. Si une source tombe, l'app continue avec les autres.">i</span>
+    <div class="header-droite">
+      <div class="status-badge" id="global-status">
+        <div class="dot-mini"></div>
+        <span id="status-text">Connexion...</span>
+        <span class="info-btn" data-tooltip="Sources qui r&eacute;pondent en ce moment. Une source indisponible ou d&eacute;sactiv&eacute;e est simplement laiss&eacute;e de c&ocirc;t&eacute; : l'app continue avec les autres.">i</span>
+      </div>
+      <!-- Revenir a l'experience (les parametres d'URL, comme ?midi=1, sont gardes par app.js) -->
+      <a class="dashboard-fermer" id="dashboard-fermer" href="experience.html" aria-label="Fermer" title="Revenir &agrave; l'exp&eacute;rience">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </a>
     </div>
   </header>
 
@@ -72,7 +78,7 @@
         <div class="source-row" data-curve="0" data-source="gcp">
           <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
           <span class="row-swatch" style="background:#6C63FF"></span>
-          <span class="row-name">Mondial <span class="row-origin">(Princeton, USA)</span></span>
+          <span class="row-name">Mondial <span class="row-origin">(Princeton, collecte arr&ecirc;t&eacute;e le 03/04/2026)</span></span>
           <span class="row-z" id="z-row-gcp">--</span>
           <span class="info-btn info-btn-xs" data-tooltip="R&eacute;seau mondial du Global Consciousness Project. ~60 capteurs quantiques r&eacute;partis sur toute la plan&egrave;te, g&eacute;r&eacute;s par l'Universit&eacute; de Princeton depuis 1998.">i</span>
         </div>
@@ -85,12 +91,28 @@
           <span class="info-btn info-btn-xs" data-tooltip="Le g&eacute;n&eacute;rateur de nombres al&eacute;atoires int&eacute;gr&eacute; dans votre appareil. Utilise le bruit thermique des composants &eacute;lectroniques — c'est votre capteur personnel.">i</span>
         </div>
 
-        <div class="source-row" data-curve="2" data-source="qrng">
+        <div class="source-row" data-curve="2" data-source="nist">
           <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#FF8800"></span>
-          <span class="row-name">Quantique <span class="row-origin">(ANU, Australie)</span></span>
-          <span class="row-z" id="z-row-qrng">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="G&eacute;n&eacute;rateur quantique photonique de l'Australian National University &agrave; Canberra. Produit de l'al&eacute;atoire pur en mesurant le bruit quantique du vide avec des photons.">i</span>
+          <span class="row-swatch" style="background:#00CC66"></span>
+          <span class="row-name">NIST Beacon <span class="row-origin">(une pulsation par minute)</span></span>
+          <span class="row-z" id="z-row-nist">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="Balise publique du NIST (USA) : chaque minute, 512 bits d'al&eacute;atoire sign&eacute;s, transform&eacute;s en deux essais de 200 bits comme les EGG.">i</span>
+        </div>
+
+        <div class="source-row" data-source="qci">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#C9A24D"></span>
+          <span class="row-name">QCI <span class="row-origin">(photonique, cloud)</span></span>
+          <span class="row-z" id="z-row-qci">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="G&eacute;n&eacute;rateur quantique photonique de QCI, interrog&eacute; dans le cloud.">i</span>
+        </div>
+
+        <div class="source-row" data-source="cicada">
+          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
+          <span class="row-swatch" style="background:#FF5FA2"></span>
+          <span class="row-name">Noosf&eacute;&eacute;rique <span class="row-origin">(cl&eacute; quantique Cicada)</span></span>
+          <span class="row-z" id="z-row-cicada">--</span>
+          <span class="info-btn info-btn-xs" data-tooltip="La cl&eacute; quantique de Franck Laharrague, lue une fois par seconde par le serveur.">i</span>
         </div>
 
         <div class="source-row" data-curve="3" data-source="combined">
@@ -127,7 +149,7 @@
             <span>--</span>
           </div>
         </div>
-        <div class="source-desc">R&eacute;seau mondial de capteurs quantiques</div>
+        <div class="source-desc">Collecte arr&ecirc;t&eacute;e le 03/04/2026 (panne mat&eacute;rielle chez l'h&eacute;bergeur)</div>
         <div class="source-stats">
           <div class="source-stat">
             <span class="label">Latence <span class="info-btn info-btn-xs" data-tooltip="Temps de r&eacute;ponse du serveur de Princeton. Plus c'est bas, mieux c'est.">i</span></span>
@@ -144,35 +166,6 @@
         </div>
       </div>
 
-      <!-- ANU QRNG -->
-      <div class="source-card" id="card-anu">
-        <div class="source-header">
-          <span class="source-name">
-            ANU QRNG
-            <span class="info-btn info-btn-sm" data-tooltip="G&eacute;n&eacute;rateur quantique de l'Australian National University. Il utilise des photons (particules de lumi&egrave;re) pour produire des nombres v&eacute;ritablement al&eacute;atoires. C'est de la physique quantique pure, pas un algorithme.">i</span>
-          </span>
-          <div class="source-status" id="status-anu">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc">Nombres quantiques via photons (Australie)</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">Latence</span>
-            <span class="value" id="lat-anu">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Octets <span class="info-btn info-btn-xs" data-tooltip="Nombre d'octets al&eacute;atoires re&ccedil;us. Un octet = un nombre entre 0 et 255.">i</span></span>
-            <span class="value" id="count-anu">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Moyenne <span class="info-btn info-btn-xs" data-tooltip="Moyenne des octets re&ccedil;us. Devrait &ecirc;tre proche de 127.5 si c'est parfaitement al&eacute;atoire.">i</span></span>
-            <span class="value" id="mean-anu">--</span>
-          </div>
-        </div>
-      </div>
-
       <!-- NIST Beacon -->
       <div class="source-card" id="card-nist">
         <div class="source-header">
@@ -185,7 +178,7 @@
             <span>--</span>
           </div>
         </div>
-        <div class="source-desc">Balise d'al&eacute;atoire gouvernementale (USA)</div>
+        <div class="source-desc">Balise publique d'al&eacute;atoire, une pulsation par minute (USA)</div>
         <div class="source-stats">
           <div class="source-stat">
             <span class="label">Latence</span>
@@ -230,6 +223,50 @@
           </div>
         </div>
       </div>
+
+      <!-- QCI -->
+      <div class="source-card" id="card-qci">
+        <div class="source-header">
+          <span class="source-name">QCI uQRNG</span>
+          <div class="source-status" id="status-qci">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">Photonique, interrog&eacute; dans le cloud (USA)</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">z</span>
+            <span class="value" id="z-card-qci">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Rythme</span>
+            <span class="value">toutes les 10 s ici</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Noosfeerique (Cicada) -->
+      <div class="source-card" id="card-cicada">
+        <div class="source-header">
+          <span class="source-name">Noosf&eacute;&eacute;rique</span>
+          <div class="source-status" id="status-cicada">
+            <div class="indicator"></div>
+            <span>--</span>
+          </div>
+        </div>
+        <div class="source-desc">Cl&eacute; quantique Cicada de Franck Laharrague</div>
+        <div class="source-stats">
+          <div class="source-stat">
+            <span class="label">z</span>
+            <span class="value" id="z-card-cicada">--</span>
+          </div>
+          <div class="source-stat">
+            <span class="label">Rythme</span>
+            <span class="value">chaque seconde</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Combined Z + Distribution -->
@@ -241,7 +278,7 @@
         </div>
         <div class="chart-subtitle">Fusion de toutes les sources actives (m&eacute;thode Stouffer)</div>
         <div class="formula" id="formula-display">
-          Z<sub>combin&eacute;</sub> = (z<sub>mondial</sub> + z<sub>quantique</sub> + z<sub>local</sub>) / &radic;3
+          Z<sub>combin&eacute;</sub> = (somme des z des sources actives) / &radic;n
         </div>
         <div class="z-details">
           <div class="z-detail-row">
@@ -252,11 +289,8 @@
             <span class="z-detail-value" id="z-src-gcp">--</span>
           </div>
           <div class="z-detail-row">
-            <span class="z-detail-label">
-              z<sub>quantique</sub>
-              <span class="info-btn info-btn-xs" data-tooltip="Score du g&eacute;n&eacute;rateur quantique cloud (ANU, Australie).">i</span>
-            </span>
-            <span class="z-detail-value" id="z-src-qrng">--</span>
+            <span class="z-detail-label">z<sub>NIST</sub></span>
+            <span class="z-detail-value" id="z-src-nist">--</span>
           </div>
           <div class="z-detail-row">
             <span class="z-detail-label">
@@ -264,6 +298,14 @@
               <span class="info-btn info-btn-xs" data-tooltip="Score du g&eacute;n&eacute;rateur de votre MacBook.">i</span>
             </span>
             <span class="z-detail-value" id="z-src-local">--</span>
+          </div>
+          <div class="z-detail-row">
+            <span class="z-detail-label">z<sub>QCI</sub></span>
+            <span class="z-detail-value" id="z-src-qci">--</span>
+          </div>
+          <div class="z-detail-row">
+            <span class="z-detail-label">z<sub>Noosf&eacute;&eacute;rique</sub></span>
+            <span class="z-detail-value" id="z-src-cicada">--</span>
           </div>
           <div class="z-detail-row" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
             <span class="z-detail-label" style="font-weight:600">Score final</span>

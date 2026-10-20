@@ -1,12 +1,19 @@
-// noosphi — Main application logic
+// noosphi — Main application logic (tableau de bord)
+//
+// Sources : cet appareil (generateur du serveur), QCI, NIST Beacon (une pulsation
+// par minute), Noosfeerique (cle Cicada). Princeton : collecte arretee le
+// 03/04/2026, plus interrogee. ANU : retiree (payante).
 
 const state = {
-  zGCP: null,
   zLocal: null,
-  zQRNG: null,
+  zNIST: null,
+  zQCI: null,
+  zCicada: null,
   zCombined: null,
-  enabled: { gcp: true, local: true, qrng: true, combined: true }
+  enabled: { gcp: false, local: true, nist: true, qci: true, cicada: true, combined: true }
 };
+const ARRETEES = ['gcp'];
+const NOMS = { local: 'Local', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
 
 // --- Helpers ---
 function setText(id, text) {
@@ -18,22 +25,35 @@ function setText(id, text) {
   const tn = document.createTextNode(text);
   el.firstChild ? el.insertBefore(tn, el.firstChild) : el.appendChild(tn);
 }
+const fini = v => v != null && isFinite(v);
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initSourceRows();
+  initFermer();
 
-  fetchGCP();
+  // Princeton : collecte arretee, on ne l'interroge plus
+  updateSourceCard('gcp', 'arretee', { lat: '--', eggs: '--', pmean: '--' });
+  setText('eggs-count', 'Princeton : collecte arrêtée le 03/04/2026 ');
+
   fetchLocalRNG();
-  fetchQRNG();
   fetchNIST();
+  fetchQCI();
+  fetchCicada();
 
-  setInterval(fetchGCP, 60_000);
   setInterval(fetchLocalRNG, 30_000);
-  setInterval(fetchQRNG, 120_000);
-  setInterval(fetchNIST, 60_000);
+  setInterval(fetchNIST, 20_000);     // une pulsation par minute, regardee toutes les 20 s
+  setInterval(fetchQCI, 10_000);      // le quota QCI est partage avec l'experience : on reste sobre
+  setInterval(fetchCicada, 2_000);
+  setInterval(pushChartPoint, 5_000); // le graphique vit en continu
 });
+
+// --- Croix de fermeture : retour a l'experience, avec les parametres d'URL (?midi=1…) ---
+function initFermer() {
+  const croix = document.getElementById('dashboard-fermer');
+  if (croix) croix.href = 'experience.html' + location.search;
+}
 
 // --- Source row switches ---
 function initSourceRows() {
@@ -41,6 +61,16 @@ function initSourceRows() {
     const curveIdx = parseInt(row.dataset.curve);
     const sourceKey = row.dataset.source;
     const cb = row.querySelector('input[type="checkbox"]');
+
+    // Princeton : a sa place, eteinte et grisee, avec la date de l'arret
+    if (ARRETEES.includes(sourceKey)) {
+      cb.checked = false;
+      cb.disabled = true;
+      row.classList.add('disabled', 'desactivee');
+      row.title = 'Princeton · collecte arrêtée le 03/04/2026';
+    }
+    // Chaque courbe suit son interrupteur des le chargement
+    if (chart24h.data.datasets[curveIdx]) chart24h.data.datasets[curveIdx].hidden = !cb.checked;
 
     cb.addEventListener('change', () => {
       state.enabled[sourceKey] = cb.checked;
@@ -57,6 +87,7 @@ function initSourceRows() {
       updateDotDisplay();
     });
   });
+  if (chart24h) chart24h.update();
 }
 
 // --- Dot display: always shows the combined z of enabled sources ---
@@ -68,10 +99,13 @@ function updateDotDisplay() {
   const label = document.getElementById('z-label');
   const sublabel = document.getElementById('z-sublabel');
 
-  if (z === null) {
+  if (!fini(z)) {
     mainVal.textContent = '--';
     mainVal.style.color = 'var(--text-muted)';
-    label.textContent = 'En attente...';
+    label.textContent = 'En attente des sources...';
+    dot.style.background = 'var(--text-muted)';
+    dot.style.boxShadow = 'none';
+    ring.style.borderColor = 'var(--border)';
     return;
   }
 
@@ -79,33 +113,35 @@ function updateDotDisplay() {
   mainVal.textContent = z.toFixed(3);
   mainVal.style.color = info.color;
   label.textContent = info.label;
-
-  // Build sublabel from enabled sources
-  const names = [];
-  if (state.enabled.gcp) names.push('Princeton');
-  if (state.enabled.local) names.push(state.deviceName || 'Local');
-  if (state.enabled.qrng) names.push('Australie');
-  sublabel.textContent = names.length > 0
-    ? `Combine : ${names.join(' + ')}`
-    : 'Aucune source active';
+  sublabel.textContent = `Combiné : ${sourcesActives().map(k => k === 'local' ? (state.deviceName || 'Local') : NOMS[k]).join(' + ') || 'aucune source active'}`;
 
   dot.style.background = info.color;
   dot.style.boxShadow = `0 0 40px ${info.color}66, 0 0 80px ${info.color}26`;
   ring.style.borderColor = `${info.color}33`;
 }
 
+// Les sources cochees qui ont une valeur
+const valeurs = () => ({ local: state.zLocal, nist: state.zNIST, qci: state.zQCI, cicada: state.zCicada });
+function sourcesActives() {
+  const v = valeurs();
+  return Object.keys(v).filter(k => state.enabled[k] && fini(v[k]));
+}
+
 // --- Update z-values in source rows ---
 function updateRowZ() {
   const pairs = [
-    ['z-row-gcp', state.zGCP],
     ['z-row-local', state.zLocal],
-    ['z-row-qrng', state.zQRNG],
-    ['z-row-combined', state.zCombined]
+    ['z-row-nist', state.zNIST],
+    ['z-row-qci', state.zQCI],
+    ['z-row-cicada', state.zCicada],
+    ['z-row-combined', state.zCombined],
+    ['z-card-qci', state.zQCI],
+    ['z-card-cicada', state.zCicada]
   ];
   for (const [id, val] of pairs) {
     const el = document.getElementById(id);
     if (!el) continue;
-    if (val !== null) {
+    if (fini(val)) {
       el.textContent = val.toFixed(4);
       el.style.color = zToColor(val).color;
     } else {
@@ -115,115 +151,105 @@ function updateRowZ() {
   }
 
   // Also bottom panel
-  const ids = [['z-src-gcp','zGCP'],['z-src-qrng','zQRNG'],['z-src-local','zLocal'],['z-combined-final','zCombined']];
+  const ids = [['z-src-local','zLocal'],['z-src-nist','zNIST'],['z-src-qci','zQCI'],['z-src-cicada','zCicada'],['z-combined-final','zCombined']];
   for (const [id, key] of ids) {
     const el = document.getElementById(id);
     if (!el) continue;
     const v = state[key];
-    el.textContent = v !== null ? v : '--';
-    if (v !== null) el.style.color = zToColor(v).color;
+    el.textContent = fini(v) ? v.toFixed(4) : '--';
+    el.style.color = fini(v) ? zToColor(v).color : 'var(--text-muted)';
   }
 }
 
 // --- Recalc combined from enabled sources only ---
 function recalcCombined() {
-  const zValues = [];
-  if (state.enabled.gcp && state.zGCP !== null) zValues.push(state.zGCP);
-  if (state.enabled.qrng && state.zQRNG !== null) zValues.push(state.zQRNG);
-  if (state.enabled.local && state.zLocal !== null) zValues.push(state.zLocal);
+  const v = valeurs();
+  const actives = sourcesActives();
+  const zValues = actives.map(k => v[k]);
 
   state.zCombined = zValues.length > 0
     ? parseFloat((zValues.reduce((a, b) => a + b, 0) / Math.sqrt(zValues.length)).toFixed(4))
     : null;
 
+  // (innerHTML sans risque : uniquement les noms constants des sources)
+  const formule = document.getElementById('formula-display');
+  if (formule) formule.innerHTML = zValues.length
+    ? `Z<sub>combiné</sub> = (${actives.map(k => `z<sub>${NOMS[k]}</sub>`).join(' + ')}) / &radic;${zValues.length}`
+    : 'Z<sub>combiné</sub> : aucune source active';
+
   updateRowZ();
 }
 
-// --- Push chart point ---
+// --- Push chart point (courbes : Princeton, local, NIST, combine) ---
 function pushChartPoint() {
   addChartPoint(
     Date.now(),
-    state.zGCP || 0,
-    state.zLocal || 0,
-    state.zQRNG || 0,
-    state.zCombined || 0
+    null,
+    fini(state.zLocal) ? state.zLocal : null,
+    fini(state.zNIST) ? state.zNIST : null,
+    fini(state.zCombined) ? state.zCombined : null
   );
   document.getElementById('chart-points').textContent = `${chart24h.data.labels.length} pts`;
   document.getElementById('update-time').textContent = `MAJ: ${new Date().toLocaleTimeString('fr-FR')}`;
 }
 
 // === FETCH FUNCTIONS ===
-
-async function fetchGCP() {
-  try {
-    const res = await fetch('/api/gcp');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.status !== 'ok') throw new Error(data.error || 'GCP error');
-
-    state.zGCP = data.zIndex;
-    setText('eggs-count', `${data.eggsCount} secondes `);
-
-    const pMean = (data.pValues.reduce((a, b) => a + b, 0) / data.pValues.length).toFixed(4);
-    updateSourceCard('gcp', 'up', { lat: `${data.latency}ms`, eggs: data.eggsCount, pmean: pMean });
-
-    recalcCombined();
-    updateDotDisplay();
-    pushChartPoint();
-  } catch (err) {
-    console.error('GCP:', err);
-    updateSourceCard('gcp', 'down', { lat: '--', eggs: '--', pmean: '--' });
-  }
-}
-
-async function fetchQRNG() {
-  try {
-    const res = await fetch('/api/qrng');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.status !== 'ok') throw new Error(data.error || 'QRNG error');
-
-    state.zQRNG = parseFloat(chiSquareFromBytes(data.data).toFixed(4));
-    updateSourceCard('anu', 'up', {
-      lat: data.cached ? 'cache' : `${data.latency}ms`,
-      count: data.count,
-      mean: data.mean
-    });
-
-    recalcCombined();
-    updateDotDisplay();
-  } catch (err) {
-    console.error('QRNG:', err);
-    updateSourceCard('anu', 'down', { lat: '--', count: '--', mean: '--' });
-  }
-}
+// Une source qui ne repond pas n'est pas une erreur : sa carte passe « indisponible ».
 
 async function fetchNIST() {
   try {
-    const res = await fetch('/api/nist-beacon');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.status !== 'ok') throw new Error(data.error || 'NIST error');
-
+    const data = await fetch('/api/nist-beacon').then(r => r.json());
+    if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error('indisponible');
+    state.zNIST = data.zIndex;
     updateSourceCard('nist', 'up', {
       lat: data.cached ? 'cache' : `${data.latency}ms`,
       pulse: data.pulseIndex ? `#${data.pulseIndex}` : '--',
       mean: data.mean
     });
-  } catch (err) {
-    console.error('NIST:', err);
+  } catch {
+    state.zNIST = null;
     updateSourceCard('nist', 'down', { lat: '--', pulse: '--', mean: '--' });
   }
+  recalcCombined();
+  updateDotDisplay();
+}
+
+async function fetchQCI() {
+  try {
+    const data = await fetch('/api/qci').then(r => r.json());
+    if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error('indisponible');
+    state.zQCI = data.zIndex;
+    updateSourceCard('qci', 'up', {});
+  } catch {
+    state.zQCI = null;
+    updateSourceCard('qci', 'down', {});
+  }
+  recalcCombined();
+  updateDotDisplay();
+}
+
+async function fetchCicada() {
+  try {
+    const data = await fetch('/api/cicada').then(r => r.json());
+    if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error(data.etat || 'indisponible');
+    state.zCicada = data.zIndex;
+    updateSourceCard('cicada', 'up', {});
+  } catch (err) {
+    state.zCicada = null;
+    updateSourceCard('cicada', err.message === 'reservee' ? 'reservee' : 'down', {});
+  }
+  recalcCombined();
+  updateDotDisplay();
 }
 
 async function fetchLocalRNG() {
   try {
-    const res = await fetch('/api/local-rng');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.status !== 'ok') throw new Error(data.error || 'Local error');
+    const data = await fetch('/api/local-rng').then(r => r.json());
+    if (data.status !== 'ok') throw new Error(data.error || 'indisponible');
 
-    state.zLocal = parseFloat(data.zScore);
+    // le serveur donne le z EGG dans zIndex (l'ancien champ zScore n'existe plus)
+    const z = parseFloat(data.zIndex ?? data.zScore);
+    state.zLocal = fini(z) ? z : null;
     updateSourceCard('local', 'up', { lat: `${data.latency}ms`, count: data.count, mean: data.mean });
 
     // Update device name dynamically
@@ -238,29 +264,31 @@ async function fetchLocalRNG() {
     }
 
     if (data.data) updateDistribution(data.data);
-    recalcCombined();
-    updateDotDisplay();
-  } catch (err) {
-    console.error('Local:', err);
+  } catch {
+    state.zLocal = null;
     updateSourceCard('local', 'down', { lat: '--', count: '--', mean: '--' });
   }
+  recalcCombined();
+  updateDotDisplay();
 }
 
 // === SOURCE CARD UPDATE ===
+
+const ETIQUETTES = { up: 'ACTIVE', down: 'INDISPONIBLE', arretee: 'ARRÊTÉE', reservee: 'RÉSERVÉE' };
 
 function updateSourceCard(source, status, stats) {
   const statusEl = document.getElementById(`status-${source}`);
   if (!statusEl) return;
   statusEl.className = `source-status ${status}`;
-  statusEl.querySelector('span').textContent = status.toUpperCase();
+  statusEl.querySelector('span').textContent = ETIQUETTES[status] || status.toUpperCase();
+  document.getElementById(`card-${source}`)?.classList.toggle('source-eteinte', status !== 'up');
 
   const ids = {
     gcp:   ['lat-gcp', 'eggs-gcp', 'pmean-gcp'],
-    anu:   ['lat-anu', 'count-anu', 'mean-anu'],
     nist:  ['lat-nist', 'pulse-nist', 'mean-nist'],
     local: ['lat-local', 'count-local', 'mean-local']
   };
-  const keys = { gcp: ['lat','eggs','pmean'], anu: ['lat','count','mean'], nist: ['lat','pulse','mean'], local: ['lat','count','mean'] };
+  const keys = { gcp: ['lat','eggs','pmean'], nist: ['lat','pulse','mean'], local: ['lat','count','mean'] };
 
   (keys[source] || []).forEach((key, i) => {
     const el = document.getElementById(ids[source]?.[i]);
@@ -270,13 +298,15 @@ function updateSourceCard(source, status, stats) {
   updateGlobalStatus();
 }
 
+// Le badge du haut : les sources qui repondent, sur celles qu'on interroge
 function updateGlobalStatus() {
+  const suivies = ['local', 'nist', 'qci', 'cicada'];
   let up = 0;
-  for (const s of ['gcp', 'anu', 'nist', 'local']) {
+  for (const s of suivies) {
     const el = document.getElementById(`status-${s}`);
     if (el && el.classList.contains('up')) up++;
   }
-  document.getElementById('status-text').textContent = `${up}/4 sources actives`;
+  document.getElementById('status-text').textContent = `${up}/${suivies.length} sources actives`;
   const badge = document.getElementById('global-status');
-  badge.className = 'status-badge' + (up === 4 ? ' up' : up > 0 ? ' partial' : ' down');
+  badge.className = 'status-badge' + (up === suivies.length ? ' up' : up > 0 ? ' partial' : ' down');
 }

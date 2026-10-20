@@ -10,14 +10,15 @@ const PORT = 3000;
 const gcpHistory = [];
 const MAX_HISTORY = 1440; // 24h at 1 point/min
 
+// IPv4 d'abord : sur certains reseaux, la route IPv6 de NIST ne repond jamais
+require('dns').setDefaultResultOrder('ipv4first');
+
 // --- Cache for rate-limited APIs ---
-let anuCache = { data: null, ts: 0 };
 let nistCache = { data: null, ts: 0 };
 let qciCache = { data: null, ts: 0 };
 let qciAccessToken = null;
 let qciTokenExpiry = 0;
-const ANU_CACHE_TTL = 60_000;   // 1 min — max free rate (1 req/min)
-const NIST_CACHE_TTL = 60_000;  // 1 min — 1 pulse/min
+const NIST_CACHE_TTL = 20_000;  // une pulsation par minute : on la cherche au plus toutes les 20 s
 const QCI_CACHE_TTL = 1_000;    // 1s — 25 bytes/req = ~52% of 1B bits/month quota
 const QCI_API_TOKEN = process.env.QCI_TOKEN || '';  // set via QCI_TOKEN env var
 
@@ -136,54 +137,45 @@ function zToLabel(z) {
 
 // === API ROUTES ===
 
-// 1. GCP Proxy — Princeton updates every ~60s, we fetch and serve the latest
-app.get('/api/gcp', async (req, res) => {
-  const t0 = Date.now();
-  try {
-    const response = await fetch('https://global-mind.org/gcpdot/gcpindex.php', {
-      signal: AbortSignal.timeout(8000),
-      headers: { 'User-Agent': 'noosphi-proto/0.1' }
-    });
-    const text = await response.text();
-    const latency = Date.now() - t0;
-
-    const parsed = parseGCPData(text);
-    if (!parsed) return res.status(502).json({ error: 'Failed to parse GCP data' });
-
-    const lastP = parsed.proportions[parsed.proportions.length - 1];
-    const z = inverseNormalCDF(lastP);
-    const result = {
-      serverTime: parsed.serverTime,
-      eggsCount: parsed.proportions.length,
-      zIndex: parseFloat(z.toFixed(4)),
-      color: zToColor(z),
-      label: zToLabel(z),
-      status: 'ok',
-      latency
-    };
-
-    gcpHistory.push({ t: Date.now(), z: result.zIndex });
-    if (gcpHistory.length > MAX_HISTORY) gcpHistory.shift();
-
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: err.message, status: 'down', latency: Date.now() - t0 });
-  }
+// 1. Princeton (GCP 1.0) : la collecte s'est arretee le 03/04/2026 (panne materielle
+// chez l'hebergeur, annonce sur global-mind.org ; gcpindex.php en 404). On ne
+// l'interroge plus ; la route repond « arretee », sans erreur, pour les vieilles pages.
+app.get('/api/gcp', (req, res) => {
+  res.json({ status: 'arretee', zIndex: null, error: 'Princeton : collecte arrêtée le 03/04/2026' });
 });
 
-// GCP 24h history
+// GCP 24h history (vide depuis l'arret de la collecte)
 app.get('/api/gcp/history', (req, res) => {
   res.json(gcpHistory);
 });
 
-// 2. ANU QRNG — DISABLED (source removed from active combination)
-app.get('/api/qrng', (req, res) => {
-  res.status(410).json({ status: 'disabled', source: 'ANU QRNG', message: 'Source disabled — not included in z-score combination' });
-});
+// 2. ANU QRNG : retiree (payante, 0,005 $ par requete).
 
-// 3. NIST Beacon 2.0 — DISABLED (source removed from active combination)
-app.get('/api/nist-beacon', (req, res) => {
-  res.status(410).json({ status: 'disabled', source: 'NIST Beacon 2.0', message: 'Source disabled — not included in z-score combination' });
+// 3. NIST Beacon 2.0 : une pulsation par minute, 512 bits publics et signes.
+// 512 bits = 2 essais EGG de 200 bits, combines par Stouffer. Une meme pulsation
+// donne toujours le meme z (et le meme pulseIndex) : elle ne compte qu'une fois
+// cote pages. Pas de repli vers une autre source : NIST injoignable = « down ».
+async function lireNist() {
+  if (nistCache.data && Date.now() - nistCache.ts < NIST_CACHE_TTL) return { ...nistCache.data, cached: true };
+  const t0 = Date.now();
+  const r = await fetch('https://beacon.nist.gov/beacon/2.0/pulse/last', { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`NIST HTTP ${r.status}`);
+  const p = (await r.json()).pulse;
+  const hex = p?.outputValue;
+  if (!hex || hex.length < 128) throw new Error('NIST : pulsation illisible');
+  const bytes = hex.match(/../g).map(h => parseInt(h, 16));
+  const z = bytesToEggZ(bytes);
+  const data = {
+    status: 'ok', zIndex: parseFloat(z.toFixed(4)), pulseIndex: p.pulseIndex, timeStamp: p.timeStamp,
+    count: bytes.length, mean: (bytes.reduce((a, b) => a + b, 0) / bytes.length).toFixed(2), latency: Date.now() - t0,
+  };
+  nistCache = { data, ts: Date.now() };
+  return { ...data, cached: false };
+}
+
+app.get('/api/nist-beacon', async (req, res) => {
+  try { res.json(await lireNist()); }
+  catch (err) { res.json({ status: 'down', zIndex: null, error: err.message }); }
 });
 
 // 4. QCI uQRNG (Quantum photonic, cloud API)
@@ -389,20 +381,15 @@ app.get('/api/local-rng', (req, res) => {
 app.get('/api/status', async (req, res) => {
   const sources = {};
 
-  // GCP
+  // Princeton : collecte arretee le 03/04/2026, on ne l'interroge plus
+  sources.gcp = { status: 'arretee', latency: -1, name: 'GCP 1.0 (Princeton), collecte arrêtée le 03/04/2026' };
+
+  // NIST Beacon 2.0 : la derniere pulsation (sans en redemander une si le cache est frais)
   try {
     const t0 = Date.now();
-    const r = await fetch('https://global-mind.org/gcpdot/gcpindex.php', {
-      signal: AbortSignal.timeout(5000)
-    });
-    sources.gcp = { status: r.ok ? 'up' : 'down', latency: Date.now() - t0, name: 'GCP 1.0 (Princeton)' };
-  } catch { sources.gcp = { status: 'down', latency: -1, name: 'GCP 1.0 (Princeton)' }; }
-
-  // ANU — disabled
-  sources.anu = { status: 'disabled', latency: -1, name: 'ANU QRNG (Photonic)' };
-
-  // NIST — disabled
-  sources.nist = { status: 'disabled', latency: -1, name: 'NIST Beacon 2.0' };
+    const p = await lireNist();
+    sources.nist = { status: p ? 'up' : 'down', latency: Date.now() - t0, name: 'NIST Beacon 2.0' };
+  } catch { sources.nist = { status: 'down', latency: -1, name: 'NIST Beacon 2.0' }; }
 
   // QCI
   if (QCI_API_TOKEN) {
@@ -547,7 +534,7 @@ httpServer.listen(PORT, () => {
   ║                                           ║
   ║   http://localhost:${PORT}                   ║
   ║                                           ║
-  ║   Sources: GCP + ANU QRNG + NIST + Local  ║
+  ║   Sources: Local + QCI + NIST + Cicada    ║
   ╚═══════════════════════════════════════════╝
   `);
 });

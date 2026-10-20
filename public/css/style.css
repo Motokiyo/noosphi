@@ -265,6 +265,44 @@ main {
 .source-status.up { color: var(--green); }
 .source-status.down { color: var(--red); }
 
+/* Une source qui ne repond pas, desactivee ou reservee : grisee, sans alarme */
+.source-status.down,
+.source-status.arretee,
+.source-status.reservee { color: var(--text-muted); }
+.source-status.down .indicator,
+.source-status.arretee .indicator,
+.source-status.reservee .indicator { background: var(--text-muted); }
+.source-card.source-eteinte { opacity: 0.55; }
+.source-row.desactivee { opacity: 0.4; filter: grayscale(1); }
+
+/* En haut a droite : l'etat des sources et la croix pour revenir a l'experience */
+.header-droite {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dashboard-fermer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.dashboard-fermer:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.dashboard-fermer svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
 .source-stats {
   display: flex;
   flex-direction: column;

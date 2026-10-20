@@ -5,9 +5,9 @@
 
 import * as THREE from 'three';
 import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
-import { createSeance, zAffiche, versCSV, versJSON, texteResume } from './seance.js';
+import { createSeance, zAffiche, versCSV, versJSON, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -72,6 +72,8 @@ const AUDIO_RAMP_TIME    = 0.5;  // seconds — pitch/filter/gain transitions
 const canvas = document.getElementById('sphere-canvas');
 const zDisplay = document.getElementById('z-display');
 const zDisplayLabel = document.querySelector('.z-indicator .z-label');
+const zDisplayTemoin = document.getElementById('z-temoin');
+const sessionZTemoin = document.getElementById('session-z-temoin');
 const loadingText = document.getElementById('loading-text');
 const audioIndicator = document.getElementById('audio-indicator');
 const sourceDots = document.querySelectorAll('.source-dot');
@@ -80,8 +82,6 @@ const spherePhotoImg = spherePhotoEl?.querySelector('img');
 
 // Sidebar z-score displays (cached — updated every second in combineAndUpdate)
 const sidebarZLocal    = document.getElementById('sidebar-z-local');
-const sidebarZGcp      = document.getElementById('sidebar-z-gcp');
-const sidebarZQrng     = document.getElementById('sidebar-z-qrng');
 const sidebarZNist     = document.getElementById('sidebar-z-nist');
 const sidebarZQci      = document.getElementById('sidebar-z-qci');
 const sidebarZCombined = document.getElementById('sidebar-z-combined');
@@ -766,9 +766,8 @@ function tickLocalZ() {
 // ============================================================
 // API Sources (fetched in parallel, combined via Stouffer)
 // ============================================================
+// Princeton : collecte arretee le 03/04/2026. ANU : retiree (payante).
 const apiZScores = {
-  gcp: null,
-  qrng: null,
   nist: null,
   qci: null,
   local_server: null,
@@ -777,6 +776,7 @@ const apiZScores = {
 function processApiResult(key, dotIndex, z) {
   if (z != null && isFinite(z)) {
     apiZScores[key] = z;
+    dernierOk[key] = Date.now();
     sourceDots[dotIndex]?.classList.add('active');
   } else {
     apiZScores[key] = null;
@@ -784,12 +784,13 @@ function processApiResult(key, dotIndex, z) {
   }
 }
 
-// GCP (Princeton) — polled every 1s (no rate limit)
-async function fetchGCP() {
+// NIST Beacon 2.0 : une pulsation par minute ; on regarde toutes les 20 s pour
+// la prendre tot. La meme pulsation donne le meme z : elle ne compte qu'une fois.
+async function fetchNIST() {
   try {
-    const d = await fetch('/api/gcp').then(r => r.json());
-    processApiResult('gcp', 1, d.status === 'ok' ? d.zIndex : null);
-  } catch { processApiResult('gcp', 1, null); }
+    const d = await fetch('/api/nist-beacon').then(r => r.json());
+    processApiResult('nist', 1, d.status === 'ok' ? d.zIndex : null);
+  } catch { processApiResult('nist', 1, null); }
   combineAndUpdate();
 }
 
@@ -797,17 +798,15 @@ async function fetchGCP() {
 async function fetchQCI() {
   try {
     const d = await fetch('/api/qci').then(r => r.json());
-    processApiResult('qci', 4, d.status === 'ok' ? d.zIndex : null);
-  } catch { processApiResult('qci', 4, null); }
+    processApiResult('qci', 2, d.status === 'ok' ? d.zIndex : null);
+  } catch { processApiResult('qci', 2, null); }
   combineAndUpdate();
 }
 
-// Local server — polled every 60s (ANU and NIST disabled)
+// Local server — polled every 60s
 async function fetchSlow() {
   const endpoints = [
-    // { key: 'qrng', dot: 2, url: '/api/qrng' },      // ANU QRNG — disabled
-    // { key: 'nist', dot: 3, url: '/api/nist-beacon' }, // NIST Beacon — disabled
-    { key: 'local_server', dot: 5, url: '/api/local-rng' },
+    { key: 'local_server', dot: -1, url: '/api/local-rng' },
   ];
 
   const results = await Promise.allSettled(
@@ -859,7 +858,7 @@ function midiSourceZ(displayZ) {
 
 // Sources du z joue par l'U1 virtuel (?midi) : en session, les cases « Local »
 // (cet ordi), « QCI » et « Telephones » (session collective) decident vraiment
-// de ce qui joue. Princeton, ANU, NIST : une valeur par minute, ils fabriqueraient
+// de ce qui joue. NIST : une valeur par minute, elle fabriquerait
 // une fausse coherence, donc affichage seulement. Seules les sources qui
 // repondent ont une case.
 const MIDI_ON = new URLSearchParams(location.search).has('midi');
@@ -873,12 +872,44 @@ let dernierZJoue = null;    // dernier z parti vers MainStage (courbe « Joue »
 let dernierZTrace = null;   // derniere valeur posee sur la courbe « Combine »
 let cicadaZ = null;         // cle quantique de Franck (Cicada), lue par le serveur
 
-// Cicada : seulement avec l'U1 virtuel, hors du « Combine » de l'app publique
+// Cicada, la cle quantique Noosfeerique : lue partout (ecoute, seances, U1), une
+// fois par seconde. Reservee ou injoignable, elle repond « off » : on ne conclut
+// jamais sur un seul appel (au demarrage a froid, le premier repond souvent off
+// le temps que le serveur la reveille). Sa pastille ne disparait jamais :
+// indisponible, elle reste eteinte et grisee, et se rallume seule (etatCicada).
+let cicadaEchecs = 0, cicadaVue = false, cicadaEtatServeur = null;
+const cicadaEtat = () => etatCicada({ vue: cicadaVue, echecs: cicadaEchecs, etat: cicadaEtatServeur });
+const cicadaPresente = () => cicadaEtat().disponible;
 async function fetchCicada() {
+  let z = null;
   try {
     const d = await fetch('/api/cicada').then(r => r.json());
-    cicadaZ = d.status === 'ok' && isFinite(d.zIndex) ? d.zIndex : null;
-  } catch { cicadaZ = null; }
+    z = d.status === 'ok' && isFinite(d.zIndex) ? d.zIndex : null;
+    cicadaEtatServeur = z != null ? 'active' : (d.etat || null);
+  } catch { z = null; cicadaEtatServeur = null; }
+  cicadaZ = z;
+  if (z != null) { cicadaEchecs = 0; cicadaVue = true; } else cicadaEchecs++;
+  sourceDots[3]?.classList.toggle('active', z != null);
+  majPastilleCicada();
+}
+
+// Les sources qu'on ecoute (« la salle ») : plusieurs a la fois, memorisees.
+// Elles font le z affiche, la sphere et le son, et la salle des seances.
+// Sur la page U1, ce qui JOUE reste decide par ses cases (jeuSources, inchangees).
+let salleChoix = (() => {
+  try { return { ...SALLE_DEFAUT, ...JSON.parse(localStorage.getItem('noosphi_salle') || '{}') }; }
+  catch { return { ...SALLE_DEFAUT }; }
+})();
+function memoSalle() { try { localStorage.setItem('noosphi_salle', JSON.stringify(salleChoix)); } catch {} }
+const cicadaDansSalle = () => (MIDI_ON ? jeuSources.cicada : salleChoix.cicada) && cicadaPresente();
+
+// Disponibilite de chaque source, pour griser sa pastille sans la faire disparaitre
+const DEBUT_PAGE = Date.now();
+const dernierOk = {};
+function etatDe(cle) {
+  if (cle === 'cicada') return cicadaEtat();
+  if (cle === 'local') return etatSource('local', { dernierOk: localReady ? Date.now() : null, debut: DEBUT_PAGE });
+  return etatSource(cle, { dernierOk: dernierOk[cle] ?? null, debut: DEBUT_PAGE });
 }
 
 // z de cet ordinateur selon les cases : son generateur, QCI, les deux ou rien
@@ -906,10 +937,10 @@ function majCasesSession() {
   if (!MIDI_ON) return;
   const repond = {
     combined: true, local: localReady, telephones: isCollective && telephonesActifs > 0,
-    gcp: apiZScores.gcp != null, qrng: false, nist: false, qci: apiZScores.qci != null,
-    cicada: cicadaZ != null,
+    nist: apiZScores.nist != null, qci: apiZScores.qci != null,
+    cicada: true,   // ne disparait jamais : grisee quand la cle est indisponible
   };
-  document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+  document.querySelectorAll('#session-toggles > .graph-toggle').forEach(label => {
     label.classList.toggle('hidden', !repond[label.dataset.key]);
   });
   const tel = document.querySelector('#session-toggles [data-key="telephones"] span:last-child');
@@ -921,48 +952,19 @@ function combineAndUpdate() {
   // Local browser RNG is always source #0
   sourceDots[0]?.classList.toggle('active', localReady);
 
-  // Collect all available z-scores (ANU/NIST excluded — sources disabled)
-  const DISABLED_SOURCES = ['qrng', 'nist'];
-  const allZ = [];
-  if (localReady) allZ.push(currentZ);
-  Object.entries(apiZScores).forEach(([key, z]) => {
-    if (DISABLED_SOURCES.includes(key)) return;
-    if (z != null && isFinite(z)) allZ.push(z);
-  });
-
-  // Compute combined Stouffer Z
-  const fullCombinedZ = computeStoufferZ(allZ);
+  // Le z affiche : la combinaison des sources cochees (Stouffer des valeurs
+  // fraiches de la seconde, calcule une fois par seconde par combinaison.tick)
+  const fullCombinedZ = combinaison.z;
 
   // Update sidebar z-score displays
   if (localReady) sidebarZLocal.textContent = currentZ.toFixed(2);
-  if (apiZScores.gcp != null) sidebarZGcp.textContent = apiZScores.gcp.toFixed(2);
-  if (apiZScores.qrng != null) sidebarZQrng.textContent = apiZScores.qrng.toFixed(2);
   if (apiZScores.nist != null) sidebarZNist.textContent = apiZScores.nist.toFixed(2);
   if (apiZScores.qci != null) sidebarZQci.textContent = apiZScores.qci.toFixed(2);
+  if (cicadaZ != null && sidebarZCicada) sidebarZCicada.textContent = cicadaZ.toFixed(2);
   if (fullCombinedZ != null) sidebarZCombined.textContent = fullCombinedZ.toFixed(2);
 
-  // Pick the z-score based on selected source
-  let displayZ;
-  switch (selectedSource) {
-    case 'local':
-      displayZ = localReady ? currentZ : null;
-      break;
-    case 'gcp':
-      displayZ = apiZScores.gcp;
-      break;
-    case 'qrng':
-      displayZ = apiZScores.qrng;
-      break;
-    case 'nist':
-      displayZ = apiZScores.nist;
-      break;
-    case 'qci':
-      displayZ = apiZScores.qci;
-      break;
-    default: // 'combined'
-      displayZ = fullCombinedZ;
-  }
-
+  // Plusieurs sources a la fois : le z affiche est toujours leur combinaison
+  const displayZ = fullCombinedZ;
   if (displayZ == null) return;
 
   updateVisuals(displayZ);
@@ -1032,17 +1034,17 @@ function createHelpModal() {
       </ul>
       <h3>Les sources</h3>
       <ul>
-        <li>~60 EGGs quantiques mondiaux (Princeton, USA)</li>
-        <li>QCI uQRNG — photonique quantique (USA)</li>
-        <li>ANU QRNG — photonique quantique (Australie)</li>
-        <li>NIST Beacon 2.0 (gouvernement US)</li>
         <li>Le generateur de votre propre appareil</li>
+        <li>Noosféérique : la clé quantique Cicada</li>
+        <li>QCI uQRNG, photonique quantique (USA), chaque seconde</li>
+        <li>NIST Beacon 2.0, une pulsation par minute (USA)</li>
+        <li>Princeton (EGGs mondiaux) : collecte arrêtée le 03/04/2026</li>
       </ul>
       <h3>En haut</h3>
       <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
         <div style="display:flex;align-items:center;gap:8px">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          <span>Choix du generateur (source du z-score)</span>
+          <span>Choix des sources (plusieurs à la fois)</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1188,17 +1190,41 @@ if (sidebarBackdrop) {
   sidebarBackdrop.addEventListener('click', closeSidebar);
 }
 
-// Source radio buttons
-const sourceOptions = document.querySelectorAll('.source-option');
+// Le tableau de bord garde les parametres d'URL (?midi=1…), pour que sa croix y ramene
+document.querySelector('.sidebar-link')?.setAttribute('href', '/' + location.search);
+
+// Les sources se cochent ensemble : chaque ligne se coche et se decoche seule ;
+// « Combinaison » n'est pas un choix, c'est le resultat des sources cochees
+const sourceOptions = document.querySelectorAll('.source-option[data-source]');
+const sidebarZCicada = document.getElementById('sidebar-z-cicada');
+const combinaison = createCombinaison();
+
+// Cocher ou decocher une source de l'ecoute (barre des sources, ou ligne de la
+// seance hors page U1). Une source du temoin quitte le temoin.
+function basculerSalle(cle) {
+  const e = basculer({ salle: salleChoix, temoin: TEMOIN.includes(cle) ? temoinChoix : {} }, 'salle', cle);
+  salleChoix = e.salle;
+  if (TEMOIN.includes(cle)) { temoinChoix = { ...temoinChoix, ...e.temoin }; memoTemoin(); }
+  memoSalle();
+  majLignes();
+}
+
 sourceOptions.forEach(label => {
-  label.addEventListener('click', () => {
-    sourceOptions.forEach(l => l.classList.remove('active'));
-    label.classList.add('active');
-    selectedSource = label.dataset.source;
-    label.querySelector('input').checked = true;
-    combineAndUpdate();
+  label.addEventListener('click', e => {
+    e.preventDefault();
+    const cle = label.dataset.source;
+    if (cle === 'combined') return;
+    basculerSalle(cle);
   });
 });
+
+// Une seconde : la combinaison des sources cochees qui repondent
+setInterval(() => {
+  const valeurs = { local: localReady ? currentZ : null, cicada: cicadaZ, nist: apiZScores.nist, qci: apiZScores.qci };
+  combinaison.tick(Date.now(), valeurs, SALLE_CLES.filter(k => salleChoix[k] && etatDe(k).disponible));
+  combineAndUpdate();
+  majLignes();
+}, 1000);
 
 // ============================================================
 // Z-Score History (for graph overlay)
@@ -1207,26 +1233,21 @@ const HISTORY_MAX = 86400; // 24h at 1 point/sec
 const COLORS = {
   combined: '#CC44FF',
   local: '#00E5FF',
-  gcp: '#6C63FF',
-  qrng: '#FF8800',
   nist: '#00CC66',
   qci: '#C9A24D',
   cicada: '#FF5FA2',
 };
-const SOURCE_LABELS = { combined: 'Combine', local: 'Local', gcp: 'Princeton', qrng: 'ANU', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
+const SOURCE_LABELS = { combined: 'Combine', local: 'Local', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
 // Used for graph-overlay source dots (excludes 'combined' which has no API slot)
 const SOURCE_META = [
   { key: 'local', color: '#00E5FF', label: 'Local' },
-  { key: 'gcp',   color: '#6C63FF', label: 'Princeton' },
-  { key: 'qrng',  color: '#FF8800', label: 'ANU' },
+  { key: 'cicada', color: '#FF5FA2', label: 'Noosféérique' },
   { key: 'nist',  color: '#00CC66', label: 'NIST' },
   { key: 'qci',   color: '#C9A24D', label: 'QCI' },
 ];
 const zHistory = {
   combined: [],
   local: [],
-  gcp: [],
-  qrng: [],
   nist: [],
   qci: [],
   cicada: [],
@@ -1234,19 +1255,11 @@ const zHistory = {
 
 function recordHistory() {
   const now = Date.now();
-  // Combined
-  const allZ = [];
-  if (localReady) allZ.push(currentZ);
-  Object.values(apiZScores).forEach(z => { if (z != null && isFinite(z)) allZ.push(z); });
-  // Avec l'U1 virtuel, la courbe principale est le z joue, pas le melange de tout
-  if (!MIDI_ON) {
-    const cz = computeStoufferZ(allZ);
-    if (cz != null) pushHistory('combined', now, cz);
-  }
+  // Combined : la combinaison des sources cochees (celle qui fait la sphere).
+  // Avec l'U1 virtuel, la courbe principale est le z joue, pas ce melange
+  if (!MIDI_ON && combinaison.z != null) pushHistory('combined', now, combinaison.z);
   // Individual
   if (localReady) pushHistory('local', now, currentZ);
-  if (apiZScores.gcp != null) pushHistory('gcp', now, apiZScores.gcp);
-  if (apiZScores.qrng != null) pushHistory('qrng', now, apiZScores.qrng);
   if (apiZScores.nist != null) pushHistory('nist', now, apiZScores.nist);
   if (apiZScores.qci != null) pushHistory('qci', now, apiZScores.qci);
   if (cicadaZ != null) pushHistory('cicada', now, cicadaZ);
@@ -1412,7 +1425,7 @@ const btnGraph = document.getElementById('btn-graph');
 const graphClose = document.getElementById('graph-close');
 const highlightsList = document.getElementById('highlights-list');
 let historyChart = null;
-const graphVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+const graphVisibility = { combined: true, local: true, cicada: true, nist: true, qci: true };
 
 function openGraph() {
   graphOverlay.classList.add('open');
@@ -1586,7 +1599,145 @@ let sessionChart = null;
 let currentCollectiveCode = null;
 const btnPauseSession = document.getElementById("btn-pause-session");
 const pauseLabel = document.getElementById("pause-label");
-const sessionVisibility = { combined: true, local: true, gcp: true, qrng: true, nist: true, qci: true, cicada: true };
+const sessionVisibility = { combined: true, local: true, nist: true, qci: true, cicada: true };
+
+// ---- La ligne des sources : la salle a gauche, le temoin a droite ----
+// Une source n'est jamais des deux cotes (basculer). Le choix du temoin est
+// memorise ; au chargement, une source deja dans la salle (case QCI de l'U1)
+// garde sa place : on ne change jamais ce qui joue sans qu'on le demande.
+const pastilleSalle = key => document.querySelector(`#session-toggles > .graph-toggle[data-key="${key}"]`);
+const temoinPastilles = document.getElementById('temoin-pastilles');
+let temoinChoix = choixInitial({
+  memo: (() => { try { return JSON.parse(localStorage.getItem('noosphi_temoin') || 'null'); } catch { return null; } })(),
+  salle: MIDI_ON ? { qci: jeuSources.qci } : salleChoix,
+});
+const temoinActif = () => TEMOIN.filter(k => temoinChoix[k]);
+function memoTemoin() { try { localStorage.setItem('noosphi_temoin', JSON.stringify(temoinChoix)); } catch {} }
+
+// Une pastille de gauche est « dans la salle » : sur la page U1, ce que ses cases
+// font jouer ; ailleurs, la pastille allumee
+function salleCoche(key) {
+  if (MIDI_ON) return key in jeuSources ? !!jeuSources[key] : false;
+  return !!salleChoix[key];
+}
+
+function allumerPastille(label, on) {
+  if (!label) return;
+  label.classList.toggle('active', on);
+  const input = label.querySelector('input');
+  if (input) input.checked = on;
+}
+
+// Les pastilles du temoin sont construites une fois, puis seulement mises a jour :
+// les reconstruire chaque seconde ferait perdre le clic et l'info-bulle au survol
+// (innerHTML sans risque : uniquement des constantes du code, aucune saisie)
+function renderTemoin() {
+  if (!temoinPastilles) return;
+  if (!temoinPastilles.children.length) {
+    temoinPastilles.style.setProperty('--temoin', TEMOIN_COULEUR);
+    temoinPastilles.innerHTML = TEMOIN.map(k => `
+      <label class="graph-toggle temoin" data-temoin="${k}">
+        <input type="checkbox"><span class="toggle-swatch"></span><span>${{ nist: 'NIST', qci: 'QCI' }[k]}</span>
+      </label>`).join('');
+  }
+  for (const label of temoinPastilles.querySelectorAll('[data-temoin]')) {
+    const k = label.dataset.temoin, etat = etatDe(k);
+    allumerPastille(label, !!temoinChoix[k] && etat.disponible);
+    label.classList.toggle('indisponible', !etat.disponible);
+    const titre = etat.disponible ? titreTemoin(k) : etat.titre;
+    if (label.title !== titre) label.title = titre;
+  }
+}
+
+// Toutes les lignes de sources d'un coup : la barre des sources, la ligne de la
+// seance (salle a gauche, temoin a droite). Une source indisponible reste a sa
+// place, eteinte et grisee, avec la raison au survol.
+function majLignes() {
+  sourceOptions.forEach(label => {
+    const cle = label.dataset.source;
+    if (cle === 'combined') return;
+    const etat = etatDe(cle), on = !!salleChoix[cle];
+    label.classList.toggle('active', on && etat.disponible);
+    label.classList.toggle('indisponible', !etat.disponible);
+    label.title = etat.titre;
+    const input = label.querySelector('input');
+    if (input) input.checked = on;
+  });
+  if (!MIDI_ON) {
+    for (const cle of SALLE_CLES) {
+      const label = pastilleSalle(cle);
+      if (!label) continue;
+      const etat = etatDe(cle);
+      label.classList.remove('hidden');
+      allumerPastille(label, !!salleChoix[cle] && etat.disponible);
+      label.classList.toggle('indisponible', !etat.disponible);
+      label.title = etat.titre;
+    }
+  } else {
+    majPastilleCicada();
+  }
+  renderTemoin();
+}
+
+// Exclusion : une source cochee dans le temoin s'eteint dans la salle
+function appliquerTemoinSurSalle() {
+  for (const k of TEMOIN) {
+    if (!temoinChoix[k]) continue;
+    allumerPastille(pastilleSalle(k), false);
+    if (!MIDI_ON && salleChoix[k]) { salleChoix = { ...salleChoix, [k]: false }; memoSalle(); }
+    if (MIDI_ON && k in jeuSources && jeuSources[k]) {
+      jeuSources[k] = false;
+      try { localStorage.setItem('noosphi_jeu_sources', JSON.stringify(jeuSources)); } catch {}
+    }
+    sessionVisibility[k] = true;   // sa courbe reste visible : elle est dans le temoin
+  }
+}
+
+if (temoinPastilles) {
+  temoinPastilles.addEventListener('click', e => {
+    const label = e.target.closest('[data-temoin]');
+    if (!label) return;
+    e.preventDefault();
+    const k = label.dataset.temoin;
+    const salle = Object.fromEntries(TEMOIN.map(c => [c, salleCoche(c)]));
+    temoinChoix = basculer({ salle, temoin: temoinChoix }, 'temoin', k).temoin;
+    memoTemoin();
+    appliquerTemoinSurSalle();
+    if (!temoinChoix[k]) sessionVisibility[k] = salleCoche(k);
+    majLignes();
+    if (MIDI_ON) majCasesSession();
+    updateSessionChart();
+  });
+}
+
+// La pastille Noosfeerique : allumee par defaut, grisee quand la cle est
+// indisponible (sans disparaitre), avec son etat au survol
+function majPastilleCicada() {
+  const label = pastilleSalle('cicada');
+  if (!label) return;
+  const etat = cicadaEtat();
+  const voulue = MIDI_ON ? !!jeuSources.cicada : !!salleChoix.cicada;
+  label.classList.remove('hidden');
+  label.classList.toggle('indisponible', !etat.disponible);
+  label.title = etat.titre;
+  allumerPastille(label, voulue && etat.disponible);
+}
+
+// Ce qui compose « la salle » d'une seance, une fois par seconde. En collective,
+// le z des telephones contient deja ce que cet ordinateur envoie (sur la page U1 :
+// ses cases) : on n'y ajoute que ce qu'il n'envoie pas, pour ne rien compter deux fois.
+function salleComposantes() {
+  const c = {};
+  const envoyeParCetOrdi = k => isCollective && MIDI_ON && !!jeuSources[k];
+  if (isCollective) c.telephones = collectiveFreshZ;
+  else if (MIDI_ON || salleChoix.local) c.local = localReady ? currentZ : null;
+  if (cicadaDansSalle() && !envoyeParCetOrdi('cicada')) c.cicada = cicadaZ;
+  for (const k of TEMOIN) {
+    if (temoinChoix[k] || !salleCoche(k) || envoyeParCetOrdi(k)) continue;
+    c[k] = apiZScores[k];
+  }
+  return c;
+}
 
 // Sessions history from main setup screen
 document.getElementById('btn-session-history-main').addEventListener('click', () => {
@@ -1796,6 +1947,7 @@ if (btnStopSession) {
     duration: Math.floor((Date.now() - sessionStartTime) / 1000),
     zSalle: r.zSalle, nSalle: r.nSalle,
     zTemoin: r.zTemoin, nTemoin: r.nTemoin,
+    temoinChoisi: temoinActif(), parSource: r.parSource || {},
     secondes: seance ? seance.lignes : [],   // une ligne par seconde, pour l'export
     version: APP_VERSION,
     data: sessionData,
@@ -1826,9 +1978,23 @@ if (btnStopSession) {
   if (sessionChart) { sessionChart.destroy(); sessionChart = null; }
   seance = null;
   // A l'arret : le detail de la seance, avec la salle et le temoin
+  majZTemoin();
   if (enregistree) openSessionDetail(session.id);
   else { loadingText.textContent = texteResume(r); loadingText.classList.remove('hidden'); setTimeout(() => loadingText.classList.add('hidden'), 8000); }
   });
+}
+
+// Le seul chiffre du temoin : son z de seance, petit, dans sa couleur, sous le
+// z de la salle (au centre de la seance et sous la sphere) ; rien hors enregistrement
+function majZTemoin() {
+  const r = sessionActive && seance ? seance.resume() : null;
+  const texte = r && r.zTemoin != null ? `témoin : ${r.zTemoin.toFixed(2)}` : (r ? 'témoin : --' : '');
+  for (const el of [sessionZTemoin, zDisplayTemoin]) {
+    if (!el) continue;
+    el.textContent = texte;
+    el.style.color = TEMOIN_COULEUR;
+    el.classList.toggle('hidden', !texte);
+  }
 }
 
 // Record data point during session (called from combineAndUpdate)
@@ -1839,8 +2005,6 @@ function recordSessionTick(displayZ) {
     t: Date.now(),
     z: displayZ,
     local: localReady ? currentZ : null,
-    gcp: apiZScores.gcp,
-    qrng: apiZScores.qrng,
     nist: apiZScores.nist,
     qci: apiZScores.qci,
     cicada: cicadaZ,
@@ -1857,6 +2021,7 @@ function recordSessionTick(displayZ) {
     sessionZValue.style.color = zColor(Math.abs(zSeance));
   }
   sessionZMax.textContent = `z de l'instant : ${displayZ.toFixed(2)}`;
+  majZTemoin();
 
   updateSessionChart();
 }
@@ -1868,13 +2033,11 @@ function recordSessionTick(displayZ) {
 // Une valeur qui n'a pas change depuis la seconde d'avant n'est pas recomptee.
 setInterval(() => {
   if (!sessionActive || sessionPaused || !seance) return;
-  const salle = isCollective
-    ? { telephones: collectiveFreshZ }
-    : { local: localReady ? currentZ : null, cicada: cicadaZ };
   seance.tick(Date.now(), {
-    salle,
+    salle: salleComposantes(),
     nTelephones: isCollective ? telephonesActifs : null,
-    mesures: { gcp: apiZScores.gcp, qrng: apiZScores.qrng, nist: apiZScores.nist, qci: apiZScores.qci },
+    mesures: { nist: apiZScores.nist, qci: apiZScores.qci },
+    temoinActif: temoinActif(),
   });
 }, 1000);
 
@@ -1916,29 +2079,44 @@ function updateSessionChart() {
   });
 }
 
-// Session toggles
-document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+// Session toggles (la salle, a gauche)
+document.querySelectorAll('#session-toggles > .graph-toggle').forEach(label => {
   label.addEventListener('click', (e) => {
     e.preventDefault();
     const key = label.dataset.key;
-    const nowActive = !label.classList.contains('active');
-    label.classList.toggle('active', nowActive);
-    label.querySelector('input').checked = nowActive;
+    // Hors page U1, les sources de la salle sont celles de l'ecoute : meme choix
+    // que la barre des sources (plusieurs a la fois, temoin exclu)
+    if (!MIDI_ON && SALLE_CLES.includes(key)) {
+      basculerSalle(key);
+      sessionVisibility[key] = !!salleChoix[key] || !!temoinChoix[key];
+      updateSessionChart();
+      return;
+    }
+    // Page U1 : ses cases (jeuSources). Noosfeerique allumee seulement si la cle repond
+    const nowActive = key === 'cicada' ? !jeuSources.cicada : !label.classList.contains('active');
+    if (key !== 'cicada') allumerPastille(label, nowActive);
     if (MIDI_ON && key in jeuSources) {
       jeuSources[key] = nowActive;
       try { localStorage.setItem('noosphi_jeu_sources', JSON.stringify(jeuSources)); } catch {}
       majCasesSession();
     }
+    if (key === 'cicada') majPastilleCicada();
+    // Exclusion : cochee dans la salle, elle quitte le temoin
+    if (nowActive && TEMOIN.includes(key) && temoinChoix[key]) {
+      temoinChoix = { ...temoinChoix, [key]: false };
+      memoTemoin();
+      renderTemoin();
+    }
     if (key === 'telephones') return;   // pas une courbe
-    sessionVisibility[key] = nowActive;
+    sessionVisibility[key] = nowActive || !!temoinChoix[key];
     updateSessionChart();
   });
 });
 
-// Avec l'U1 virtuel : les cases partent de ce qui joue, et Princeton / ANU /
-// NIST se disent « vue » (ils ne jouent jamais)
+// Avec l'U1 virtuel : les cases partent de ce qui joue, et NIST se dit « vue »
+// (une pulsation par minute, il ne joue jamais)
 if (MIDI_ON) {
-  document.querySelectorAll('#session-toggles .graph-toggle').forEach(label => {
+  document.querySelectorAll('#session-toggles > .graph-toggle').forEach(label => {
     const key = label.dataset.key;
     if (key in jeuSources) {
       label.classList.toggle('active', jeuSources[key]);
@@ -1952,6 +2130,11 @@ if (MIDI_ON) {
     }
   });
 }
+
+// Les lignes au chargement : l'exclusion appliquee, la salle, le temoin a droite, Noosfeerique
+appliquerTemoinSurSalle();
+majLignes();
+majPastilleCicada();
 
 // ============================================================
 // Saved Sessions List
@@ -2074,13 +2257,17 @@ function openSessionDetail(id) {
   const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const durStr = formatDuration(session.duration);
 
+  // Les anciennes seances peuvent porter des courbes Princeton ou ANU : on les
+  // montre encore, avec leur mention, seulement si la seance en contient
+  const aDes = k => (session.data || []).some(p => p[k] != null);
   const DETAIL_SOURCES = [
     { key: 'z', label: 'Combine', color: '#CC44FF' },
     { key: 'local', label: 'Local', color: '#00E5FF' },
-    { key: 'gcp', label: 'Princeton', color: '#6C63FF' },
-    { key: 'qrng', label: 'ANU', color: '#FF8800' },
+    { key: 'cicada', label: 'Noosféérique', color: '#FF5FA2' },
     { key: 'nist', label: 'NIST', color: '#00CC66' },
     { key: 'qci', label: 'QCI', color: '#C9A24D' },
+    ...(aDes('gcp') ? [{ key: 'gcp', label: 'Princeton · collecte arrêtée le 03/04/2026', color: '#6C63FF' }] : []),
+    ...(aDes('qrng') ? [{ key: 'qrng', label: 'ANU · retirée', color: '#FF8800' }] : []),
   ];
 
   sessionDetailContent.innerHTML = `
@@ -2090,6 +2277,7 @@ function openSessionDetail(id) {
       <span>${durStr}</span>
     </div>
     <div class="detail-seance">${resumeSeance(session)}</div>
+    ${session.parSource ? `<div class="detail-regle detail-temoin" style="color:${TEMOIN_COULEUR}">Témoin, valeurs reçues : ${texteParSource(session) || 'aucune source cochée'}</div>` : ''}
     ${session.regle ? `<div class="detail-regle">Règle : ${echappe(session.regle)}</div>` : ''}
     ${'zSalle' in session ? '<button class="detail-export-btn">Exporter</button>' : ''}
     <textarea class="detail-comment" placeholder="Ajoutez un commentaire..." data-id="${id}">${session.comment || ''}</textarea>
@@ -2128,7 +2316,7 @@ function openSessionDetail(id) {
   });
 
   // Detail toggles
-  const detailVisibility = { z: true, local: true, gcp: true, qrng: true, nist: true, qci: true };
+  const detailVisibility = { z: true, local: true, cicada: true, nist: true, qci: true, gcp: true, qrng: true };
 
   function buildDetailChart() {
     if (detailChart) { detailChart.destroy(); detailChart = null; }
@@ -2312,18 +2500,18 @@ function init() {
   tickLocalZ();
   setInterval(tickLocalZ, 1000);
 
-  // GCP every 60s (Princeton updates data every ~60s)
-  fetchGCP();
-  setInterval(fetchGCP, 60000);
+  // NIST Beacon : une pulsation par minute, regardee toutes les 20 s
+  fetchNIST();
+  setInterval(fetchNIST, 20000);
 
   // QCI every 1s (25 bytes/req = ~52% of 1B free quota)
   fetchQCI();
   setInterval(fetchQCI, 1000);
 
-  // Cicada de Franck : seulement pour l'U1 virtuel
-  if (MIDI_ON) { fetchCicada(); setInterval(fetchCicada, 1000); }
+  // Cicada, la cle Noosfeerique : partout, une fois par seconde
+  fetchCicada(); setInterval(fetchCicada, 1000);
 
-  // ANU + NIST + local server every 60s (rate-limited)
+  // Generateur du serveur, toutes les 60 s
   fetchSlow();
   setInterval(fetchSlow, API_POLL_INTERVAL);
 

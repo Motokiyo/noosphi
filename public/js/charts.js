@@ -34,10 +34,10 @@ function initCharts() {
           pointHitRadius: 8
         },
         {
-          label: 'Australie (ANU QRNG)',
+          label: 'NIST Beacon',   // ANU retiree (payante) : sa courbe porte NIST
           data: [],
-          borderColor: '#FF8800',
-          backgroundColor: 'rgba(255, 136, 0, 0.1)',
+          borderColor: '#00CC66',
+          backgroundColor: 'rgba(0, 204, 102, 0.1)',
           borderWidth: 1.5,
           fill: false,
           tension: 0.3,
@@ -170,7 +170,7 @@ function initCharts() {
   });
 }
 
-// Add a data point to all 4 curves at once
+// Add a data point to all 4 curves at once (la 3e courbe est NIST depuis le retrait d'ANU)
 function addChartPoint(time, zGCP, zLocal, zQRNG, zCombined) {
   const label = new Date(time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   chart24h.data.labels.push(label);

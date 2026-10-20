@@ -45,8 +45,8 @@ test('une valeur figee de la salle n est pas recomptee', () => {
 test('le temoin ne compte qu une fois chaque valeur fraiche (une par minute)', () => {
   const s = createSeance();
   for (let sec = 0; sec < 180; sec++) {
-    const gcp = sec < 60 ? 1.1 : sec < 120 ? -0.4 : 2.0;   // change une fois par minute
-    s.tick(sec * 1000, { salle: { telephones: (sec % 7) / 10 }, mesures: { gcp } });
+    const nist = sec < 60 ? 1.1 : sec < 120 ? -0.4 : 2.0;   // une pulsation par minute
+    s.tick(sec * 1000, { salle: { telephones: (sec % 7) / 10 }, mesures: { nist } });
   }
   const r = s.resume();
   assert.equal(r.nTemoin, 3);
@@ -74,7 +74,7 @@ test('export CSV : les deux z se refont a partir du fichier seul', () => {
   for (let sec = 0; sec < 300; sec++) {
     s.tick(1760000000000 + sec * 1000, {
       salle: { telephones: g() }, nTelephones: 12,
-      mesures: { gcp: Math.floor(sec / 60) * 0.3 - 0.5, qci: g() },
+      mesures: { nist: Math.floor(sec / 60) * 0.3 - 0.5, qci: g() },
     });
   }
   const r = s.resume();
@@ -84,7 +84,7 @@ test('export CSV : les deux z se refont a partir du fichier seul', () => {
   assert.equal(re.nTemoin, r.nTemoin);
   assert.ok(Math.abs(re.zSalle - r.zSalle) < 1e-4);
   assert.ok(Math.abs(re.zTemoin - r.zTemoin) < 1e-4);
-  assert.match(csv.split('\n')[0], /^heure_iso,z_salle,telephones,z_temoin_gcp/);
+  assert.match(csv.split('\n')[0], /^heure_iso,z_salle,telephones,z_temoin_qci,z_temoin_nist,/);
   assert.match(csv.split('\n')[1], /^2025|^2026/);
 });
 

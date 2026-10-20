@@ -957,6 +957,37 @@ body:has(.session-detail-overlay.open) .header {
   transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
+/* A droite de la meme ligne : les pastilles du temoin, dans leur couleur */
+.temoin-pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.graph-toggle.temoin .toggle-swatch {
+  background: var(--temoin);
+}
+
+.graph-toggle.temoin.active {
+  color: var(--temoin);
+  border-color: rgba(184, 196, 214, 0.35);
+}
+
+/* Noosfeerique quand la cle ne repond pas : a sa place, eteinte et grisee */
+.graph-toggle.indisponible {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+/* Le z de seance du temoin : petit, discret, dans la couleur du temoin */
+.session-z-temoin,
+.z-temoin {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
 .session-toggles.collapsed {
   max-height: 0;
   padding-top: 0;
@@ -1528,8 +1559,32 @@ body:has(.session-detail-overlay.open) .header {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.source-option input[type="radio"] {
+.source-option input[type="radio"],
+.source-option input[type="checkbox"] {
   display: none;
+}
+
+/* Plusieurs sources a la fois : des cases, plus des boutons radio */
+.source-option .source-radio.case {
+  border-radius: 4px;
+}
+
+.source-option .source-radio.case::after {
+  border-radius: 2px;
+}
+
+/* La combinaison n'est pas un choix : c'est le resultat des sources cochees */
+.source-option.source-somme {
+  cursor: default;
+  background: none;
+  border-bottom: 1px solid var(--glass-border);
+  border-radius: 10px 10px 0 0;
+}
+
+/* Une source qui ne repond pas : a sa place, eteinte et grisee */
+.source-option.indisponible {
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 .source-radio {

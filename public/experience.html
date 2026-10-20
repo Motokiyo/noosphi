@@ -41,54 +41,43 @@
       <button class="sidebar-close" id="sidebar-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
     </div>
     <div class="sidebar-sources">
-      <label class="source-option active" data-source="combined">
-        <input type="radio" name="source" value="combined" checked>
-        <span class="source-radio"></span>
+      <div class="source-option source-somme" data-source="combined" title="Le z affiché : les sources cochées ci-dessous, combinées (Stouffer)">
         <span class="source-info">
-          <span class="source-name">Combine</span>
-          <span class="source-origin">Toutes sources (Stouffer)</span>
+          <span class="source-name">Combinaison</span>
+          <span class="source-origin">Les sources cochées (Stouffer)</span>
         </span>
         <span class="source-z" id="sidebar-z-combined">--</span>
-      </label>
+      </div>
       <label class="source-option" data-source="local">
-        <input type="radio" name="source" value="local">
-        <span class="source-radio"></span>
+        <input type="checkbox" value="local">
+        <span class="source-radio case"></span>
         <span class="source-info">
           <span class="source-name">Mon appareil</span>
           <span class="source-origin">RNG local (navigateur)</span>
         </span>
         <span class="source-z" id="sidebar-z-local">--</span>
       </label>
-      <label class="source-option" data-source="gcp">
-        <input type="radio" name="source" value="gcp">
-        <span class="source-radio"></span>
+      <label class="source-option" data-source="cicada">
+        <input type="checkbox" value="cicada">
+        <span class="source-radio case"></span>
         <span class="source-info">
-          <span class="source-name">Mondial</span>
-          <span class="source-origin">Princeton, USA (~60 EGGs)</span>
+          <span class="source-name">Noosféérique</span>
+          <span class="source-origin">Clé quantique Cicada</span>
         </span>
-        <span class="source-z" id="sidebar-z-gcp">--</span>
-      </label>
-      <label class="source-option" data-source="qrng">
-        <input type="radio" name="source" value="qrng">
-        <span class="source-radio"></span>
-        <span class="source-info">
-          <span class="source-name">Quantique</span>
-          <span class="source-origin">ANU, Australie (photonique)</span>
-        </span>
-        <span class="source-z" id="sidebar-z-qrng">--</span>
+        <span class="source-z" id="sidebar-z-cicada">--</span>
       </label>
       <label class="source-option" data-source="nist">
-        <input type="radio" name="source" value="nist">
-        <span class="source-radio"></span>
+        <input type="checkbox" value="nist">
+        <span class="source-radio case"></span>
         <span class="source-info">
           <span class="source-name">NIST Beacon</span>
-          <span class="source-origin">Gouvernement US</span>
+          <span class="source-origin">Une pulsation par minute (USA)</span>
         </span>
         <span class="source-z" id="sidebar-z-nist">--</span>
       </label>
       <label class="source-option" data-source="qci">
-        <input type="radio" name="source" value="qci">
-        <span class="source-radio"></span>
+        <input type="checkbox" value="qci">
+        <span class="source-radio case"></span>
         <span class="source-info">
           <span class="source-name">QCI uQRNG</span>
           <span class="source-origin">Photonique cloud (USA)</span>
@@ -183,6 +172,7 @@
   <div class="z-indicator">
     <span class="z-value" id="z-display">--</span>
     <span class="z-label">z-score</span>
+    <span class="z-temoin hidden" id="z-temoin"></span>
   </div>
 
   <!-- Bottom-right controls -->
@@ -269,21 +259,17 @@
         <label class="graph-toggle active hidden" data-key="telephones">
           <input type="checkbox" checked><span class="toggle-swatch" style="background:#FFFFFF"></span><span>Téléphones</span>
         </label>
-        <label class="graph-toggle active" data-key="gcp">
-          <input type="checkbox" checked><span class="toggle-swatch" style="background:#6C63FF"></span><span>Princeton</span>
-        </label>
-        <label class="graph-toggle active" data-key="qrng">
-          <input type="checkbox" checked><span class="toggle-swatch" style="background:#FF8800"></span><span>ANU</span>
-        </label>
         <label class="graph-toggle active" data-key="nist">
           <input type="checkbox" checked><span class="toggle-swatch" style="background:#00CC66"></span><span>NIST</span>
         </label>
         <label class="graph-toggle active" data-key="qci">
           <input type="checkbox" checked><span class="toggle-swatch" style="background:#C9A24D"></span><span>QCI</span>
         </label>
-        <label class="graph-toggle hidden" data-key="cicada">
+        <label class="graph-toggle" data-key="cicada" title="Noosféérique · en attente de la clé">
           <input type="checkbox"><span class="toggle-swatch" style="background:#FF5FA2"></span><span>Noosféérique</span>
         </label>
+        <!-- A droite : les sources du temoin, dans leur couleur (remplies par experience.js) -->
+        <div class="temoin-pastilles" id="temoin-pastilles"></div>
       </div>
 
       <!-- CENTER: z-score (sphere visible behind) -->
@@ -291,6 +277,7 @@
         <span class="session-center-z-value" id="session-z-value">--</span>
         <span class="live-z-label">z de la séance</span>
         <span class="session-z-max" id="session-z-max">z de l'instant : --</span>
+        <span class="session-z-temoin hidden" id="session-z-temoin"></span>
       </div>
 
       <!-- BOTTOM: graph + controls -->
@@ -370,15 +357,10 @@
         <span class="toggle-swatch" style="background:#00E5FF"></span>
         <span>Local</span>
       </label>
-      <label class="graph-toggle active" data-key="gcp">
+      <label class="graph-toggle active" data-key="cicada">
         <input type="checkbox" checked>
-        <span class="toggle-swatch" style="background:#6C63FF"></span>
-        <span>Princeton</span>
-      </label>
-      <label class="graph-toggle active" data-key="qrng">
-        <input type="checkbox" checked>
-        <span class="toggle-swatch" style="background:#FF8800"></span>
-        <span>ANU</span>
+        <span class="toggle-swatch" style="background:#FF5FA2"></span>
+        <span>Noosféérique</span>
       </label>
       <label class="graph-toggle active" data-key="nist">
         <input type="checkbox" checked>
@@ -412,11 +394,10 @@
 
   <!-- Source dots -->
   <div class="sources-status" id="sources-status">
-    <div class="source-dot" title="Local RNG"></div>
-    <div class="source-dot" title="GCP"></div>
-    <div class="source-dot" title="ANU QRNG"></div>
+    <div class="source-dot" title="Cet appareil"></div>
     <div class="source-dot" title="NIST Beacon"></div>
     <div class="source-dot" title="QCI uQRNG"></div>
+    <div class="source-dot" title="Noosféérique"></div>
   </div>
 
   <!-- Loading -->
