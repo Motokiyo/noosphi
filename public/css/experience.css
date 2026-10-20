@@ -1771,3 +1771,9 @@ body:has(.session-detail-overlay.open) .header {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Chiffres de la seance caches : on regarde la sphere, pas le compteur */
+body.chiffres-caches .session-center-z,
+body.chiffres-caches.seance-en-cours .z-indicator { visibility: hidden; }
+.session-chiffres { opacity: .45; }
+.session-chiffres.active { opacity: 1; }

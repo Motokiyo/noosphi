@@ -1590,6 +1590,13 @@ const sessionRegleInput = document.getElementById('session-regle');
 // Une nouvelle seance commence : z de la seance a zero, affichage remis a neuf
 let sessionRegle = '';
 function debutSeance() {
+  // Le temoin est branche d'office a chaque enregistrement : ses sources quittent
+  // la salle (et l'U1). On peut ensuite l'eteindre source par source.
+  temoinChoix = Object.fromEntries(TEMOIN.map(k => [k, true]));
+  memoTemoin();
+  appliquerTemoinSurSalle();
+  majLignes();
+  document.body.classList.add('seance-en-cours');
   seance = createSeance();
   sessionRegle = sessionRegleInput ? sessionRegleInput.value.trim() : '';
   sessionData = [];
@@ -1932,6 +1939,7 @@ if (btnStartSession) {
 if (btnStopSession) {
   btnStopSession.addEventListener('click', () => {
   sessionActive = false;
+  document.body.classList.remove('seance-en-cours');
   clearInterval(sessionTimerInterval);
   releaseWakeLock();
   if (recIndicator) recIndicator.classList.add('hidden');
@@ -1983,6 +1991,25 @@ if (btnStopSession) {
   else { loadingText.textContent = texteResume(r); loadingText.classList.remove('hidden'); setTimeout(() => loadingText.classList.add('hidden'), 8000); }
   });
 }
+
+// Les chiffres de la seance (z de la seance, temoin) se cachent ou se montrent :
+// caches par defaut, pour qu'on regarde la sphere et non le compteur.
+const btnChiffres = document.getElementById('btn-chiffres');
+let chiffresVisibles = (() => { try { return localStorage.getItem('noosphi_chiffres') === '1'; } catch { return false; } })();
+function appliquerChiffres() {
+  document.body.classList.toggle('chiffres-caches', !chiffresVisibles);
+  if (btnChiffres) {
+    btnChiffres.classList.toggle('active', chiffresVisibles);
+    btnChiffres.setAttribute('aria-label', chiffresVisibles ? 'Cacher les chiffres' : 'Montrer les chiffres');
+    btnChiffres.title = btnChiffres.getAttribute('aria-label');
+  }
+}
+if (btnChiffres) btnChiffres.addEventListener('click', () => {
+  chiffresVisibles = !chiffresVisibles;
+  try { localStorage.setItem('noosphi_chiffres', chiffresVisibles ? '1' : '0'); } catch {}
+  appliquerChiffres();
+});
+appliquerChiffres();
 
 // Le seul chiffre du temoin : son z de seance, petit, dans sa couleur, sous le
 // z de la salle (au centre de la seance et sous la sphere) ; rien hors enregistrement
