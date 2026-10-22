@@ -67,6 +67,11 @@ export function etatCicada({ vue = false, echecs = 0, etat = null } = {}, patien
 
 const fini = z => z != null && isFinite(z);
 
+// Les generateurs du rapport, chacun pour lui seul. Ils sont independants :
+// leur Stouffer commun (le z commun) ne compte aucun tirage deux fois.
+export const SOURCES_RAPPORT = ['telephones', 'local', 'cicada', 'qci', 'nist'];
+export const NOMS_RAPPORT = { telephones: 'Téléphones', local: 'Cet ordi', cicada: 'Noosféérique (Cicada)', qci: 'QCI', nist: 'NIST' };
+
 // ---- Les sources de l'ecoute (page principale) ----
 // Plusieurs sources se cochent ensemble ; le z affiche est le Stouffer des
 // sources cochees qui ont une valeur FRAICHE dans la seconde (une source a la
@@ -130,7 +135,10 @@ export function createSeance({ temoin = TEMOIN } = {}) {
   // Appelee aussi souvent qu'on veut : seule la premiere fois de chaque seconde compte.
   // salle : { telephones?, local?, cicada?, ... } ; mesures : { gcp, qrng, nist, qci } ;
   // temoinActif : les sources du temoin cochees a cette seconde (toutes par defaut)
-  function tick(maintenant, { salle = {}, nTelephones = null, mesures = {}, temoinActif = temoin } = {}) {
+  // brut : chaque generateur pour lui seul, pour le rapport (telephones sans cet
+  // ordi, cet ordi, Noosfeerique, QCI, NIST), qu'il compte ou non dans la salle ;
+  // zJoue : le z parti vers MainStage a cette seconde
+  function tick(maintenant, { salle = {}, nTelephones = null, mesures = {}, temoinActif = temoin, brut = {}, zJoue = null } = {}) {
     const s = Math.floor(maintenant / 1000);
     if (s === seconde) return null;
     seconde = s;
@@ -145,7 +153,9 @@ export function createSeance({ temoin = TEMOIN } = {}) {
     for (const cle of actifs) if (frais('temoin:' + cle, mesures[cle])) {
       t[cle] = mesures[cle]; sommeTemoin += mesures[cle]; nTemoin++; parSource[cle]++; sources.push(cle);
     }
-    const ligne = { t: s * 1000, zSalle, telephones: nTelephones, temoin: t, temoinActif: actifs, sources };
+    const b = {};
+    for (const cle of SOURCES_RAPPORT) if (frais('brut:' + cle, brut[cle])) b[cle] = brut[cle];
+    const ligne = { t: s * 1000, zSalle, telephones: nTelephones, temoin: t, temoinActif: actifs, sources, brut: b, zJoue: fini(zJoue) ? zJoue : null };
     lignes.push(ligne);
     return ligne;
   }
@@ -170,13 +180,15 @@ export function zAffiche({ enregistrement, zInstant, zSeance }) {
 }
 
 // ---- Export ----
-const COLONNES = ['heure_iso', 'z_salle', 'telephones', ...TEMOIN.map(c => 'z_temoin_' + c), 'sources', 'temoin_choisi'];
+const COLONNES = ['heure_iso', 'z_salle', 'telephones', ...TEMOIN.map(c => 'z_temoin_' + c), 'sources', 'temoin_choisi',
+  ...SOURCES_RAPPORT.map(c => 'z_' + c), 'z_joue'];
 const nombre = z => (fini(z) ? z.toFixed(6) : '');
 
 export function versCSV(lignes) {
   const corps = lignes.map(l => [
     new Date(l.t).toISOString(), nombre(l.zSalle), l.telephones ?? '',
     ...TEMOIN.map(c => nombre(l.temoin?.[c])), (l.sources || []).join(' '), (l.temoinActif || []).join(' '),
+    ...SOURCES_RAPPORT.map(c => nombre(l.brut?.[c])), nombre(l.zJoue),
   ].join(','));
   return [COLONNES.join(','), ...corps].join('\n') + '\n';
 }

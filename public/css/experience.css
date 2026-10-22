@@ -1212,6 +1212,20 @@ body:has(.session-detail-overlay.open) .header {
   background: rgba(78, 201, 198, 0.1);
 }
 
+/* ---- Le rapport dans la fiche de seance (memes chiffres que le fichier) ---- */
+.detail-export-row { display: flex; gap: 8px; }
+.detail-rapport { overflow-x: auto; font-size: 11px; color: rgba(255, 255, 255, 0.7); }
+.detail-rapport p { margin: 6px 0 0; }
+.rapport-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.rapport-table th, .rapport-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); text-align: right; white-space: nowrap; }
+.rapport-table th:first-child { text-align: left; font-weight: 400; white-space: normal; }
+.rapport-table thead th { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255, 255, 255, 0.4); font-weight: 400; }
+.rapport-table .groupe th { color: rgba(255, 255, 255, 0.9); }
+.rapport-table .z { color: rgba(255, 255, 255, 0.95); }
+.rapport-table .commun .z { color: var(--accent-gold, #C9A24D); }
+.rapport-table .verdict, .rapport-table .vide td { text-align: left; color: rgba(255, 255, 255, 0.45); white-space: normal; }
+.rapport-table .intertitre th { padding-top: 10px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255, 255, 255, 0.4); }
+
 /* ---- Sources status (bottom-left, very discreet) ---- */
 .sources-status {
   position: fixed;

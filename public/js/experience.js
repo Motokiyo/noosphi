@@ -5,9 +5,10 @@
 
 import * as THREE from 'three';
 import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
-import { createSeance, zAffiche, versCSV, versJSON, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
+import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
+import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -1581,6 +1582,7 @@ let sessionPauseStart = 0;
 let isCollective = false;
 let collectiveZ = null;
 let collectiveFreshZ = null;   // z collectif ou chaque tirage compte une fois (pour le MIDI)
+let zTelephonesSeuls = null;   // le meme, sans cet ordi : les telephones pour eux seuls (rapport)
 let sessionStartTime = null;
 let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
@@ -1987,6 +1989,9 @@ if (btnStopSession) {
   seance = null;
   // A l'arret : le detail de la seance, avec la salle et le temoin
   majZTemoin();
+  // Version concert : le rapport part tout seul dans les Telechargements du Mac,
+  // ce qui le met aussi a l'abri d'une memoire du navigateur effacee
+  if (MIDI_ON) telechargerRapport(session);
   if (enregistree) openSessionDetail(session.id);
   else { loadingText.textContent = texteResume(r); loadingText.classList.remove('hidden'); setTimeout(() => loadingText.classList.add('hidden'), 8000); }
   });
@@ -2065,6 +2070,15 @@ setInterval(() => {
     nTelephones: isCollective ? telephonesActifs : null,
     mesures: { nist: apiZScores.nist, qci: apiZScores.qci },
     temoinActif: temoinActif(),
+    // Pour le rapport : chaque generateur pour lui seul, qu'il joue ou non
+    brut: {
+      telephones: isCollective ? zTelephonesSeuls : null,
+      local: localReady ? currentZ : null,
+      cicada: cicadaZ,
+      qci: apiZScores.qci,
+      nist: apiZScores.nist,
+    },
+    zJoue: MIDI_ON ? dernierZJoue : null,
   });
 }, 1000);
 
@@ -2221,17 +2235,20 @@ function resumeSeance(s) {
 // Echappe le texte saisi avant de le poser dans la page
 const echappe = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Deux fichiers : les secondes (CSV, de quoi refaire le calcul) et la fiche (JSON)
-function exporterSeance(s) {
-  const base = `noosfeerique-${new Date(s.startTime).toISOString().slice(0, 16).replace(/[:T]/g, '-')}-${(s.name || 'seance').replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40)}`;
-  const telecharger = (contenu, nom, type) => {
-    const url = URL.createObjectURL(new Blob([contenu], { type }));
-    const a = document.createElement('a');
-    a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
-  telecharger(versCSV(s.secondes || []), base + '.csv', 'text/csv');
-  setTimeout(() => telecharger(versJSON(s, s.version || APP_VERSION), base + '.json', 'application/json'), 300);
+// Le rapport : une page HTML autonome (chiffres, courbe, secondes et fiche
+// telechargeables depuis la page). « Données » : le CSV et la fiche JSON seuls.
+function telecharger(contenu, nom, type) {
+  const url = URL.createObjectURL(new Blob([contenu], { type }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function telechargerRapport(s) {
+  telecharger(versRapportHTML(s, s.version || APP_VERSION), nomFichier(s) + '-rapport.html', 'text/html');
+}
+function exporterDonnees(s) {
+  telecharger(versCSV(s.secondes || []), nomFichier(s) + '.csv', 'text/csv');
+  setTimeout(() => telecharger(ficheJSON(s, s.version || APP_VERSION), nomFichier(s) + '.json', 'application/json'), 300);
 }
 
 function renderSessionsList() {
@@ -2297,6 +2314,7 @@ function openSessionDetail(id) {
     ...(aDes('qrng') ? [{ key: 'qrng', label: 'ANU · retirée', color: '#FF8800' }] : []),
   ];
 
+  const rap = 'zSalle' in session ? calculerRapport(session) : null;
   sessionDetailContent.innerHTML = `
     <div class="detail-meta">
       <span>${dateStr}</span>
@@ -2306,7 +2324,8 @@ function openSessionDetail(id) {
     <div class="detail-seance">${resumeSeance(session)}</div>
     ${session.parSource ? `<div class="detail-regle detail-temoin" style="color:${TEMOIN_COULEUR}">Témoin, valeurs reçues : ${texteParSource(session) || 'aucune source cochée'}</div>` : ''}
     ${session.regle ? `<div class="detail-regle">Règle : ${echappe(session.regle)}</div>` : ''}
-    ${'zSalle' in session ? '<button class="detail-export-btn">Exporter</button>' : ''}
+    ${rap ? `<div class="detail-rapport">${tableauRapport(rap)}<p>${telephonesTexte(rap)}</p></div>
+    <div class="detail-export-row"><button class="detail-export-btn detail-rapport-btn">Rapport</button><button class="detail-export-btn detail-donnees-btn">Données</button></div>` : ''}
     <textarea class="detail-comment" placeholder="Ajoutez un commentaire..." data-id="${id}">${session.comment || ''}</textarea>
     <div class="detail-toggles">
       ${DETAIL_SOURCES.map(s => `
@@ -2331,7 +2350,8 @@ function openSessionDetail(id) {
   });
 
   // Export : CSV des secondes + fiche JSON
-  sessionDetailContent.querySelector('.detail-export-btn')?.addEventListener('click', () => exporterSeance(session));
+  sessionDetailContent.querySelector('.detail-rapport-btn')?.addEventListener('click', () => telechargerRapport(session));
+  sessionDetailContent.querySelector('.detail-donnees-btn')?.addEventListener('click', () => exporterDonnees(session));
 
   // Delete button
   sessionDetailContent.querySelector('.detail-delete-btn').addEventListener('click', () => {
@@ -2477,8 +2497,9 @@ if (socket) {
     if (state) sessionParticipants.textContent = `${state.participantCount} connecte${state.participantCount > 1 ? 's' : ''}`;
   });
 
-  socket.on('collective:z-fresh', ({ z, telephones }) => {
+  socket.on('collective:z-fresh', ({ z, telephones, zTelephones }) => {
     collectiveFreshZ = z;
+    zTelephonesSeuls = zTelephones ?? null;
     if (telephones != null) telephonesActifs = telephones;
   });
 
@@ -2505,6 +2526,7 @@ btnStopSession.addEventListener('click', () => {
     isCollective = false;
     collectiveZ = null;
     collectiveFreshZ = null;
+    zTelephonesSeuls = null;
     telephonesActifs = 0;
     currentCollectiveCode = null;
     midiSessionCode(null);

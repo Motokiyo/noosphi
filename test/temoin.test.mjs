@@ -96,8 +96,8 @@ test('l export porte le choix du temoin, et le CSV refait toujours les z', () =>
   const s = createSeance();
   for (let sec = 0; sec < 90; sec++) s.tick(1760000000000 + sec * 1000, { salle: { local: Math.cos(sec) }, mesures: { nist: Math.floor(sec / 60), qci: Math.sin(sec) }, temoinActif: ['nist'] });
   const csv = versCSV(s.lignes);
-  assert.match(csv.split('\n')[0], /,temoin_choisi$/);
-  assert.match(csv.split('\n')[1], /,nist$/);
+  assert.match(csv.split('\n')[0], /,temoin_choisi,z_telephones,z_local,z_cicada,z_qci,z_nist,z_joue$/);
+  assert.match(csv.split('\n')[1], /,nist,,,,,,$/);
   const re = depuisCSV(csv), r = s.resume();
   assert.ok(Math.abs(re.zTemoin - r.zTemoin) < 1e-4);
   assert.equal(re.nTemoin, r.nTemoin);

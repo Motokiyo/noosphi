@@ -623,6 +623,19 @@ function buildPanel() {
     /* Au-dessus de l'ecran de session (z 60) : les commandes et le QR restent
        accessibles pendant l'enregistrement d'une session collective */
     body.midi-ouvert .session-overlay { padding-left: 284px; }   /* rien de la session sous le panneau */
+    body.midi-replie .session-overlay { padding-left: 40px; }    /* replie : seul le bandeau reste */
+    .midi-panel.hidden, .midi-bandeau.hidden { display: none; }
+    .midi-panel h3 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .midi-panel h3 .midi-replier { color: rgba(255,255,255,.5); font-size: 15px; line-height: 1; }
+    .midi-panel h3:hover .midi-replier { color: #4EC9C6; }
+    .midi-bandeau { position: fixed; left: 0; top: 64px; z-index: 90; width: 28px; padding: 12px 0;
+      display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
+      background: rgba(11,14,20,.92); border: 1px solid #4EC9C6; border-left: none; border-radius: 0 10px 10px 0;
+      color: #4EC9C6; font: 600 11px/1 Inter, -apple-system, sans-serif; letter-spacing: .08em; backdrop-filter: blur(8px); }
+    .midi-bandeau:hover { background: rgba(78,201,198,.12); }
+    .midi-bandeau span { writing-mode: vertical-rl; transform: rotate(180deg); }
+    .midi-pastille { width: 8px; height: 8px; border-radius: 50%; background: #3a4150; }
+    .midi-pastille.on { background: #4EC9C6; box-shadow: 0 0 6px #4EC9C6; }
     .midi-panel { position: fixed; left: 12px; top: 64px; z-index: 90; width: 260px;
       max-height: calc(100vh - 80px); overflow-y: auto;
       background: rgba(11,14,20,.92); border: 1px solid #4EC9C6; border-radius: 10px;
@@ -653,7 +666,11 @@ function buildPanel() {
   document.head.append(style);
 
   panel = el('div', { className: 'midi-panel' });
-  panel.append(el('h3', {}, 'Sortie MIDI · U1 virtuel'));
+  const titre = el('h3', {}, 'Sortie MIDI · U1 virtuel');
+  titre.title = 'Replier les commandes (le MIDI continue de jouer)';
+  titre.append(el('span', { className: 'midi-replier' }, '‹'));
+  titre.addEventListener('click', () => replier(true));
+  panel.append(titre);
 
   const output = el('select');
   output.dataset.output = '';
@@ -718,6 +735,8 @@ function buildPanel() {
   const refreshToggle = () => {
     toggle.textContent = settings.enabled ? 'MIDI actif' : 'Activer le MIDI';
     toggle.classList.toggle('on', settings.enabled);
+    pastille.classList.toggle('on', settings.enabled);
+    bandeau.title = (settings.enabled ? 'MIDI actif' : 'MIDI en pause') + ' · ouvrir les commandes';
   };
   toggle.addEventListener('click', async () => {
     if (!settings.enabled && !(await ensureAccess())) return;
@@ -757,10 +776,37 @@ function buildPanel() {
   zJoueLine.dataset.zJoue = '';
   panel.append(readout, forces, patchLine, gammeLine, zJoueLine, envieLine, jeuLine, coh, gauge, status, qr);
 
-  document.body.append(panel);
-  document.body.classList.add('midi-ouvert');
+  document.body.append(panel, bandeau);
+  appliquerRepli();
+  new MutationObserver(appliquerRepli).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   refreshToggle();
   return refreshToggle;
+}
+
+// ---- Le panneau se replie en un bandeau, sans jamais arreter le MIDI ----
+// Un clic sur le titre le replie, un clic sur le bandeau le rouvre (memorise).
+// Il s'efface aussi tout seul, bandeau compris, tant qu'un ecran de l'app
+// s'ouvre dessous (sources, sessions enregistrees, fiche, graphiques, aide),
+// et revient comme avant a sa fermeture. La pastille du bandeau dit si le MIDI joue.
+const pastille = el('i', { className: 'midi-pastille' });
+const bandeau = el('button', { type: 'button', className: 'midi-bandeau hidden' });
+bandeau.append(pastille, el('span', {}, 'MIDI · U1'));
+bandeau.addEventListener('click', () => replier(false));
+let replie = (() => { try { return localStorage.getItem('noosphi_midi_replie') === '1'; } catch { return false; } })();
+const ECRANS_DESSOUS = '#sidebar.open, #sessions-list-overlay.open, #session-detail-overlay.open, #graph-overlay.open, .modal-overlay';
+function replier(oui) {
+  replie = oui;
+  try { localStorage.setItem('noosphi_midi_replie', oui ? '1' : '0'); } catch {}
+  appliquerRepli();
+}
+function appliquerRepli() {
+  const masque = !!document.querySelector(ECRANS_DESSOUS);
+  const voirPanneau = !replie && !masque, voirBandeau = replie && !masque;
+  // n'ecrire que ce qui change : l'observateur ne doit pas se relancer lui-meme
+  if (panel.classList.contains('hidden') === voirPanneau) panel.classList.toggle('hidden', !voirPanneau);
+  if (bandeau.classList.contains('hidden') === voirBandeau) bandeau.classList.toggle('hidden', !voirBandeau);
+  if (document.body.classList.contains('midi-ouvert') !== voirPanneau) document.body.classList.toggle('midi-ouvert', voirPanneau);
+  if (document.body.classList.contains('midi-replie') !== voirBandeau) document.body.classList.toggle('midi-replie', voirBandeau);
 }
 
 if (new URLSearchParams(location.search).has('midi')) {

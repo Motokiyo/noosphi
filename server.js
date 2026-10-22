@@ -429,11 +429,15 @@ function startFreshTick(code) {
   return setInterval(() => {
     const session = collectiveSessions.get(code);
     if (!session) return;
-    const fresh = [...session.participants.values()].filter(p => p.fresh);
-    if (!fresh.length) return;
-    fresh.forEach(p => { p.fresh = false; });
-    const z = fresh.reduce((a, p) => a + p.z, 0) / Math.sqrt(fresh.length);
-    io.to(code).emit('collective:z-fresh', { z, n: fresh.length, telephones: telephonesActifs(session) });
+    const frais = [...session.participants.entries()].filter(([, p]) => p.fresh);
+    if (!frais.length) return;
+    frais.forEach(([, p]) => { p.fresh = false; });
+    const stouffer = l => (l.length ? l.reduce((a, b) => a + b, 0) / Math.sqrt(l.length) : null);
+    const z = stouffer(frais.map(([, p]) => p.z));
+    // Les telephones seuls, sans l'hote (cet ordi) : pour le rapport de seance,
+    // ou chaque generateur compte pour lui seul
+    const tel = frais.filter(([id]) => id !== session.host).map(([, p]) => p.z);
+    io.to(code).emit('collective:z-fresh', { z, n: frais.length, telephones: telephonesActifs(session), zTelephones: stouffer(tel), nTelephonesFrais: tel.length });
   }, 1000);
 }
 
