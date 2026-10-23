@@ -45,3 +45,18 @@ test('au plus 10 tirages par seconde, et des octets pour l histogramme', () => {
   assert.equal(x.tirer(10).length, 10);
   assert.equal(x.octets().length, 1000);
 });
+
+test('un micro 24 bits dans une piece calme : le bit le plus fin donne des tirages', () => {
+  const x = createExtracteur(), rnd = hasard(21);
+  // souffle tres faible : quelques pas de 24 bits, tous arrondis a 0 en 16 bits
+  const calme = n => Float32Array.from({ length: n }, () => (Math.floor(rnd() * 9) - 4) / 8388608);
+  for (let k = 0; k < 375; k++) x.ajouter(calme(128));   // une seconde a 48 kHz, par paquets de 128
+  assert.equal(x.tirer(10).length, 10);
+  assert.equal(x.controle().resolution, 24);
+});
+
+test('un micro 16 bits reste lu a sa vraie finesse', () => {
+  const x = createExtracteur(), rnd = hasard(5);
+  for (let k = 0; k < 375; k++) x.ajouter(souffle(128, rnd));
+  assert.equal(x.controle().resolution, 16);
+});

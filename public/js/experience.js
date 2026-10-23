@@ -9,7 +9,7 @@ import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -864,10 +864,23 @@ function midiSourceZ(displayZ) {
 // une fausse coherence, donc affichage seulement. Seules les sources qui
 // repondent ont une case.
 const MIDI_ON = new URLSearchParams(location.search).has('midi');
-const JEU_DEFAUT = { local: true, telephones: true, qci: false, cicada: false };
+// Noosfeerique (Cicada) joue d'office : c'est la source quantique de la salle,
+// la mesure principale des rapports
+const JEU_DEFAUT = { local: true, telephones: true, qci: false, cicada: true };
 const jeuSources = (() => {
-  try { return { ...JEU_DEFAUT, ...JSON.parse(localStorage.getItem('noosphi_jeu_sources') || '{}') }; }
-  catch { return { ...JEU_DEFAUT }; }
+  let j;
+  try { j = { ...JEU_DEFAUT, ...JSON.parse(localStorage.getItem('noosphi_jeu_sources') || '{}') }; }
+  catch { j = { ...JEU_DEFAUT }; }
+  // Une seule fois (23/10/2026) : Cicada etait decochee par defaut, et ce choix
+  // memorise la laissait eteinte au concert. On la coche ; ensuite, ton choix fait foi.
+  try {
+    if (!localStorage.getItem('noosphi_jeu_cicada_2026')) {
+      j.cicada = true;
+      localStorage.setItem('noosphi_jeu_sources', JSON.stringify(j));
+      localStorage.setItem('noosphi_jeu_cicada_2026', '1');
+    }
+  } catch {}
+  return j;
 })();
 let telephonesActifs = 0;   // telephones qui ont envoye un z depuis moins de 3 s
 let dernierZJoue = null;    // dernier z parti vers MainStage (courbe « Joue »)

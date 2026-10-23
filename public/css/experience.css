@@ -1864,7 +1864,7 @@ body.chiffres-caches.seance-en-cours .z-indicator { visibility: hidden; }
 .guide-chapitres button { display: flex; gap: 14px; align-items: baseline; padding: 9px 0; background: none; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.85); font: 14px Inter, sans-serif; text-align: left; cursor: pointer; }
 .guide-chapitres button span { flex: 0 0 40px; font-size: 12px; color: rgba(255, 255, 255, 0.5); font-variant-numeric: tabular-nums; }
 .guide-chapitres button:hover { color: #fff; }
-.guide-bouton { display: flex; gap: 14px; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+.guide-bouton { display: flex; gap: 14px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; color: rgba(255, 255, 255, 0.6); }
 .guide-bouton b { font-weight: 400; color: #fff; font-size: 14px; }
 .guide-ou { flex: 0 0 104px; font-size: 12px; color: rgba(255, 255, 255, 0.5); }
 .guide-film { display: flex; align-items: center; gap: 12px; width: 100%; margin: 10px 0; padding: 10px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: none; color: rgba(255, 255, 255, 0.6); font: 12px/1.4 Inter, sans-serif; text-align: left; cursor: pointer; }
@@ -1878,3 +1878,14 @@ a.guide-carte:hover { border-color: rgba(255, 255, 255, 0.3); }
 .guide-pied button { height: 36px; padding: 0 16px; border-radius: 18px; background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); font: 13px Inter, sans-serif; cursor: pointer; }
 .guide-pied .guide-film-entier { border-color: rgba(78, 201, 198, 0.5); color: var(--accent-cyan); }
 .rapport-table .principale th, .rapport-table .principale .z { color: var(--accent-cyan); }
+
+.guide-picto { flex: 0 0 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.85); }
+.guide-picto svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.guide-volet h2 + .guide-bouton { padding-top: 4px; }
+.guide-methode summary { cursor: pointer; list-style: none; }
+.guide-methode summary::-webkit-details-marker { display: none; }
+.guide-methode summary::after { content: 'Lire la méthode'; display: block; margin-top: 6px; font-size: 12px; color: var(--accent-cyan); }
+.guide-methode[open] summary::after { content: 'Fermer'; }
+.guide-methode p { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: rgba(255, 255, 255, 0.7); }
+.guide-methode p b { font-size: 13px; font-weight: 500; }
+.header-icon svg { stroke-linecap: round; }

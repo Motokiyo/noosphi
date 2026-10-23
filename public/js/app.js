@@ -189,7 +189,7 @@ const ESSAIS = 10;
 // sur le même appareil. Le micro ne s'ouvre que sur un clic, et se coupe en
 // revenant à la graine.
 let modeLocal = 'graine';
-let extracteur = null, couperMicro = null;
+let extracteur = null, couperMicro = null, secondesVides = 0;
 function initChoixLocal() {
   const boutons = document.querySelectorAll('#choix-local button');
   const diag = document.getElementById('diag-local');
@@ -227,7 +227,8 @@ function tirerMicro() {
   const c = extracteur.controle();
   const pct = c.partUns == null ? '--' : fmt(100 * c.partUns, 1) + ' %';
   document.getElementById('diag-local').textContent =
-    `Bits bruts : ${pct} de 1 (attendu 50 %) · ${c.bitsUtiles} bits utiles par seconde · ${zs.length} tirage${zs.length > 1 ? 's' : ''}`;
+    `Bits bruts : ${pct} de 1 (attendu 50 %) · ${c.bitsUtiles} bits utiles par seconde · ${zs.length} tirage${zs.length > 1 ? 's' : ''}` +
+    (c.resolution ? ` · micro ${c.resolution} bits` : c.echantillons ? ' · silence numérique' : ' · aucun son reçu');
   const octets = extracteur.octets();
   if (octets.length) {
     let total = 0;
@@ -235,7 +236,14 @@ function tirerMicro() {
     document.getElementById('mean-local').textContent = fmt(total / octets.length);
     updateDistribution(octets);
   }
-  if (!zs.length) { state.zLocal = null; setEtat('local', 'down'); return; }
+  // Une seconde creuse ne rend pas la source indisponible : le dernier z reste,
+  // et il faut 5 secondes sans aucun tirage pour la dire muette
+  if (!zs.length) {
+    secondesVides++;
+    if (secondesVides >= 5) { state.zLocal = null; setEtat('local', 'down'); }
+    return;
+  }
+  secondesVides = 0;
   state.zLocal = zs.reduce((a, b) => a + b, 0) / Math.sqrt(zs.length);
   setEtat('local', 'up');
 }

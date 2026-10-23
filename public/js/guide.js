@@ -138,7 +138,26 @@ const ONGLETS = [
   ['coulisses', 'Coulisses'],
 ];
 
-const ligneBouton = (ou, nom, quoi) => `<div class="guide-bouton"><span class="guide-ou">${ou}</span><span><b>${nom}</b><br>${quoi}</span></div>`;
+// Les pictogrammes, les memes que dans l'app (experience.html)
+const P = {
+  menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+  gamme: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  aide: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17.2" r="1.1" fill="currentColor" stroke="none"/>',
+  seances: '<path d="M3 3h18v18H3z"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/>',
+  seance: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
+  historique: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  son: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>',
+  points: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+  oeil: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  sources: '<polyline points="6 9 12 15 18 9"/>',
+  copier: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  partager: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  pause: '<rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/>',
+  arreter: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  fermer: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+};
+const picto = nom => `<span class="guide-picto" aria-hidden="true"><svg viewBox="0 0 24 24">${P[nom]}</svg></span>`;
+const ligneBouton = (ico, nom, quoi) => `<div class="guide-bouton">${picto(ico)}<span><b>${nom}</b><br>${quoi}</span></div>`;
 const lienFilm = (t, titre, sous) => `<button type="button" class="guide-film" data-t="${t}"><img src="${FILM.affiche}" alt=""><span><b>${titre}</b><br>${sous}</span></button>`;
 
 const VOLETS = {
@@ -158,19 +177,30 @@ const VOLETS = {
     <div class="guide-chapitres">${CHAPITRES.map(c => `<button type="button" data-t="${c.t}"><span>${mmss(c.t)}</span>${c.nom}</button>`).join('')}</div>`,
   utiliser: () => `
     <p>Tout se fait avec quelques boutons discrets. La sphère reste au centre.</p>
-    ${ligneBouton('en haut', 'Sources', 'Choisir ce que la sphère écoute, plusieurs à la fois.')}
-    ${ligneBouton('en haut', 'Gamme', 'La couleur du son, accordé à 432 Hz.')}
-    ${ligneBouton('en haut', '?', 'Ce guide.')}
-    ${ligneBouton('en bas à droite', 'Séances enregistrées', 'Retrouver une séance, son rapport, ses données.')}
-    ${ligneBouton('en bas à droite', 'Séance', 'Enregistrer, seul ou avec un code pour les téléphones.')}
-    ${ligneBouton('en bas à droite', 'Historique', 'Les dernières 24 heures, source par source.')}
-    ${ligneBouton('en bas à droite', 'Son', 'Allumer, régler le volume. Un clic sur la sphère aussi.')}
-    ${ligneBouton('en bas à gauche', 'Les points', 'Une source qui répond : un point allumé.')}`,
+    <h2>En haut à droite</h2>
+    ${ligneBouton('menu', 'Sources', 'Choisir ce que la sphère écoute, plusieurs à la fois.')}
+    ${ligneBouton('gamme', 'Gamme', 'La couleur du son, accordé à 432 Hz.')}
+    ${ligneBouton('aide', 'Guide', 'Ce que vous lisez.')}
+    <h2>En bas à droite</h2>
+    ${ligneBouton('seances', 'Séances enregistrées', 'Retrouver une séance, son rapport, ses données.')}
+    ${ligneBouton('seance', 'Séance', 'Enregistrer, seul ou avec un code pour les téléphones.')}
+    ${ligneBouton('historique', 'Historique', 'Les dernières 24 heures, source par source.')}
+    ${ligneBouton('son', 'Son', 'Allumer, régler le volume. Un clic sur la sphère aussi.')}
+    <h2>En bas à gauche</h2>
+    ${ligneBouton('points', 'Les points', 'Une source qui répond : un point allumé.')}`,
   seances: () => `
     <h2>Seul ou ensemble</h2>
     <p>Une séance solo écoute cet appareil. Une séance collective donne un code et un QR : chaque téléphone qui le scanne rejoint la salle et tire ses propres pièces.</p>
     <h2>Pendant la séance</h2>
-    <p>La marée s'affiche sous la sphère. L'œil montre ou cache les chiffres, pour qu'on regarde la sphère plutôt que le compteur. Pause et Arrêter sont en bas, et la croix ramène à la sphère sans arrêter l'enregistrement.</p>
+    <p>La marée s'affiche sous la sphère. En haut de l'écran de séance :</p>
+    ${ligneBouton('oeil', 'Les chiffres', 'Montrer ou cacher le z, pour regarder la sphère plutôt que le compteur.')}
+    ${ligneBouton('sources', 'Les sources de la séance', 'Ouvre les cases : à gauche la salle (ce qu\u2019on écoute ici), à droite le témoin. Une source cochée d\u2019un côté quitte l\u2019autre.')}
+    ${ligneBouton('copier', 'Copier le code', 'En séance collective, pour l\u2019envoyer.')}
+    ${ligneBouton('partager', 'Partager', 'Le code par message (Signal, WhatsApp, Telegram).')}
+    <p>En bas :</p>
+    ${ligneBouton('pause', 'Pause', 'Les secondes en pause ne comptent pas.')}
+    ${ligneBouton('arreter', 'Arrêter', 'Termine la séance et ouvre sa fiche.')}
+    ${ligneBouton('fermer', 'La croix', 'Revenir à la sphère : l\u2019enregistrement continue, la pastille rouge en haut y ramène.')}
     ${lienFilm(341, 'Le portique et le témoin · 1 min', 'Ce que fait une séance, dans le film')}
     <h2>Après</h2>
     <p>La fiche de la séance s'ouvre avec ses chiffres. Le bouton Rapport en fait une page à garder ou imprimer, Données donne les secondes. Le navigateur garde 50 séances : téléchargez celles qui comptent.</p>
@@ -186,7 +216,13 @@ const VOLETS = {
   coulisses: () => `
     <p>Pour les curieux et les sceptiques : d'où viennent les chiffres.</p>
     <a class="guide-carte" href="/" target="_blank" rel="noopener"><b>Dashboard</b><br>Chaque source en direct : son état, son rythme, ses derniers tirages.</a>
-    <div class="guide-carte"><b>La méthode</b><br>Celle des œufs de Princeton : 200 bits par tirage, z = (piles − 100) / √50, réunis par la méthode de Stouffer.</div>
+    <details class="guide-carte guide-methode"><summary><b>La méthode</b><br>Comment un tirage devient un z, et des z un seul chiffre.</summary>
+      <p><b>Un tirage.</b> Une source donne 200 bits, comme 200 pièces lancées. On compte les piles : on en attend 100.</p>
+      <p><b>Son z.</b> On retire les 100 attendus et on divise par √50 (environ 7, l'écart ordinaire du hasard). 114 piles donnent z = 2 ; 93 piles, z = −1.</p>
+      <p><b>Plusieurs z ensemble (Stouffer).</b> On les additionne et on divise par la racine de leur nombre. Les écarts au hasard s'annulent entre eux, ce qui pousse dans le même sens s'additionne.</p>
+      <p><b>Une séance.</b> Chaque seconde compte une fois, chaque valeur nouvelle aussi : une source qui ne change qu'une fois par minute (NIST) n'est pas recomptée chaque seconde.</p>
+      <p><b>La lecture.</b> Sous 1,96, le hasard ordinaire. De 1,96 à 3, un écart qui n'arrive qu'une fois sur 20. Au-delà de 3, une fois sur 370.</p>
+    </details>
     <a class="guide-carte" href="credits.html" target="_blank" rel="noopener"><b>Crédits</b><br>D'après une idée de Franck Laharrague. App et film : Alexandre Ferran.</a>
     <p class="guide-note">Cette expérience ne prétend rien prouver. Elle propose d'observer et d'interroger.</p>`,
 };
