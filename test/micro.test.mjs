@@ -60,3 +60,14 @@ test('un micro 16 bits reste lu a sa vraie finesse', () => {
   for (let k = 0; k < 375; k++) x.ajouter(souffle(128, rnd));
   assert.equal(x.controle().resolution, 16);
 });
+
+test('un bit fin tres penche (residu de calcul) est evite au profit du bit du souffle', () => {
+  const x = createExtracteur(), rnd = hasard(13);
+  // le souffle vit au 4e bit ; le bit le plus fin ne vaut 1 qu'une fois sur 50
+  const paquet = () => Float32Array.from({ length: 128 }, () => ((Math.floor(rnd() * 64) << 3) + (rnd() < 0.02 ? 1 : 0)) / 8388608);
+  for (let k = 0; k < 375; k++) x.ajouter(paquet());
+  const c = x.controle();
+  assert.ok(c.partUns > 0.4 && c.partUns < 0.6, 'bit equilibre : ' + c.partUns);
+  assert.ok(c.bitsUtiles > 10000);
+  assert.equal(c.resolution, 21);
+});

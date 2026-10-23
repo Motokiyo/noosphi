@@ -199,8 +199,7 @@ function initChoixLocal() {
     if (b.dataset.mode === 'micro') {
       diag.textContent = 'Autorisation du micro…';
       try {
-        extracteur = NoosMicro.createExtracteur();
-        couperMicro = await NoosMicro.ouvrirMicro(extracteur);
+        await brancherMicro(null);
         modeLocal = 'micro';
         diag.textContent = 'Le micro sert seulement à lire son souffle électronique : rien n’est enregistré ni envoyé.';
       } catch (e) {
@@ -209,6 +208,7 @@ function initChoixLocal() {
       }
     } else {
       couperMicro?.(); couperMicro = null; extracteur = null;
+      document.getElementById('entree-local').hidden = true;
       modeLocal = 'graine';
       diag.textContent = '';
     }
@@ -218,7 +218,29 @@ function initChoixLocal() {
     document.getElementById('titre-local').textContent = modeLocal === 'micro' ? 'DU MICRO DE CET APPAREIL' : 'DE CET APPAREIL';
     marquer();
   }));
+  document.getElementById('entree-local').addEventListener('change', async e => {
+    try { await brancherMicro(e.target.value); }
+    catch { diag.textContent = 'Ce micro ne répond pas : choisissez-en un autre.'; }
+  });
   marquer();
+}
+
+// Ouvre un micro (celui du systeme, ou celui choisi dans la liste) et remplit la liste
+async function brancherMicro(id) {
+  couperMicro?.();
+  extracteur = NoosMicro.createExtracteur();
+  secondesVides = 0;
+  couperMicro = await NoosMicro.ouvrirMicro(extracteur, id);
+  const liste = document.getElementById('entree-local');
+  const micros = await NoosMicro.listerMicros().catch(() => []);
+  liste.innerHTML = '';
+  for (const m of micros) {
+    const o = document.createElement('option');
+    o.value = m.id; o.textContent = m.nom;
+    if (m.id === couperMicro.entree.id) o.selected = true;
+    liste.append(o);
+  }
+  liste.hidden = micros.length < 2;
 }
 
 // Une seconde de micro : jusqu'à 10 tirages de 200 bits, réunis par Stouffer
@@ -228,7 +250,9 @@ function tirerMicro() {
   const pct = c.partUns == null ? '--' : fmt(100 * c.partUns, 1) + ' %';
   document.getElementById('diag-local').textContent =
     `Bits bruts : ${pct} de 1 (attendu 50 %) · ${c.bitsUtiles} bits utiles par seconde · ${zs.length} tirage${zs.length > 1 ? 's' : ''}` +
-    (c.resolution ? ` · micro ${c.resolution} bits` : c.echantillons ? ' · silence numérique' : ' · aucun son reçu');
+    (c.resolution ? ` · ${c.resolution} bits` : c.echantillons ? '' : ' · aucun son reçu') +
+    (c.partSilence > 0.01 ? ` · silence numérique ${Math.round(100 * c.partSilence)} %` : '') +
+    (couperMicro?.entree ? ` · ${couperMicro.entree.nom}, ${couperMicro.entree.khz} kHz` : '');
   const octets = extracteur.octets();
   if (octets.length) {
     let total = 0;

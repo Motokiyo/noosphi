@@ -3,9 +3,8 @@
 // On n'écoute pas le son : on lit le souffle électronique du micro.
 // 1. Les traitements du navigateur sont coupés (anti-écho, réduction de bruit,
 //    volume automatique), pour lire le signal tel qu'il sort du convertisseur.
-// 2. De chaque échantillon on ne garde que le bit le plus fin que le micro
-//    fournit vraiment : 24 bits sur un Mac, 16 sur bien des téléphones. On le
-//    trouve à chaque paquet (le dernier bit qui bouge). C'est celui du souffle,
+// 2. De chaque échantillon on ne garde qu'un bit : le plus fin qui soit
+//    équilibré, à chaque paquet (24 bits sur un Mac, 16 sur bien des téléphones). C'est celui du souffle,
 //    presque insensible à la musique qui joue dans la salle. Lire un bit plus
 //    gros dans une pièce calme donnait surtout des zéros, donc des secondes vides.
 // 3. Toilette de von Neumann : les bits se lisent par paires, 01 donne 0,
@@ -25,7 +24,7 @@
     let alterne = 0;
     let utiles = [];             // bits après toilette, pas encore tirés
     let derniers = [];           // les `garde` derniers bits utiles (histogramme)
-    let brutUns = 0, brutTotal = 0, utilesSeconde = 0, resolution = null;
+    let brutUns = 0, brutTotal = 0, silence = 0, utilesSeconde = 0, resolution = null;
     const entiers = new Int32Array(8192);
 
     // echantillons : nombres entre -1 et 1 (Float32Array du navigateur).
@@ -42,9 +41,19 @@
       const n = echantillons.length;
       let tous = 0;
       for (let i = 0; i < n; i++) { entiers[i] = Math.round(echantillons[i] * 8388608); tous |= entiers[i]; }
-      if (tous === 0) { brutTotal += n; return; }        // silence numerique : rien a tirer
-      let decalage = 0;
-      while (((tous >> decalage) & 1) === 0) decalage++;  // le dernier bit qui bouge dans ce paquet
+      if (tous === 0) { silence += n; return; }          // silence numerique : rien a tirer
+      // Le bit le plus fin ou le souffle domine : le premier, en partant du plus fin,
+      // qui soit equilibre (entre 25 et 75 % de 1). Un bit plus fin mais tres penche
+      // n'est qu'un residu de calcul (conversion, reechantillonnage). A defaut, le
+      // plus fin qui bouge ; la toilette de von Neumann fait le reste.
+      let premier = 0;
+      while (((tous >> premier) & 1) === 0) premier++;
+      let decalage = premier;
+      for (let d = premier; d < 16; d++) {
+        let uns = 0;
+        for (let i = 0; i < n; i++) uns += (entiers[i] >> d) & 1;
+        if (uns >= n * 0.25 && uns <= n * 0.75) { decalage = d; break; }
+      }
       resolution = 24 - decalage;
       for (let i = 0; i < n; i++) {
         const b = (entiers[i] >> decalage) & 1;
@@ -85,8 +94,9 @@
 
     // Les chiffres de controle de la seconde ecoulee, puis remise a zero
     function controle() {
-      const c = { partUns: brutTotal ? brutUns / brutTotal : null, echantillons: brutTotal, bitsUtiles: utilesSeconde, resolution };
-      brutUns = 0; brutTotal = 0; utilesSeconde = 0;
+      const tout = brutTotal + silence;
+      const c = { partUns: brutTotal ? brutUns / brutTotal : null, echantillons: tout, partSilence: tout ? silence / tout : null, bitsUtiles: utilesSeconde, resolution };
+      brutUns = 0; brutTotal = 0; silence = 0; utilesSeconde = 0;
       return c;
     }
 
@@ -95,10 +105,13 @@
 
   // Ouvre le micro et envoie ses echantillons a l'extracteur. A appeler depuis un clic
   // (le navigateur l'exige). Rend une fonction qui coupe tout.
-  async function ouvrirMicro(extracteur) {
+  // entree : l'identifiant d'un micro precis (sinon celui du systeme)
+  async function ouvrirMicro(extracteur, entree = null) {
     const flux = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1,
+        ...(entree ? { deviceId: { exact: entree } } : {}) },
     });
+    const piste = flux.getAudioTracks()[0];
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const source = ctx.createMediaStreamSource(flux);
     const muet = ctx.createGain();
@@ -122,14 +135,26 @@
     source.connect(noeud);
     noeud.connect(muet);
     if (ctx.state === 'suspended') await ctx.resume();
-    return () => {
+    const couper = () => {
       flux.getTracks().forEach(t => t.stop());
       try { source.disconnect(); noeud.disconnect(); } catch {}
       ctx.close();
     };
+    // Ce qu'on ecoute vraiment : le nom du micro et sa frequence (un casque
+    // Bluetooth en mode telephone descend a 16 kHz, son deja traite)
+    const reglages = piste.getSettings ? piste.getSettings() : {};
+    couper.entree = { id: reglages.deviceId || null, nom: piste.label || 'micro', khz: Math.round((reglages.sampleRate || ctx.sampleRate) / 1000) };
+    return couper;
   }
 
-  const api = { createExtracteur, ouvrirMicro };
+  // Les micros de l'appareil (leurs noms ne sont lisibles qu'une fois l'autorisation donnee)
+  async function listerMicros() {
+    const tous = await navigator.mediaDevices.enumerateDevices();
+    return tous.filter(d => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications')
+      .map(d => ({ id: d.deviceId, nom: d.label || 'micro' }));
+  }
+
+  const api = { createExtracteur, ouvrirMicro, listerMicros };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else racine.NoosMicro = api;
 })(typeof window !== 'undefined' ? window : globalThis);
