@@ -9,7 +9,7 @@ import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -1123,7 +1123,7 @@ if (sidebarBackdrop) {
 }
 
 // Le tableau de bord garde les parametres d'URL (?midi=1…), pour que sa croix y ramene
-document.querySelector('.sidebar-link')?.setAttribute('href', '/' + location.search);
+document.querySelector('.sidebar-link')?.setAttribute('href', '/dashboard' + location.search);
 
 // Les sources se cochent ensemble : chaque ligne se coche et se decoche seule ;
 // « Combinaison » n'est pas un choix, c'est le resultat des sources cochees

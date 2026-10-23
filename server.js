@@ -23,7 +23,12 @@ const QCI_CACHE_TTL = 1_000;    // 1s — 25 bytes/req = ~52% of 1B bits/month q
 const QCI_API_TOKEN = process.env.QCI_TOKEN || '';  // set via QCI_TOKEN env var
 
 // --- Static files ---
-app.use(express.static(path.join(__dirname, 'public')));
+// L'adresse principale ouvre l'app (la sphere) ; le dashboard vit sur /dashboard.
+// /experience.html reste servie : le QR du concert, le lanceur du vieux Mac et les favoris y pointent.
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'experience.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/index.html', (req, res) => res.redirect(301, '/dashboard'));   // ancienne adresse du dashboard
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // === HELPERS ===
 

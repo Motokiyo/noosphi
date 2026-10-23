@@ -2,7 +2,7 @@
   "name": "Noosfeerique",
   "short_name": "Noosfeerique",
   "description": "Conscience collective en temps reel",
-  "start_url": "/experience.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0E14",
   "theme_color": "#0B0E14",

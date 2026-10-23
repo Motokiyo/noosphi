@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initLiens() {
   for (const id of ['dashboard-fermer', 'lien-guide']) {
     const a = document.getElementById(id);
-    if (a) a.href = '/experience.html' + location.search;
+    if (a) a.href = '/' + location.search;
   }
 }
 

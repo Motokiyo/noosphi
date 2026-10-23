@@ -215,7 +215,7 @@ const VOLETS = {
     <p>À l'arrêt, il se télécharge tout seul dans le dossier Téléchargements, avec les trois mesures, le témoin et chaque générateur. Chrome peut demander une fois l'autorisation de télécharger.</p>`,
   coulisses: () => `
     <p>Pour les curieux et les sceptiques : d'où viennent les chiffres.</p>
-    <a class="guide-carte" href="/" target="_blank" rel="noopener"><b>Dashboard</b><br>Chaque source en direct : son état, son rythme, ses derniers tirages.</a>
+    <a class="guide-carte" href="/dashboard" target="_blank" rel="noopener"><b>Dashboard</b><br>Chaque source en direct : son état, son rythme, ses derniers tirages.</a>
     <details class="guide-carte guide-methode"><summary><b>La méthode</b><br>Comment un tirage devient un z, et des z un seul chiffre.</summary>
       <p><b>Un tirage.</b> Une source donne 200 bits, comme 200 pièces lancées. On compte les piles : on en attend 100.</p>
       <p><b>Son z.</b> On retire les 100 attendus et on divise par √50 (environ 7, l'écart ordinaire du hasard). 114 piles donnent z = 2 ; 93 piles, z = −1.</p>
