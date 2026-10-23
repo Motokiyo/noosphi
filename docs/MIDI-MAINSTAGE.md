@@ -15,7 +15,7 @@ Un « Bus 1 » apparaît. C'est le câble virtuel entre Chrome et MainStage.
 
 ## À chaque séance
 
-1. Dans Chrome, ouvrir `https://noosfeerique.leparede.org/experience.html?midi=1`. Le `?midi=1` affiche le panneau MIDI, qui reste caché sans lui.
+1. Dans Chrome, ouvrir `https://noosfeerique.leparede.org/?midi=1`. Le `?midi=1` affiche le panneau MIDI, qui reste caché sans lui.
 2. Choisir la source dans le menu de l'app (combiné, QCI, local…). Le MIDI suit cette source, comme le son et la sphère.
 3. Cliquer sur **Activer le MIDI**, et accepter la demande d'accès MIDI de Chrome.
 4. Vérifier que la sortie indique **Bus IAC**.

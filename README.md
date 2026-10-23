@@ -121,8 +121,8 @@ npm start
 ```
 
 Ouvrez :
-- **http://localhost:3000/experience.html** — Experience Noosfeerique (sphere 3D)
-- **http://localhost:3000/** — Dashboard prototype
+- **http://localhost:3000/** : l'expérience Noosféérique (la sphère)
+- **http://localhost:3000/dashboard** : le dashboard des sources
 
 Le terminal affichera :
 
@@ -177,7 +177,7 @@ Le serveur local sert de **relais** entre votre navigateur et les APIs mondiales
 noosphi/
 ├── server.js             ← Serveur (proxy APIs + RNG local)
 ├── public/
-│   ├── index.html        ← Page du dashboard
+│   ├── dashboard.html    ← Page du dashboard (servie sur /dashboard)
 │   ├── favicon.svg       ← Ic&ocirc;ne de l'onglet
 │   ├── css/style.css     ← Th&egrave;me visuel (dark)
 │   └── js/
@@ -230,7 +230,7 @@ Le prototype v1.0.0 est fonctionnel et d&eacute;ploy&eacute;. Prochaines &eacute
 
 ## Acc&egrave;s en ligne
 
-**https://noosfeerique.leparede.org/experience.html**
+**https://noosfeerique.leparede.org/**
 
 ---
 

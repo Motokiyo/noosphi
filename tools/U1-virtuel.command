@@ -6,7 +6,7 @@
 # concert=1 fige la sphere : la carte graphique ne travaille plus.
 # Usage : double-clic, ou ./U1-virtuel.command [adresse]
 
-URL="${1:-https://noosfeerique.leparede.org/experience.html?midi=1&concert=1}"
+URL="${1:-https://noosfeerique.leparede.org/?midi=1&concert=1}"
 PROFIL="$HOME/Library/Application Support/U1-virtuel-Chrome"
 
 open -na "Google Chrome" --args \
