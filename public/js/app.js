@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initTooltips();
   initLiens();
+  initChoixLocal();
 
   fetchLocal();
   fetchNIST();
@@ -183,7 +184,64 @@ async function fetchCicada() {
 // 10 essais réunis par Stouffer.
 const SQRT_50 = Math.sqrt(50);
 const ESSAIS = 10;
+// Banc d'essai : « Cet appareil » tire soit de sa graine (le générateur calculé
+// du navigateur), soit du souffle de son micro (micro.js). On compare les deux
+// sur le même appareil. Le micro ne s'ouvre que sur un clic, et se coupe en
+// revenant à la graine.
+let modeLocal = 'graine';
+let extracteur = null, couperMicro = null;
+function initChoixLocal() {
+  const boutons = document.querySelectorAll('#choix-local button');
+  const diag = document.getElementById('diag-local');
+  const marquer = () => boutons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === modeLocal)));
+  boutons.forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.mode === modeLocal) return;
+    if (b.dataset.mode === 'micro') {
+      diag.textContent = 'Autorisation du micro…';
+      try {
+        extracteur = NoosMicro.createExtracteur();
+        couperMicro = await NoosMicro.ouvrirMicro(extracteur);
+        modeLocal = 'micro';
+        diag.textContent = 'Le micro sert seulement à lire son souffle électronique : rien n’est enregistré ni envoyé.';
+      } catch (e) {
+        extracteur = null;
+        diag.textContent = 'Micro refusé ou indisponible : on reste sur la graine.';
+      }
+    } else {
+      couperMicro?.(); couperMicro = null; extracteur = null;
+      modeLocal = 'graine';
+      diag.textContent = '';
+    }
+    document.getElementById('detail-local').textContent = modeLocal === 'micro'
+      ? 'Le souffle électronique de votre micro, après toilette'
+      : 'Le générateur de votre ordinateur ou téléphone';
+    document.getElementById('titre-local').textContent = modeLocal === 'micro' ? 'DU MICRO DE CET APPAREIL' : 'DE CET APPAREIL';
+    marquer();
+  }));
+  marquer();
+}
+
+// Une seconde de micro : jusqu'à 10 tirages de 200 bits, réunis par Stouffer
+function tirerMicro() {
+  const zs = extracteur.tirer(ESSAIS);
+  const c = extracteur.controle();
+  const pct = c.partUns == null ? '--' : fmt(100 * c.partUns, 1) + ' %';
+  document.getElementById('diag-local').textContent =
+    `Bits bruts : ${pct} de 1 (attendu 50 %) · ${c.bitsUtiles} bits utiles par seconde · ${zs.length} tirage${zs.length > 1 ? 's' : ''}`;
+  const octets = extracteur.octets();
+  if (octets.length) {
+    let total = 0;
+    for (const b of octets) total += b;
+    document.getElementById('mean-local').textContent = fmt(total / octets.length);
+    updateDistribution(octets);
+  }
+  if (!zs.length) { state.zLocal = null; setEtat('local', 'down'); return; }
+  state.zLocal = zs.reduce((a, b) => a + b, 0) / Math.sqrt(zs.length);
+  setEtat('local', 'up');
+}
+
 function fetchLocal() {
+  if (modeLocal === 'micro' && extracteur) { tirerMicro(); recalcCombined(); return; }
   try {
     const octets = new Uint8Array(1000);
     // getRandomValues plafonne à 65 536 octets par appel : 1000 passe sans souci

@@ -69,7 +69,11 @@
             <span class="source-nom">Cet appareil
               <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Le générateur de nombres aléatoires intégré à votre ordinateur ou téléphone. Le tirage se fait ici, dans votre navigateur, sans passer par le serveur.">i</span>
             </span>
-            <span class="source-detail">Le générateur de votre ordinateur ou téléphone</span>
+            <span class="source-detail" id="detail-local">Le générateur de votre ordinateur ou téléphone</span>
+            <span class="choix-local" id="choix-local" role="group" aria-label="Source de cet appareil">
+              <button type="button" data-mode="graine">Graine</button><button type="button" data-mode="micro">Micro</button>
+            </span>
+            <span class="source-detail diag-local" id="diag-local" aria-live="polite"></span>
           </span>
           <span class="source-rythme">chaque seconde</span>
           <span class="source-etat" id="status-local"><span>--</span></span>
@@ -142,7 +146,7 @@
     <section class="rangee-bas">
       <!-- 4. Distribution -->
       <div class="carte">
-        <h2>LES 1 000 DERNIERS TIRAGES DE CET APPAREIL
+        <h2>LES 1 000 DERNIERS TIRAGES <span id="titre-local">DE CET APPAREIL</span>
           <span class="info-btn info-btn-sm" tabindex="0" data-tooltip="Répartition des 1 000 derniers octets tirés par votre appareil. Sous le pur hasard, les colonnes restent à peu près égales. Si certaines dépassent nettement les autres, c'est inhabituel.">i</span>
         </h2>
         <p class="carte-aide bloc">Chaque octet vaut de 0 à 255, regroupés en 16 colonnes. Moyenne : <span id="mean-local">--</span> (attendue : 127,5).</p>
@@ -164,6 +168,7 @@
 
   <script src="js/zindex.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/micro.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

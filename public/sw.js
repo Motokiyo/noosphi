@@ -18,6 +18,7 @@ const ASSETS_TO_CACHE = [
   '/js/seance.js',
   '/js/rapport.js',
   '/js/guide.js',
+  '/js/micro.js',
   '/public.html',
   '/js/public.js',
   '/js/zindex.js',

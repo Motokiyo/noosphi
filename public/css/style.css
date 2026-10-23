@@ -182,3 +182,10 @@ h2 {
   .source-rythme, .source-etat { padding-left: 20px; }
   .chart-container { height: 200px; }
 }
+
+/* Banc d'essai : graine ou micro pour « Cet appareil » */
+.choix-local { display: inline-flex; align-self: flex-start; margin-top: 8px; border: 1px solid rgba(255,255,255,.18); border-radius: 15px; overflow: hidden; }
+.choix-local button { height: 28px; padding: 0 14px; background: none; border: none; color: rgba(255,255,255,.7); font: 12px Inter, -apple-system, sans-serif; cursor: pointer; }
+.choix-local button[aria-pressed="true"] { background: #F5F5F2; color: #0B0E14; }
+.diag-local { display: block; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.diag-local:empty { display: none; }
