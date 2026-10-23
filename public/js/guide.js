@@ -269,8 +269,13 @@ const VOLETS = {
     ${lienFilm(341, 'Le portique et le témoin · 1 min', 'Ce que fait une séance, dans le film')}
     <h2>Après</h2>
     <p>La fiche de la séance s'ouvre avec ses chiffres. Le bouton Rapport en fait une page à garder ou imprimer, Données donne les secondes. Le navigateur garde 50 séances : téléchargez celles qui comptent.</p>
-    <h2>Les trois mesures du rapport</h2>
-    <p>1. La mesure quantique : Noosféérique, et QCI s'il est dans la salle. 2. La mesure graine : les téléphones et les ordinateurs. 3. Le mélange : tout ce qui jouait ici. Le témoin distant sert de contrôle.</p>`,
+    <h2>Ce que dit le rapport</h2>
+    <p>Trois mesures de la salle, dans un ordre fixé d'avance (la première compte le plus) :</p>
+    <p>1. <b>La mesure quantique</b> : Noosféérique, la clé quantique Cicada, ici.<br>
+    2. <b>La mesure graine</b> : les téléphones et les ordinateurs, dont les nombres sont calculés.<br>
+    3. <b>Le mélange</b> : tout ce qui jouait ici, seconde par seconde.</p>
+    <p>Et à part, <b>le témoin</b> : QCI (quantique, aux États-Unis) et la balise NIST. Ils donnent un z <b>hors de la salle</b>, pendant les mêmes secondes, sans personne autour. Si la salle s'écarte et que le témoin reste ordinaire, l'écart vient bien d'ici.</p>
+    <p class="guide-note">QCI ne passe dans la salle que pour un événement mondial, où l'on écoute la planète entière.</p>`,
   concert: () => `
     <h2>Le panneau U1 virtuel</h2>
     <p>Il envoie le z joué vers MainStage. Un clic sur son titre le replie en un bandeau, un clic sur le bandeau le rouvre. Replié, le MIDI continue : la pastille du bandeau s'allume quand il joue.</p>
