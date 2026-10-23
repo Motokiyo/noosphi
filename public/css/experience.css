@@ -1246,8 +1246,14 @@ body:has(.session-detail-overlay.open) .header {
   transition: background 0.5s ease;
 }
 
+/* repond mais non ecoutee : un cercle ; repond et ecoutee : plein */
 .source-dot.active {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent-cyan);
+}
+.source-dot.active.ecoutee {
   background: var(--accent-cyan);
+  box-shadow: none;
 }
 
 /* ---- Loading state ---- */

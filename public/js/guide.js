@@ -187,7 +187,7 @@ const VOLETS = {
     ${ligneBouton('historique', 'Historique', 'Les dernières 24 heures, source par source.')}
     ${ligneBouton('son', 'Son', 'Allumer, régler le volume. Un clic sur la sphère aussi.')}
     <h2>En bas à gauche</h2>
-    ${ligneBouton('points', 'Les points', 'Une source qui répond : un point allumé.')}`,
+    ${ligneBouton('points', 'Les quatre points', 'Cet appareil, NIST, QCI, Noosféérique. Plein : la source répond et on l\u2019écoute. Cerclé : elle répond sans être écoutée. Éteint : elle ne répond pas.')}`,
   seances: () => `
     <h2>Seul ou ensemble</h2>
     <p>Une séance solo écoute cet appareil. Une séance collective donne un code et un QR : chaque téléphone qui le scanne rejoint la salle et tire ses propres pièces.</p>

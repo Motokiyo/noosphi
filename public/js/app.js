@@ -34,10 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Les liens gardent les paramètres d'URL (?midi=1…)
 function initLiens() {
-  for (const id of ['dashboard-fermer', 'lien-guide']) {
+  const ici = new URLSearchParams(location.search);
+  const vers = (id, extra) => {
     const a = document.getElementById(id);
-    if (a) a.href = '/' + location.search;
-  }
+    if (!a) return;
+    const q = new URLSearchParams(ici);
+    if (extra) q.set(extra, '');
+    const t = q.toString().replace(/=(&|$)/g, '$1');   // ?guide plutot que ?guide=
+    a.href = '/' + (t ? '?' + t : '');
+  };
+  vers('dashboard-fermer');
+  vers('lien-guide', 'guide');
 }
 
 // --- Info-bulles : une seule bulle, calée dans l'écran (survol, focus ou toucher) ---

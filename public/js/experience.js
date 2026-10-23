@@ -9,7 +9,7 @@ import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.7.3';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -1560,6 +1560,23 @@ function salleCoche(key) {
   if (MIDI_ON) return key in jeuSources ? !!jeuSources[key] : false;
   return !!salleChoix[key];
 }
+
+// Les 4 points en bas a gauche : plein = la source repond et on l'ecoute,
+// cercle = elle repond mais n'est pas ecoutee, eteint = elle ne repond pas.
+// (Jusqu'au 23/10/2026 ils ne disaient que « repond », d'ou des points
+// allumes meme quand tout etait decoche.)
+const POINTS = [['local', 'Cet appareil'], ['nist', 'NIST'], ['qci', 'QCI'], ['cicada', 'Noosféérique']];
+function majPoints() {
+  POINTS.forEach(([cle, nom], i) => {
+    const d = sourceDots[i];
+    if (!d) return;
+    const repond = d.classList.contains('active');
+    const ecoutee = repond && salleCoche(cle);
+    d.classList.toggle('ecoutee', ecoutee);
+    d.title = `${nom} · ${!repond ? 'ne répond pas' : ecoutee ? 'répond, écoutée' : 'répond, non écoutée'}`;
+  });
+}
+setInterval(majPoints, 1000);
 
 function allumerPastille(label, on) {
   if (!label) return;
