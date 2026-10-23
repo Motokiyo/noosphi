@@ -65,6 +65,24 @@ export function ouvrirAccueil({ onCode } = {}) {
 }
 
 // ---------- Le film, par-dessus l'app, qui s'efface a la fin ----------
+// Aucun decroche entre le film et l'app : la sphere du film a la taille et la
+// place exactes de la vraie sphere, et a la fin un fondu devoile l'app dessous.
+// Les commandes ne viennent que si l'on descend la souris en bas (ou au toucher).
+
+// Diametre de la vraie sphere a l'ecran (experience.js, onResize : camera 50°,
+// sphere de rayon 1 placee pour 75 % de la plus petite dimension ; la
+// perspective rend sa silhouette un peu plus grande).
+export function diametreSphere(W, H) {
+  const t = Math.tan(25 * Math.PI / 180), a = W / H;
+  const s = 0.75 * t * Math.min(a, 1);
+  const frac = Math.tan(Math.asin(s)) / (t * Math.min(a, 1));
+  return frac * (a >= 1 ? H : W);
+}
+// Dans le film, la sphere finale (6:42 a la fin) fait 80,2 % de la hauteur de
+// l'image et sa sphere est centree (mesure sur l'image 1920 × 1080 : 866 px).
+const SPHERE_FILM = 866 / 1080;
+const T_FINALE = 398;   // le zoom vers la vraie taille commence ici (telephone en hauteur)
+
 export function ouvrirFilm(debut = 0) {
   document.querySelector('.film')?.remove();
   const o = calque('film');
@@ -84,23 +102,62 @@ export function ouvrirFilm(debut = 0) {
   const barre = o.querySelector('.film-barre');
   const fait = o.querySelector('.film-fait');
   const temps = o.querySelector('.film-temps');
+  const bas = o.querySelector('.film-bas');
   const chapitres = [...o.querySelectorAll('.film-chapitres button')];
+
+  // Cadrage : a l'echelle de la vraie sphere, sauf si cela rognait trop l'image
+  // (telephone en hauteur) ; alors l'image entiere, puis le zoom a la fin.
+  let finale = false;
+  function cadrer() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const vw = v.videoWidth || 1280, vh = v.videoHeight || 720;
+    const juste = diametreSphere(W, H) / (SPHERE_FILM * vh);   // sphere du film = vraie sphere
+    const entier = Math.min(W / vw, H / vh);
+    const rogne = (vw * juste - W) / (vw * juste);              // part de la largeur perdue
+    const echelle = (finale || rogne <= 0.2) ? juste : entier;
+    v.style.width = vw * echelle + 'px';
+    v.style.height = vh * echelle + 'px';
+    v.style.left = (W - vw * echelle) / 2 + 'px';
+    v.style.top = (H - vh * echelle) / 2 + 'px';
+  }
+  window.addEventListener('resize', cadrer);
+
+  // Les commandes : en bas de l'ecran seulement, et elles se retirent seules
+  let minuterie = null;
+  const montrer = (commandes) => {
+    o.classList.add('bouge');
+    if (commandes) o.classList.add('commandes');
+    clearTimeout(minuterie);
+    minuterie = setTimeout(() => o.classList.remove('bouge', 'commandes'), 3000);
+  };
+  o.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    montrer(e.clientY > window.innerHeight * 0.72);
+  });
+  bas.addEventListener('pointerenter', () => montrer(true));
 
   const fermer = () => {
     v.pause();
-    o.classList.add('sortie');                // fondu : la sphere vivante prend la place de son image
-    setTimeout(() => o.remove(), 900);
+    o.classList.add('sortie');                // fondu : la vraie sphere apparait a la place de son image
+    setTimeout(() => o.remove(), 1500);
     document.removeEventListener('keydown', clavier);
+    window.removeEventListener('resize', cadrer);
   };
-  const clavier = e => { if (e.key === 'Escape') fermer(); };
+  const clavier = e => {
+    if (e.key === 'Escape') fermer();
+    else if (e.key === ' ') { e.preventDefault(); v.paused ? v.play() : v.pause(); montrer(true); }
+    else montrer(true);
+  };
   document.addEventListener('keydown', clavier);
 
   const majLecture = () => {
     lecture.classList.toggle('en-pause', v.paused);
     lecture.setAttribute('aria-label', v.paused ? 'Lecture' : 'Pause');
+    o.classList.toggle('en-pause', v.paused);   // en pause, les commandes restent visibles
   };
   v.addEventListener('loadedmetadata', () => {
     for (const r of o.querySelectorAll('.film-repere')) r.style.left = (100 * r.dataset.t / v.duration) + '%';
+    cadrer();
     if (debut) v.currentTime = debut;
     v.play().catch(majLecture);
   });
@@ -110,23 +167,31 @@ export function ouvrirFilm(debut = 0) {
     temps.textContent = `${mmss(v.currentTime)} / ${mmss(v.duration)}`;
     const ici = CHAPITRES.filter(c => c.t <= v.currentTime + 0.5).length - 1;
     chapitres.forEach((b, i) => b.classList.toggle('actif', i === ici));
+    const f = v.currentTime >= T_FINALE;
+    if (f !== finale) { finale = f; cadrer(); }
   });
   v.addEventListener('play', majLecture);
   v.addEventListener('pause', majLecture);
   v.addEventListener('ended', fermer);
   lecture.addEventListener('click', () => (v.paused ? v.play() : v.pause()));
-  v.addEventListener('click', () => (v.paused ? v.play() : v.pause()));
+  // Clic sur l'image : pause a la souris ; au toucher, il fait venir les commandes
+  v.addEventListener('pointerup', e => {
+    if (e.pointerType === 'touch') { o.classList.contains('commandes') ? o.classList.remove('bouge', 'commandes') : montrer(true); }
+    else v.paused ? v.play() : v.pause();
+  });
   barre.addEventListener('click', e => {
     const r = barre.getBoundingClientRect();
     if (v.duration) v.currentTime = v.duration * (e.clientX - r.left) / r.width;
+    montrer(true);
   });
   barre.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') v.currentTime += 10;
     if (e.key === 'ArrowLeft') v.currentTime -= 10;
   });
-  chapitres.forEach(b => b.addEventListener('click', () => { v.currentTime = +b.dataset.t; v.play(); }));
+  chapitres.forEach(b => b.addEventListener('click', () => { v.currentTime = +b.dataset.t; v.play(); montrer(true); }));
   o.querySelector('.film-passer').addEventListener('click', fermer);
   majLecture();
+  cadrer();
 }
 
 // ---------- Le guide ----------

@@ -2,7 +2,7 @@
 // Enables offline caching and home screen install
 // Note: requires HTTPS to activate (won't work on plain HTTP)
 
-const CACHE_NAME = 'noosphi-v37';
+const CACHE_NAME = 'noosphi-v38';
 const ASSETS_TO_CACHE = [
   '/',
   '/experience.html',

@@ -1822,12 +1822,16 @@ body.chiffres-caches.seance-en-cours .z-indicator { visibility: hidden; }
   .accueil-choix button { justify-content: center; width: 100%; }
 }
 
-/* ---- Le film ---- */
-.film { background: #000; z-index: 120; }
-.film video { position: absolute; inset: 0 0 150px 0; width: 100%; height: calc(100% - 150px); object-fit: contain; background: #000; }
-.film-passer { position: absolute; right: 20px; top: 18px; height: 40px; padding: 0 18px; border-radius: 20px; display: flex; align-items: center; gap: 8px; background: rgba(11, 14, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font: 14px Inter, sans-serif; cursor: pointer; }
+/* ---- Le film : la sphere du film a la taille de la vraie (guide.js, cadrer) ---- */
+.film { background: #020307; z-index: 120; overflow: hidden; cursor: none; }
+.film.bouge, .film.en-pause { cursor: default; }
+.modal-overlay.film.sortie { transition-duration: 1.5s; }
+.film video { position: absolute; background: #020307; transition: width 3s ease, height 3s ease, left 3s ease, top 3s ease; }
+.film-passer { position: absolute; right: 20px; top: 18px; height: 40px; padding: 0 18px; border-radius: 20px; display: flex; align-items: center; gap: 8px; background: rgba(11, 14, 20, 0.6); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font: 14px Inter, sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.4s ease; }
+.film.bouge .film-passer, .film.en-pause .film-passer, .film-passer:focus-visible { opacity: 1; }
 .film-passer svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 1.8; }
-.film-bas { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; box-sizing: border-box; padding: 16px 24px 0; background: #0B0E14; display: flex; flex-direction: column; gap: 12px; }
+.film-bas { position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 40px 24px 18px; background: linear-gradient(to top, rgba(2, 3, 7, 0.92) 55%, rgba(2, 3, 7, 0)); display: flex; flex-direction: column; gap: 12px; opacity: 0; transform: translateY(16px); transition: opacity 0.35s ease, transform 0.35s ease; pointer-events: none; }
+.film.commandes .film-bas, .film.en-pause .film-bas, .film-bas:focus-within { opacity: 1; transform: none; pointer-events: auto; }
 .film-ligne { display: flex; align-items: center; gap: 14px; }
 .film-lecture { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.3); background: transparent; cursor: pointer; position: relative; }
 .film-lecture::before, .film-lecture::after { content: ''; position: absolute; top: 15px; width: 4px; height: 14px; background: #fff; }
@@ -1836,15 +1840,13 @@ body.chiffres-caches.seance-en-cours .z-indicator { visibility: hidden; }
 .film-lecture.en-pause::after { display: none; }
 .film-barre { flex: 1; position: relative; height: 4px; padding: 8px 0; background-clip: content-box; background-color: rgba(255, 255, 255, 0.15); cursor: pointer; }
 .film-fait { position: absolute; left: 0; top: 8px; height: 4px; width: 0; background: #F5F5F2; }
-.film-repere { position: absolute; top: 5px; width: 2px; height: 10px; background: #0B0E14; }
+.film-repere { position: absolute; top: 5px; width: 2px; height: 10px; background: #020307; }
 .film-temps { font-size: 13px; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; min-width: 84px; text-align: right; }
 .film-chapitres { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
 .film-chapitres button { text-align: left; background: none; border: none; border-top: 1px solid rgba(255, 255, 255, 0.15); padding: 8px 0 0; color: rgba(255, 255, 255, 0.6); font: 13px/1.35 Inter, sans-serif; cursor: pointer; }
 .film-chapitres button span { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-bottom: 2px; }
 .film-chapitres button.actif { border-top-color: #F5F5F2; color: #fff; }
 @media (max-width: 760px) {
-  .film video { inset: 0 0 96px 0; height: calc(100% - 96px); }
-  .film-bas { height: 96px; }
   .film-chapitres { display: flex; overflow-x: auto; gap: 14px; }
   .film-chapitres button { flex: 0 0 auto; max-width: 150px; }
 }
