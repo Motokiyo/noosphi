@@ -5,10 +5,11 @@
 
 import * as THREE from 'three';
 import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
+import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -1001,114 +1002,31 @@ const btnMenu = document.getElementById('btn-menu');
 const btnSettings = document.getElementById('btn-settings');
 const btnHelp = document.getElementById('btn-help');
 
-// Help modal
+// Le guide (le « ? ») : il s'ouvre sur le volet de l'ecran ou l'on est
 function createHelpModal() {
-  if (document.querySelector('.modal-overlay')) return;
+  const enSeance = sessionActive || document.getElementById('session-overlay')?.classList.contains('open')
+    || document.getElementById('session-detail-overlay')?.classList.contains('open')
+    || document.getElementById('sessions-list-overlay')?.classList.contains('open');
+  ouvrirGuide({ onglet: enSeance ? 'seances' : (MIDI_ON ? 'concert' : 'comprendre'), concert: MIDI_ON, onAccueil: () => ouvrirAccueil({ onCode: ouvrirCode }) });
+}
 
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-glass">
-      <h2>Que revele cette sphere ?</h2>
-      <p>Depuis 1998, le <strong>Global Consciousness Project</strong> de l'Universite
-      de Princeton deploie un reseau de generateurs de nombres aleatoires quantiques
-      (EGGs) a travers le monde. Ces appareils produisent en permanence des sequences
-      qui devraient etre parfaitement aleatoires.</p>
-      <p>Or, lors d'evenements qui synchronisent l'attention ou l'emotion de millions
-      de personnes — attentats, elections, ceremonies mondiales — les donnees
-      de ces capteurs deviennent statistiquement moins aleatoires.
-      Comme si une coherence invisible emergait.</p>
-      <p>Apres 25 ans de donnees, la probabilite que ce resultat soit du au
-      hasard est de l'ordre de <strong>1 sur 1 000 milliards</strong>.</p>
-      <p>Cette experience ne pretend rien prouver. Elle vous propose d'observer,
-      en temps reel, ce que mesurent ces capteurs — et d'interroger ce que
-      cela pourrait signifier.</p>
-      <h3>Le z-score</h3>
-      <p>Le z-score mesure l'ecart entre ce qu'on observe et ce que le hasard
-      pur devrait produire. Plus il est eleve (en valeur absolue), plus
-      l'anomalie est marquee :</p>
-      <ul>
-        <li><strong>|z| < 1</strong> — aleatoire normal</li>
-        <li><strong>|z| > 1.5</strong> — coherence notable</li>
-        <li><strong>|z| > 2</strong> — statistiquement significatif</li>
-        <li><strong>|z| > 3</strong> — anomalie rare</li>
-      </ul>
-      <h3>Les sources</h3>
-      <ul>
-        <li>Le generateur de votre propre appareil</li>
-        <li>Noosféérique : la clé quantique Cicada</li>
-        <li>QCI uQRNG, photonique quantique (USA), chaque seconde</li>
-        <li>NIST Beacon 2.0, une pulsation par minute (USA)</li>
-        <li>Princeton (EGGs mondiaux) : collecte arrêtée le 03/04/2026</li>
-      </ul>
-      <h3>En haut</h3>
-      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          <span>Choix des sources (plusieurs à la fois)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>Gamme musicale (432 Hz)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Cette page (aide et credits)</span>
-        </div>
-      </div>
-      <h3>En bas</h3>
-      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><path d="M3 3h18v18H3z" fill="none"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-          <span>Sessions enregistrees</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.5)"/></svg>
-          <span>Enregistrer une session (solo ou collective)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span>Historique des z-scores (24h)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-          <span>Son on/off + volume</span>
-        </div>
-      </div>
-      <h3>Pendant une session</h3>
-      <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:rgba(255,255,255,0.5)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:rgba(255,255,255,0.5);stroke-width:1.5;fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <span>Retour sphere (l'enregistrement continue)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:14px;height:14px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:5px;height:5px;border-radius:50%;background:#0B0E14"></div></div>
-          <span>Session en cours — cliquez pour revenir</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:14px;height:14px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:1px"><div style="width:2px;height:7px;background:#0B0E14;border-radius:1px"></div><div style="width:2px;height:7px;background:#0B0E14;border-radius:1px"></div></div>
-          <span>Session en pause</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:#FF4444;display:inline-block"></span><span style="font-size:9px;color:rgba(255,255,255,0.5);font-variant-numeric:tabular-nums">03:42</span></div>
-          <span>Temps ecoule (cliquez pour revenir)</span>
-        </div>
-      </div>
-      <p class="help-hint">Cliquez sur la sphere pour activer le son</p>
-      <p style="margin-top:16px"><a href="credits.html" target="_blank" style="color:#ffffff;font-size:11px;text-decoration:none;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.3)">Credits &amp; remerciements</a></p>
-      <button class="modal-close" aria-label="Fermer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const close = () => overlay.remove();
-  overlay.querySelector('.modal-close').addEventListener('click', close);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+// « J'ai un code de seance » : l'ecran de seance, le champ du code pret a remplir
+function ouvrirCode() {
+  document.getElementById('session-overlay')?.classList.add('open');
+  setTimeout(() => document.getElementById('collective-code')?.focus(), 350);
 }
 
 if (btnHelp) {
   btnHelp.addEventListener('click', createHelpModal);
 }
+
+// L'accueil, au premier passage seulement : jamais sur la page du concert
+// ?guide (lien du dashboard) ouvre le guide directement, sans l'accueil
+// (apres le chargement complet du module : le guide lit l'etat des seances, declare plus bas)
+setTimeout(() => {
+  if (new URLSearchParams(location.search).has('guide')) createHelpModal();
+  else if (!MIDI_ON && !accueilDejaVu()) ouvrirAccueil({ onCode: ouvrirCode });
+}, 0);
 
 // ============================================================
 // Settings panel — scale selector
@@ -1364,10 +1282,10 @@ function formatDuration(seconds) {
 
 // Returns a CSS color string that reflects z-score intensity.
 // Used consistently across the sphere indicator, graph overlay, and session recording.
+// L'echelle unique (guide.js) : hasard sous 1,96, notable jusqu'a 3, fort au-dela
 function zColor(absZ) {
-  if (absZ > 2)   return '#C9A24D';
-  if (absZ > 1.5) return 'rgba(255,255,255,0.9)';
-  return 'rgba(255,255,255,0.6)';
+  if (absZ < 1.96) return 'rgba(255,255,255,0.6)';
+  return niveau(absZ).couleur;
 }
 
 // Returns a zero-padded MM:SS string for a duration in seconds.

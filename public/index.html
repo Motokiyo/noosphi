@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>noos&phi; — Dashboard Prototype</title>
+  <title>Noosféérique · Dashboard</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -11,325 +11,156 @@
 <body>
 
   <header>
-    <div class="logo">
-      noos<span class="phi">&phi;</span>
-      <span class="logo-tagline">Conscience collective en temps r&eacute;el</span>
+    <div class="titre">
+      <span class="marque">NOOSFÉÉRIQUE</span>
+      <span class="sous-titre">Dashboard · les sources en direct</span>
     </div>
     <div class="header-droite">
-      <div class="status-badge" id="global-status">
-        <div class="dot-mini"></div>
-        <span id="status-text">Connexion...</span>
-        <span class="info-btn" data-tooltip="Sources qui r&eacute;pondent en ce moment. Une source indisponible ou d&eacute;sactiv&eacute;e est simplement laiss&eacute;e de c&ocirc;t&eacute; : l'app continue avec les autres.">i</span>
-      </div>
-      <!-- Revenir a l'experience (les parametres d'URL, comme ?midi=1, sont gardes par app.js) -->
-      <a class="dashboard-fermer" id="dashboard-fermer" href="experience.html" aria-label="Fermer" title="Revenir &agrave; l'exp&eacute;rience">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-      </a>
+      <span class="pilule" id="global-status">
+        <span class="point"></span>
+        <span id="status-text">Connexion en cours</span>
+        <span class="info-btn" tabindex="0" data-tooltip="Les sources qui répondent en ce moment. Une source indisponible est simplement laissée de côté : l'app continue avec les autres.">i</span>
+      </span>
+      <a class="lien-retour" id="dashboard-fermer" href="/experience.html">Retour à la sphère</a>
     </div>
   </header>
 
   <main>
-    <!-- Left: GCP Dot -->
-    <div class="card dot-panel">
-
-      <div class="gcp-dot-container">
-        <div class="gcp-dot" id="gcp-dot"></div>
-        <div class="gcp-dot-ring" id="gcp-ring"></div>
+    <section class="rangee-haut">
+      <!-- 1. Le z combiné -->
+      <div class="carte carte-z">
+        <div class="sphere-mini" id="sphere-mini" aria-hidden="true"></div>
+        <div class="z-grand" id="z-main-value">--</div>
+        <div class="z-lecture" id="z-label">En attente des sources</div>
+        <div class="z-aide" id="z-sublabel">z de l'instant, toutes les sources réunies par la méthode de Stouffer</div>
+        <div class="pastilles-echelle">
+          <div class="chip chip-0">sous 1,96<br><span>hasard</span></div>
+          <div class="chip chip-1">1,96 à 3<br><span>notable</span></div>
+          <div class="chip chip-2">au-delà de 3<br><span>fort</span></div>
+        </div>
+        <div class="maj" id="update-time">--</div>
       </div>
 
-      <div class="z-value" id="z-main-value">--</div>
-      <div class="z-label" id="z-label">Chargement...</div>
-      <div class="z-sublabel" id="z-sublabel">Score combin&eacute; de toutes les sources</div>
-      <div class="eggs-badge" id="eggs-count">
-        -- EGGs
-        <span class="info-btn info-btn-sm" data-tooltip="Nombre de secondes de donn&eacute;es re&ccedil;ues du r&eacute;seau Princeton. Chaque seconde combine l'ensemble des capteurs EGG actifs dans le monde.">i</span>
-      </div>
-
-      <!-- Color legend -->
-      <div class="color-legend">
-        <div class="legend-title">
-          Que signifient les couleurs ?
-          <span class="info-btn info-btn-sm" data-tooltip="Ces seuils sont ceux utilis&eacute;s par le Global Consciousness Project de Princeton depuis 1998. Ils correspondent &agrave; des niveaux de probabilit&eacute; statistique.">i</span>
-        </div>
-        <div class="legend-item"><span class="legend-dot" style="background:#00CC66"></span> Vert : al&eacute;atoire normal, rien de sp&eacute;cial</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#CCCC00"></span> Jaune : l&eacute;g&egrave;re coh&eacute;rence d&eacute;tect&eacute;e</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#FF8800"></span> Orange : coh&eacute;rence significative</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#FF2200"></span> Rouge : anomalie forte (tr&egrave;s rare)</div>
-      </div>
-
-      <div class="update-time" id="update-time">--</div>
-    </div>
-
-    <!-- Right: Chart -->
-    <div class="card chart-panel">
-      <div class="chart-header">
-        <div>
-          <div class="chart-title">
-            Historique en temps r&eacute;el
-            <span class="info-btn info-btn-sm" data-tooltip="Ce graphique montre l'&eacute;volution des Z-Index au fil du temps. Cochez ou d&eacute;cochez les sources pour choisir ce que vous voulez voir. Quand plusieurs courbes bougent ensemble, c'est int&eacute;ressant.">i</span>
-          </div>
-        </div>
-        <div class="chart-subtitle" id="chart-points">0 points</div>
-      </div>
-
-      <!-- Source rows: toggle + color + name + z-value -->
-      <div class="source-rows">
-
-        <div class="source-row" data-curve="0" data-source="gcp">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#6C63FF"></span>
-          <span class="row-name">Mondial <span class="row-origin">(Princeton, collecte arr&ecirc;t&eacute;e le 03/04/2026)</span></span>
-          <span class="row-z" id="z-row-gcp">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="R&eacute;seau mondial du Global Consciousness Project. ~60 capteurs quantiques r&eacute;partis sur toute la plan&egrave;te, g&eacute;r&eacute;s par l'Universit&eacute; de Princeton depuis 1998.">i</span>
+      <!-- 2. Les sources -->
+      <div class="carte carte-sources">
+        <div class="carte-entete">
+          <h2>LES SOURCES
+            <span class="info-btn info-btn-sm" tabindex="0" data-tooltip="Quatre sources de nombres aléatoires, certaines dans le cloud, une dans votre appareil. Chacune donne un z, réunis ensuite en un seul score.">i</span>
+          </h2>
+          <span class="carte-aide">z de l'instant · rythme · état</span>
         </div>
 
-        <div class="source-row" data-curve="1" data-source="local">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#00E5FF"></span>
-          <span class="row-name">Ma machine <span class="row-origin" id="local-device-name">(...)</span></span>
-          <span class="row-z" id="z-row-local">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="Le g&eacute;n&eacute;rateur de nombres al&eacute;atoires int&eacute;gr&eacute; dans votre appareil. Utilise le bruit thermique des composants &eacute;lectroniques — c'est votre capteur personnel.">i</span>
-        </div>
-
-        <div class="source-row" data-curve="2" data-source="nist">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#00CC66"></span>
-          <span class="row-name">NIST Beacon <span class="row-origin">(une pulsation par minute)</span></span>
-          <span class="row-z" id="z-row-nist">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="Balise publique du NIST (USA) : chaque minute, 512 bits d'al&eacute;atoire sign&eacute;s, transform&eacute;s en deux essais de 200 bits comme les EGG.">i</span>
-        </div>
-
-        <div class="source-row" data-source="qci">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#C9A24D"></span>
-          <span class="row-name">QCI <span class="row-origin">(photonique, cloud)</span></span>
-          <span class="row-z" id="z-row-qci">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="G&eacute;n&eacute;rateur quantique photonique de QCI, interrog&eacute; dans le cloud.">i</span>
-        </div>
-
-        <div class="source-row" data-source="cicada">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#FF5FA2"></span>
-          <span class="row-name">Noosf&eacute;&eacute;rique <span class="row-origin">(cl&eacute; quantique Cicada)</span></span>
-          <span class="row-z" id="z-row-cicada">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="La cl&eacute; quantique de Franck Laharrague, lue une fois par seconde par le serveur.">i</span>
-        </div>
-
-        <div class="source-row" data-curve="3" data-source="combined">
-          <label class="switch"><input type="checkbox" checked /><span class="slider"></span></label>
-          <span class="row-swatch" style="background:#CC44FF"></span>
-          <span class="row-name">Combin&eacute; <span class="row-origin">(toutes sources)</span></span>
-          <span class="row-z" id="z-row-combined">--</span>
-          <span class="info-btn info-btn-xs" data-tooltip="Fusion de toutes les sources activ&eacute;es ci-dessus en un seul score, via la m&eacute;thode statistique de Stouffer. Plus il y a de sources, plus la mesure est fiable.">i</span>
-        </div>
-
-      </div>
-
-      <div class="chart-container">
-        <canvas id="chart-24h"></canvas>
-      </div>
-    </div>
-
-    <!-- Source status cards -->
-    <div class="status-panel">
-      <div class="status-panel-header">
-        <span class="chart-title">Sources de donn&eacute;es</span>
-        <span class="info-btn" data-tooltip="L'app utilise 4 sources de nombres al&eacute;atoires diff&eacute;rentes. Certaines viennent de capteurs physiques dans le monde, d'autres du cloud, et une vient directement de votre ordinateur. Chaque carte montre si la source est connect&eacute;e et fonctionne.">i</span>
-      </div>
-
-      <!-- GCP -->
-      <div class="source-card" id="card-gcp">
-        <div class="source-header">
-          <span class="source-name">
-            GCP 1.0 (Princeton)
-            <span class="info-btn info-btn-sm" data-tooltip="Le Global Consciousness Project de l'Universit&eacute; de Princeton. Depuis 1998, ~60 capteurs quantiques r&eacute;partis dans le monde g&eacute;n&egrave;rent des nombres al&eacute;atoires en permanence. Quand un &eacute;v&eacute;nement mondial synchronise les &eacute;motions de millions de personnes, ces capteurs d&eacute;vient de l'al&eacute;atoire pur.">i</span>
-          </span>
-          <div class="source-status" id="status-gcp">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc">Collecte arr&ecirc;t&eacute;e le 03/04/2026 (panne mat&eacute;rielle chez l'h&eacute;bergeur)</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">Latence <span class="info-btn info-btn-xs" data-tooltip="Temps de r&eacute;ponse du serveur de Princeton. Plus c'est bas, mieux c'est.">i</span></span>
-            <span class="value" id="lat-gcp">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">EGGs <span class="info-btn info-btn-xs" data-tooltip="Nombre de capteurs actifs dans le r&eacute;seau mondial. G&eacute;n&eacute;ralement entre 60 et 70.">i</span></span>
-            <span class="value" id="eggs-gcp">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">p-moy <span class="info-btn info-btn-xs" data-tooltip="Moyenne des p-values. Proche de 0.5 = al&eacute;atoire normal. Plus &ccedil;a s'&eacute;loigne de 0.5, plus c'est inhabituel.">i</span></span>
-            <span class="value" id="pmean-gcp">--</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- NIST Beacon -->
-      <div class="source-card" id="card-nist">
-        <div class="source-header">
-          <span class="source-name">
-            NIST Beacon
-            <span class="info-btn info-btn-sm" data-tooltip="Service du gouvernement am&eacute;ricain (National Institute of Standards and Technology). Chaque minute, il publie un 'pulse' contenant 512 bits d'al&eacute;atoire v&eacute;rifiable. C'est comme une horloge d'al&eacute;atoire publique et infalsifiable.">i</span>
-          </span>
-          <div class="source-status" id="status-nist">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc">Balise publique d'al&eacute;atoire, une pulsation par minute (USA)</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">Latence</span>
-            <span class="value" id="lat-nist">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Pulse <span class="info-btn info-btn-xs" data-tooltip="Num&eacute;ro du dernier pulse re&ccedil;u. Le NIST en &eacute;met un par minute depuis 2013.">i</span></span>
-            <span class="value" id="pulse-nist">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Moyenne</span>
-            <span class="value" id="mean-nist">--</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Local RNG -->
-      <div class="source-card" id="card-local">
-        <div class="source-header">
-          <span class="source-name">
-            <span id="card-local-name">Votre machine</span>
-            <span class="info-btn info-btn-sm" data-tooltip="C'est le g&eacute;n&eacute;rateur de votre propre appareil. Il contient une puce qui produit des nombres al&eacute;atoires &agrave; partir du bruit thermique de ses composants &eacute;lectroniques. C'est votre capteur personnel.">i</span>
-          </span>
-          <div class="source-status" id="status-local">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc" id="card-local-desc">RNG de cet appareil (bruit thermique)</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">Latence</span>
-            <span class="value" id="lat-local">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Octets</span>
-            <span class="value" id="count-local">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Moyenne</span>
-            <span class="value" id="mean-local">--</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- QCI -->
-      <div class="source-card" id="card-qci">
-        <div class="source-header">
-          <span class="source-name">QCI uQRNG</span>
-          <div class="source-status" id="status-qci">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc">Photonique, interrog&eacute; dans le cloud (USA)</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">z</span>
-            <span class="value" id="z-card-qci">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Rythme</span>
-            <span class="value">toutes les 10 s ici</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Noosfeerique (Cicada) -->
-      <div class="source-card" id="card-cicada">
-        <div class="source-header">
-          <span class="source-name">Noosf&eacute;&eacute;rique</span>
-          <div class="source-status" id="status-cicada">
-            <div class="indicator"></div>
-            <span>--</span>
-          </div>
-        </div>
-        <div class="source-desc">Cl&eacute; quantique Cicada de Franck Laharrague</div>
-        <div class="source-stats">
-          <div class="source-stat">
-            <span class="label">z</span>
-            <span class="value" id="z-card-cicada">--</span>
-          </div>
-          <div class="source-stat">
-            <span class="label">Rythme</span>
-            <span class="value">chaque seconde</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Combined Z + Distribution -->
-    <div class="combined-panel">
-      <div class="card formula-card">
-        <div class="chart-title">
-          Score global combin&eacute;
-          <span class="info-btn info-btn-sm" data-tooltip="Ce score combine toutes les sources en un seul chiffre. C'est comme prendre la temp&eacute;rature de la conscience collective en utilisant tous les thermom&egrave;tres disponibles &agrave; la fois. Plus on a de sources, plus la mesure est pr&eacute;cise.">i</span>
-        </div>
-        <div class="chart-subtitle">Fusion de toutes les sources actives (m&eacute;thode Stouffer)</div>
-        <div class="formula" id="formula-display">
-          Z<sub>combin&eacute;</sub> = (somme des z des sources actives) / &radic;n
-        </div>
-        <div class="z-details">
-          <div class="z-detail-row">
-            <span class="z-detail-label">
-              z<sub>mondial</sub>
-              <span class="info-btn info-btn-xs" data-tooltip="Score du r&eacute;seau mondial Princeton (les ~60 capteurs sur la plan&egrave;te).">i</span>
+        <div class="source-ligne" id="card-cicada">
+          <span class="pastille" id="dot-cicada"></span>
+          <span class="source-texte">
+            <span class="source-nom">Noosféérique
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="La clé quantique de Franck Laharrague, lue une fois par seconde par le serveur.">i</span>
             </span>
-            <span class="z-detail-value" id="z-src-gcp">--</span>
-          </div>
-          <div class="z-detail-row">
-            <span class="z-detail-label">z<sub>NIST</sub></span>
-            <span class="z-detail-value" id="z-src-nist">--</span>
-          </div>
-          <div class="z-detail-row">
-            <span class="z-detail-label">
-              z<sub>local</sub>
-              <span class="info-btn info-btn-xs" data-tooltip="Score du g&eacute;n&eacute;rateur de votre MacBook.">i</span>
-            </span>
-            <span class="z-detail-value" id="z-src-local">--</span>
-          </div>
-          <div class="z-detail-row">
-            <span class="z-detail-label">z<sub>QCI</sub></span>
-            <span class="z-detail-value" id="z-src-qci">--</span>
-          </div>
-          <div class="z-detail-row">
-            <span class="z-detail-label">z<sub>Noosf&eacute;&eacute;rique</sub></span>
-            <span class="z-detail-value" id="z-src-cicada">--</span>
-          </div>
-          <div class="z-detail-row" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
-            <span class="z-detail-label" style="font-weight:600">Score final</span>
-            <span class="z-detail-value" id="z-combined-final" style="font-size: 24px; color: var(--accent)">--</span>
-          </div>
+            <span class="source-detail">Clé quantique Cicada de Franck Laharrague</span>
+          </span>
+          <span class="source-rythme">chaque seconde</span>
+          <span class="source-etat" id="status-cicada"><span>--</span></span>
+          <span class="source-z" id="z-row-cicada">--</span>
         </div>
+
+        <div class="source-ligne" id="card-local">
+          <span class="pastille" id="dot-local"></span>
+          <span class="source-texte">
+            <span class="source-nom">Cet appareil
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Le générateur de nombres aléatoires intégré à votre ordinateur ou téléphone. Le tirage se fait ici, dans votre navigateur, sans passer par le serveur.">i</span>
+            </span>
+            <span class="source-detail">Le générateur de votre ordinateur ou téléphone</span>
+          </span>
+          <span class="source-rythme">chaque seconde</span>
+          <span class="source-etat" id="status-local"><span>--</span></span>
+          <span class="source-z" id="z-row-local">--</span>
+        </div>
+
+        <div class="source-ligne" id="card-qci">
+          <span class="pastille" id="dot-qci"></span>
+          <span class="source-texte">
+            <span class="source-nom">QCI uQRNG
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Générateur quantique photonique de QCI, interrogé dans le cloud (États-Unis).">i</span>
+            </span>
+            <span class="source-detail">Photonique quantique, États-Unis</span>
+          </span>
+          <span class="source-rythme">toutes les 10 s ici</span>
+          <span class="source-etat" id="status-qci"><span>--</span></span>
+          <span class="source-z" id="z-row-qci">--</span>
+        </div>
+
+        <div class="source-ligne" id="card-nist">
+          <span class="pastille" id="dot-nist"></span>
+          <span class="source-texte">
+            <span class="source-nom">NIST Beacon
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Balise publique du NIST (États-Unis). Chaque minute, 512 bits d'aléatoire signés, transformés en deux essais de 200 bits comme les capteurs EGG.">i</span>
+            </span>
+            <span class="source-detail">Balise publique, États-Unis · pulsation <span id="pulse-nist">--</span>
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Numéro de la dernière pulsation reçue. Le NIST en émet une par minute depuis 2013.">i</span>
+            </span>
+          </span>
+          <span class="source-rythme">une par minute</span>
+          <span class="source-etat" id="status-nist"><span>--</span></span>
+          <span class="source-z" id="z-row-nist">--</span>
+        </div>
+
+        <div class="source-ligne source-eteinte" id="card-gcp">
+          <span class="pastille pastille-eteinte"></span>
+          <span class="source-texte">
+            <span class="source-nom">Princeton
+              <span class="info-btn info-btn-xs" tabindex="0" data-tooltip="Le Global Consciousness Project de l'université de Princeton : depuis 1998, une soixantaine de capteurs répartis dans le monde. Sa collecte est arrêtée.">i</span>
+            </span>
+            <span class="source-detail">Œufs du Global Consciousness Project</span>
+          </span>
+          <span class="source-rythme"></span>
+          <span class="source-etat" id="status-gcp"><span>arrêtée</span></span>
+          <span class="source-z">--</span>
+        </div>
+
+        <p class="note">Princeton (les œufs du Global Consciousness Project) : collecte arrêtée le 03/04/2026. ANU : retirée.</p>
+      </div>
+    </section>
+
+    <!-- 3. Historique -->
+    <section class="carte">
+      <div class="carte-entete">
+        <h2>L'HISTORIQUE EN DIRECT
+          <span class="info-btn info-btn-sm" tabindex="0" data-tooltip="Évolution des z au fil du temps. Cliquez sur une légende pour masquer ou montrer une courbe. Les lignes pointillées marquent ±1,96, la limite du hasard ordinaire.">i</span>
+        </h2>
+        <div class="legende" id="legende">
+          <button type="button" data-curve="0"><i style="background:#F5F5F2"></i>réunies</button>
+          <button type="button" data-curve="1"><i style="background:#4EC9C6"></i>Noosféérique</button>
+          <button type="button" data-curve="2"><i style="background:#C9A24D"></i>QCI</button>
+          <button type="button" data-curve="3"><i style="background:#8FA3B8"></i>Cet appareil</button>
+          <button type="button" data-curve="4"><i style="background:#9C8FB8"></i>NIST</button>
+          <span class="carte-aide" id="chart-points">0 points</span>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="chart-24h"></canvas></div>
+    </section>
+
+    <section class="rangee-bas">
+      <!-- 4. Distribution -->
+      <div class="carte">
+        <h2>LES 1 000 DERNIERS TIRAGES DE CET APPAREIL
+          <span class="info-btn info-btn-sm" tabindex="0" data-tooltip="Répartition des 1 000 derniers octets tirés par votre appareil. Sous le pur hasard, les colonnes restent à peu près égales. Si certaines dépassent nettement les autres, c'est inhabituel.">i</span>
+        </h2>
+        <p class="carte-aide bloc">Chaque octet vaut de 0 à 255, regroupés en 16 colonnes. Moyenne : <span id="mean-local">--</span> (attendue : 127,5).</p>
+        <div class="distribution-container"><canvas id="chart-distribution"></canvas></div>
       </div>
 
-      <div class="card">
-        <div class="chart-title">
-          Distribution locale
-          <span class="info-btn info-btn-sm" data-tooltip="Cet histogramme montre la r&eacute;partition des nombres g&eacute;n&eacute;r&eacute;s par votre MacBook. Si tout est bien al&eacute;atoire, toutes les barres devraient &ecirc;tre &agrave; peu pr&egrave;s &agrave; la m&ecirc;me hauteur (distribution uniforme). Si certaines barres sont nettement plus hautes, quelque chose d'inhabituel se passe.">i</span>
-        </div>
-        <div class="chart-subtitle">R&eacute;partition des 1000 derniers nombres de votre machine</div>
-        <div class="distribution-container">
-          <canvas id="chart-distribution"></canvas>
-        </div>
+      <div class="carte carte-calcul">
+        <h2>LE CALCUL
+          <span class="info-btn info-btn-sm" tabindex="0" data-tooltip="Chaque source se ramène à un z. On les additionne puis on divise par la racine de leur nombre : c'est la méthode de Stouffer.">i</span>
+        </h2>
+        <p class="calcul-texte">Chaque source donne 200 bits. z = (piles − 100) / √50. Les sources se réunissent ainsi :</p>
+        <div class="formule" id="formula-display">--</div>
+        <a href="/experience.html?guide" id="lien-guide">Comprendre le z dans le guide</a>
       </div>
-    </div>
+    </section>
   </main>
 
-  <footer>
-    noos&phi; prototype v0.1 &mdash; EIFFEL AI &mdash; Mesurer la conscience collective en temps r&eacute;el
-  </footer>
+  <div id="tooltip" role="tooltip"></div>
 
   <script src="js/zindex.js"></script>
   <script src="js/charts.js"></script>

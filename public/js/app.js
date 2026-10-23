@@ -1,217 +1,155 @@
-// noosphi — Main application logic (tableau de bord)
+// Noosféérique · Dashboard : logique de la page
 //
-// Sources : cet appareil (generateur du serveur), QCI, NIST Beacon (une pulsation
-// par minute), Noosfeerique (cle Cicada). Princeton : collecte arretee le
-// 03/04/2026, plus interrogee. ANU : retiree (payante).
+// Sources : Noosféérique (clé Cicada), cet appareil (tirage fait ICI, dans le navigateur),
+// QCI, NIST Beacon (une pulsation par minute). Princeton : collecte arrêtée le 03/04/2026.
+// ANU : retirée.
 
-const state = {
-  zLocal: null,
-  zNIST: null,
-  zQCI: null,
-  zCicada: null,
-  zCombined: null,
-  enabled: { gcp: false, local: true, nist: true, qci: true, cicada: true, combined: true }
-};
-const ARRETEES = ['gcp'];
-const NOMS = { local: 'Local', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
+const state = { zLocal: null, zNIST: null, zQCI: null, zCicada: null, zCombined: null };
+const SOURCES = ['cicada', 'local', 'qci', 'nist'];
+const NOMS = { local: 'Cet appareil', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
+const CLE_Z = { local: 'zLocal', nist: 'zNIST', qci: 'zQCI', cicada: 'zCicada' };
 
-// --- Helpers ---
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  for (const child of el.childNodes) {
-    if (child.nodeType === Node.TEXT_NODE) { child.textContent = text; return; }
-  }
-  const tn = document.createTextNode(text);
-  el.firstChild ? el.insertBefore(tn, el.firstChild) : el.appendChild(tn);
-}
 const fini = v => v != null && isFinite(v);
+// 1,5 -> "1,50" ; -0,5 -> "−0,50" (virgule française, vrai signe moins)
+const fmt = (v, d = 2) => v.toFixed(d).replace('.', ',').replace('-', '−');
 
-// --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
-  initSourceRows();
-  initFermer();
+  initTooltips();
+  initLiens();
 
-  // Princeton : collecte arretee, on ne l'interroge plus
-  updateSourceCard('gcp', 'arretee', { lat: '--', eggs: '--', pmean: '--' });
-  setText('eggs-count', 'Princeton : collecte arrêtée le 03/04/2026 ');
-
-  fetchLocalRNG();
+  fetchLocal();
   fetchNIST();
   fetchQCI();
   fetchCicada();
 
-  setInterval(fetchLocalRNG, 30_000);
-  setInterval(fetchNIST, 20_000);     // une pulsation par minute, regardee toutes les 20 s
-  setInterval(fetchQCI, 10_000);      // le quota QCI est partage avec l'experience : on reste sobre
+  setInterval(fetchLocal, 1_000);
+  setInterval(fetchNIST, 20_000);     // une pulsation par minute, regardée toutes les 20 s
+  setInterval(fetchQCI, 10_000);      // le quota QCI est partagé avec l'expérience
   setInterval(fetchCicada, 2_000);
-  setInterval(pushChartPoint, 5_000); // le graphique vit en continu
+  setInterval(pushChartPoint, 5_000);
+  setTimeout(pushChartPoint, 1_500);
 });
 
-// --- Croix de fermeture : retour a l'experience, avec les parametres d'URL (?midi=1…) ---
-function initFermer() {
-  const croix = document.getElementById('dashboard-fermer');
-  if (croix) croix.href = 'experience.html' + location.search;
+// Les liens gardent les paramètres d'URL (?midi=1…)
+function initLiens() {
+  for (const id of ['dashboard-fermer', 'lien-guide']) {
+    const a = document.getElementById(id);
+    if (a) a.href = '/experience.html' + location.search;
+  }
 }
 
-// --- Source row switches ---
-function initSourceRows() {
-  document.querySelectorAll('.source-row').forEach(row => {
-    const curveIdx = parseInt(row.dataset.curve);
-    const sourceKey = row.dataset.source;
-    const cb = row.querySelector('input[type="checkbox"]');
-
-    // Princeton : a sa place, eteinte et grisee, avec la date de l'arret
-    if (ARRETEES.includes(sourceKey)) {
-      cb.checked = false;
-      cb.disabled = true;
-      row.classList.add('disabled', 'desactivee');
-      row.title = 'Princeton · collecte arrêtée le 03/04/2026';
-    }
-    // Chaque courbe suit son interrupteur des le chargement
-    if (chart24h.data.datasets[curveIdx]) chart24h.data.datasets[curveIdx].hidden = !cb.checked;
-
-    cb.addEventListener('change', () => {
-      state.enabled[sourceKey] = cb.checked;
-      row.classList.toggle('disabled', !cb.checked);
-
-      // Toggle chart curve visibility
-      if (chart24h.data.datasets[curveIdx]) {
-        chart24h.data.datasets[curveIdx].hidden = !cb.checked;
-        chart24h.update();
-      }
-
-      // Recalc combined (only from enabled sources)
-      recalcCombined();
-      updateDotDisplay();
-    });
+// --- Info-bulles : une seule bulle, calée dans l'écran (survol, focus ou toucher) ---
+function initTooltips() {
+  const bulle = document.getElementById('tooltip');
+  let courant = null;
+  const montrer = el => {
+    courant = el;
+    bulle.textContent = el.dataset.tooltip;
+    bulle.classList.add('on');
+    const r = el.getBoundingClientRect();
+    const w = bulle.offsetWidth, h = bulle.offsetHeight;
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+    let y = r.bottom + 8;
+    if (y + h > window.innerHeight - 8) y = r.top - h - 8;
+    bulle.style.left = `${x}px`;
+    bulle.style.top = `${Math.max(8, y)}px`;
+  };
+  const cacher = () => { courant = null; bulle.classList.remove('on'); };
+  document.querySelectorAll('.info-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => montrer(el));
+    el.addEventListener('mouseleave', cacher);
+    el.addEventListener('focus', () => montrer(el));
+    el.addEventListener('blur', cacher);
+    el.addEventListener('click', e => { e.preventDefault(); courant === el ? cacher() : montrer(el); });
   });
-  if (chart24h) chart24h.update();
+  document.addEventListener('click', e => { if (!e.target.closest('.info-btn')) cacher(); });
+  window.addEventListener('scroll', cacher, { passive: true });
 }
 
-// --- Dot display: always shows the combined z of enabled sources ---
-function updateDotDisplay() {
-  const z = state.zCombined;
-  const dot = document.getElementById('gcp-dot');
-  const ring = document.getElementById('gcp-ring');
-  const mainVal = document.getElementById('z-main-value');
-  const label = document.getElementById('z-label');
-  const sublabel = document.getElementById('z-sublabel');
+// --- Réunion des sources (méthode de Stouffer) ---
+const actives = () => SOURCES.filter(k => fini(state[CLE_Z[k]]));
 
+function recalcCombined() {
+  const act = actives();
+  const zs = act.map(k => state[CLE_Z[k]]);
+  state.zCombined = zs.length ? zs.reduce((a, b) => a + b, 0) / Math.sqrt(zs.length) : null;
+
+  const f = document.getElementById('formula-display');
+  if (zs.length) {
+    const somme = zs.map((v, i) => i === 0 ? fmt(v) : (v < 0 ? `− ${fmt(-v)}` : `+ ${fmt(v)}`)).join(' ');
+    f.textContent = `(${somme}) / √${zs.length} = ${fmt(state.zCombined)}`;
+  } else {
+    f.textContent = 'Aucune source disponible pour le moment';
+  }
+  updateRows();
+  updateBig();
+}
+
+// --- Le grand z et sa lecture sur l'échelle unifiée ---
+function updateBig() {
+  const z = state.zCombined;
+  const sphere = document.getElementById('sphere-mini');
+  const val = document.getElementById('z-main-value');
+  const lect = document.getElementById('z-label');
   if (!fini(z)) {
-    mainVal.textContent = '--';
-    mainVal.style.color = 'var(--text-muted)';
-    label.textContent = 'En attente des sources...';
-    dot.style.background = 'var(--text-muted)';
-    dot.style.boxShadow = 'none';
-    ring.style.borderColor = 'var(--border)';
+    val.textContent = '--';
+    lect.textContent = 'En attente des sources';
+    sphere.className = 'sphere-mini vide';
     return;
   }
-
   const info = zToColor(z);
-  mainVal.textContent = z.toFixed(3);
-  mainVal.style.color = info.color;
-  label.textContent = info.label;
-  sublabel.textContent = `Combiné : ${sourcesActives().map(k => k === 'local' ? (state.deviceName || 'Local') : NOMS[k]).join(' + ') || 'aucune source active'}`;
-
-  dot.style.background = info.color;
-  dot.style.boxShadow = `0 0 40px ${info.color}66, 0 0 80px ${info.color}26`;
-  ring.style.borderColor = `${info.color}33`;
+  val.textContent = fmt(z);
+  val.style.color = info.level === 0 ? '#fff' : info.color;
+  lect.textContent = info.label;
+  sphere.className = `sphere-mini niv-${info.level}`;
 }
 
-// Les sources cochees qui ont une valeur
-const valeurs = () => ({ local: state.zLocal, nist: state.zNIST, qci: state.zQCI, cicada: state.zCicada });
-function sourcesActives() {
-  const v = valeurs();
-  return Object.keys(v).filter(k => state.enabled[k] && fini(v[k]));
-}
-
-// --- Update z-values in source rows ---
-function updateRowZ() {
-  const pairs = [
-    ['z-row-local', state.zLocal],
-    ['z-row-nist', state.zNIST],
-    ['z-row-qci', state.zQCI],
-    ['z-row-cicada', state.zCicada],
-    ['z-row-combined', state.zCombined],
-    ['z-card-qci', state.zQCI],
-    ['z-card-cicada', state.zCicada]
-  ];
-  for (const [id, val] of pairs) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    if (fini(val)) {
-      el.textContent = val.toFixed(4);
-      el.style.color = zToColor(val).color;
+// --- Lignes des sources ---
+function updateRows() {
+  for (const k of SOURCES) {
+    const v = state[CLE_Z[k]];
+    const z = document.getElementById(`z-row-${k}`);
+    const dot = document.getElementById(`dot-${k}`);
+    if (fini(v)) {
+      z.textContent = fmt(v);
+      z.style.color = '#fff';
+      dot.style.background = zToColor(v).color;
     } else {
-      el.textContent = '--';
-      el.style.color = 'var(--text-muted)';
+      z.textContent = '--';
+      z.style.color = 'var(--texte-3)';
+      dot.style.background = 'rgba(255,255,255,0.2)';
     }
   }
-
-  // Also bottom panel
-  const ids = [['z-src-local','zLocal'],['z-src-nist','zNIST'],['z-src-qci','zQCI'],['z-src-cicada','zCicada'],['z-combined-final','zCombined']];
-  for (const [id, key] of ids) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    const v = state[key];
-    el.textContent = fini(v) ? v.toFixed(4) : '--';
-    el.style.color = fini(v) ? zToColor(v).color : 'var(--text-muted)';
-  }
 }
 
-// --- Recalc combined from enabled sources only ---
-function recalcCombined() {
-  const v = valeurs();
-  const actives = sourcesActives();
-  const zValues = actives.map(k => v[k]);
-
-  state.zCombined = zValues.length > 0
-    ? parseFloat((zValues.reduce((a, b) => a + b, 0) / Math.sqrt(zValues.length)).toFixed(4))
-    : null;
-
-  // (innerHTML sans risque : uniquement les noms constants des sources)
-  const formule = document.getElementById('formula-display');
-  if (formule) formule.innerHTML = zValues.length
-    ? `Z<sub>combiné</sub> = (${actives.map(k => `z<sub>${NOMS[k]}</sub>`).join(' + ')}) / &radic;${zValues.length}`
-    : 'Z<sub>combiné</sub> : aucune source active';
-
-  updateRowZ();
-}
-
-// --- Push chart point (courbes : Princeton, local, NIST, combine) ---
 function pushChartPoint() {
-  addChartPoint(
-    Date.now(),
-    null,
-    fini(state.zLocal) ? state.zLocal : null,
-    fini(state.zNIST) ? state.zNIST : null,
-    fini(state.zCombined) ? state.zCombined : null
-  );
-  document.getElementById('chart-points').textContent = `${chart24h.data.labels.length} pts`;
-  document.getElementById('update-time').textContent = `MAJ: ${new Date().toLocaleTimeString('fr-FR')}`;
+  addChartPoint(Date.now(), {
+    combined: fini(state.zCombined) ? state.zCombined : null,
+    cicada: fini(state.zCicada) ? state.zCicada : null,
+    qci: fini(state.zQCI) ? state.zQCI : null,
+    local: fini(state.zLocal) ? state.zLocal : null,
+    nist: fini(state.zNIST) ? state.zNIST : null
+  });
+  document.getElementById('chart-points').textContent = `${chart24h.data.labels.length} points`;
+  document.getElementById('update-time').textContent = `Mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
 }
 
-// === FETCH FUNCTIONS ===
-// Une source qui ne repond pas n'est pas une erreur : sa carte passe « indisponible ».
+// === Sources ===
+// Une source qui ne répond pas n'est pas une erreur : sa ligne passe « indisponible ».
 
 async function fetchNIST() {
   try {
     const data = await fetch('/api/nist-beacon').then(r => r.json());
     if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error('indisponible');
     state.zNIST = data.zIndex;
-    updateSourceCard('nist', 'up', {
-      lat: data.cached ? 'cache' : `${data.latency}ms`,
-      pulse: data.pulseIndex ? `#${data.pulseIndex}` : '--',
-      mean: data.mean
-    });
+    document.getElementById('pulse-nist').textContent = data.pulseIndex ? `n° ${data.pulseIndex}` : '--';
+    setEtat('nist', 'up');
   } catch {
     state.zNIST = null;
-    updateSourceCard('nist', 'down', { lat: '--', pulse: '--', mean: '--' });
+    setEtat('nist', 'down');
   }
   recalcCombined();
-  updateDotDisplay();
 }
 
 async function fetchQCI() {
@@ -219,13 +157,12 @@ async function fetchQCI() {
     const data = await fetch('/api/qci').then(r => r.json());
     if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error('indisponible');
     state.zQCI = data.zIndex;
-    updateSourceCard('qci', 'up', {});
+    setEtat('qci', 'up');
   } catch {
     state.zQCI = null;
-    updateSourceCard('qci', 'down', {});
+    setEtat('qci', 'down');
   }
   recalcCombined();
-  updateDotDisplay();
 }
 
 async function fetchCicada() {
@@ -233,80 +170,64 @@ async function fetchCicada() {
     const data = await fetch('/api/cicada').then(r => r.json());
     if (data.status !== 'ok' || !fini(data.zIndex)) throw new Error(data.etat || 'indisponible');
     state.zCicada = data.zIndex;
-    updateSourceCard('cicada', 'up', {});
+    setEtat('cicada', 'up');
   } catch (err) {
     state.zCicada = null;
-    updateSourceCard('cicada', err.message === 'reservee' ? 'reservee' : 'down', {});
+    setEtat('cicada', err.message === 'reservee' ? 'reservee' : 'down');
   }
   recalcCombined();
-  updateDotDisplay();
 }
 
-async function fetchLocalRNG() {
+// Cet appareil : tirage fait dans le navigateur, aucun appel au serveur.
+// Même méthode EGG que l'expérience : 200 bits, z = (piles − 100) / √50,
+// 10 essais réunis par Stouffer.
+const SQRT_50 = Math.sqrt(50);
+const ESSAIS = 10;
+function fetchLocal() {
   try {
-    const data = await fetch('/api/local-rng').then(r => r.json());
-    if (data.status !== 'ok') throw new Error(data.error || 'indisponible');
-
-    // le serveur donne le z EGG dans zIndex (l'ancien champ zScore n'existe plus)
-    const z = parseFloat(data.zIndex ?? data.zScore);
-    state.zLocal = fini(z) ? z : null;
-    updateSourceCard('local', 'up', { lat: `${data.latency}ms`, count: data.count, mean: data.mean });
-
-    // Update device name dynamically
-    if (data.device && !state.deviceName) state.deviceName = data.device;
-    if (data.device) {
-      const devLabel = document.getElementById('local-device-name');
-      if (devLabel) devLabel.textContent = `(${data.device})`;
-      const cardName = document.getElementById('card-local-name');
-      if (cardName) cardName.textContent = data.device;
-      const cardDesc = document.getElementById('card-local-desc');
-      if (cardDesc) cardDesc.textContent = `RNG de ${data.hostname || 'cet appareil'} (bruit thermique)`;
+    const octets = new Uint8Array(1000);
+    // getRandomValues plafonne à 65 536 octets par appel : 1000 passe sans souci
+    crypto.getRandomValues(octets);
+    let zSomme = 0;
+    for (let t = 0; t < ESSAIS; t++) {
+      let piles = 0;
+      for (let i = 0; i < 25; i++) {
+        let b = octets[t * 25 + i];
+        b = b - ((b >> 1) & 0x55);
+        b = (b & 0x33) + ((b >> 2) & 0x33);
+        piles += (b + (b >> 4)) & 0x0F;
+      }
+      zSomme += (piles - 100) / SQRT_50;
     }
-
-    if (data.data) updateDistribution(data.data);
+    state.zLocal = zSomme / Math.sqrt(ESSAIS);
+    let total = 0;
+    for (const b of octets) total += b;
+    document.getElementById('mean-local').textContent = fmt(total / octets.length);
+    updateDistribution(octets);
+    setEtat('local', 'up');
   } catch {
     state.zLocal = null;
-    updateSourceCard('local', 'down', { lat: '--', count: '--', mean: '--' });
+    setEtat('local', 'down');
   }
   recalcCombined();
-  updateDotDisplay();
 }
 
-// === SOURCE CARD UPDATE ===
-
-const ETIQUETTES = { up: 'ACTIVE', down: 'INDISPONIBLE', arretee: 'ARRÊTÉE', reservee: 'RÉSERVÉE' };
-
-function updateSourceCard(source, status, stats) {
-  const statusEl = document.getElementById(`status-${source}`);
-  if (!statusEl) return;
-  statusEl.className = `source-status ${status}`;
-  statusEl.querySelector('span').textContent = ETIQUETTES[status] || status.toUpperCase();
-  document.getElementById(`card-${source}`)?.classList.toggle('source-eteinte', status !== 'up');
-
-  const ids = {
-    gcp:   ['lat-gcp', 'eggs-gcp', 'pmean-gcp'],
-    nist:  ['lat-nist', 'pulse-nist', 'mean-nist'],
-    local: ['lat-local', 'count-local', 'mean-local']
-  };
-  const keys = { gcp: ['lat','eggs','pmean'], nist: ['lat','pulse','mean'], local: ['lat','count','mean'] };
-
-  (keys[source] || []).forEach((key, i) => {
-    const el = document.getElementById(ids[source]?.[i]);
-    if (el && stats[key] !== undefined) el.textContent = stats[key];
-  });
-
+const ETIQUETTES = { up: 'active', down: 'indisponible', reservee: 'réservée' };
+function setEtat(source, statut) {
+  const el = document.getElementById(`status-${source}`);
+  if (!el) return;
+  el.className = `source-etat ${statut}`;
+  el.querySelector('span').textContent = ETIQUETTES[statut] || statut;
+  document.getElementById(`card-${source}`)?.classList.toggle('source-eteinte', statut !== 'up');
   updateGlobalStatus();
 }
 
-// Le badge du haut : les sources qui repondent, sur celles qu'on interroge
+// La pilule du haut : les sources qui répondent, sur celles qu'on interroge
 function updateGlobalStatus() {
-  const suivies = ['local', 'nist', 'qci', 'cicada'];
   let up = 0;
-  for (const s of suivies) {
-    const el = document.getElementById(`status-${s}`);
-    if (el && el.classList.contains('up')) up++;
+  for (const s of SOURCES) {
+    if (document.getElementById(`status-${s}`)?.classList.contains('up')) up++;
   }
-  document.getElementById('status-text').textContent = `${up}/${suivies.length} sources actives`;
-  const badge = document.getElementById('global-status');
-  badge.className = 'status-badge' + (up === suivies.length ? ' up' : up > 0 ? ' partial' : ' down');
+  document.getElementById('status-text').textContent = `${up} source${up > 1 ? 's' : ''} sur ${SOURCES.length} répond${up > 1 ? 'ent' : ''}`;
+  document.getElementById('global-status').className = 'pilule' + (up === SOURCES.length ? ' up' : up > 0 ? ' partial' : '');
 }

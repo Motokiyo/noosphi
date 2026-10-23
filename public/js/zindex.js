@@ -80,14 +80,16 @@ function stoufferZ(pValues) {
 }
 
 /**
- * Z-score to color mapping (GCP Dot convention)
+ * Echelle unifiee (la meme que dans le guide de l'app) :
+ * |z| < 1,96 : dans le hasard ordinaire (blanc neutre)
+ * 1,96 a 3 : ecart notable (or)
+ * 3 et plus : ecart fort (cyan)
  */
 function zToColor(z) {
   const abs = Math.abs(z);
-  if (abs < 1.0) return { color: '#00CC66', label: 'Normal', level: 0 };
-  if (abs < 1.5) return { color: '#CCCC00', label: 'Notable', level: 1 };
-  if (abs < 2.0) return { color: '#FF8800', label: 'Significatif', level: 2 };
-  return { color: '#FF2200', label: 'Anomalie', level: 3 };
+  if (abs < 1.96) return { color: '#F5F5F2', label: 'dans le hasard ordinaire', level: 0 };
+  if (abs < 3) return { color: '#C9A24D', label: 'écart notable', level: 1 };
+  return { color: '#4EC9C6', label: 'écart fort', level: 2 };
 }
 
 /**

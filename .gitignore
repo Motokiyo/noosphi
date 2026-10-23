@@ -23,3 +23,6 @@ verify-final*.png
 # OS files
 .DS_Store
 Thumbs.db
+
+# Le film (lourd) : depose a la main sur le serveur, hors git
+public/media/

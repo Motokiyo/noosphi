@@ -1,61 +1,31 @@
-// noosphi — Chart.js configuration (4 curves + toggles)
+// Noosféérique · Chart.js (historique en direct + distribution de cet appareil)
+// Courbes : 0 réunies, 1 Noosféérique, 2 QCI, 3 cet appareil, 4 NIST
 
 let chart24h = null;
 let chartDistribution = null;
 
-function initCharts() {
-  const ctx24h = document.getElementById('chart-24h').getContext('2d');
+const POLICE = 'Inter';
+const GRAD_TICKS = { color: 'rgba(255,255,255,0.4)', font: { size: 10, family: POLICE } };
 
-  chart24h = new Chart(ctx24h, {
+function courbe(label, couleur, epaisseur) {
+  return {
+    label, data: [], borderColor: couleur, backgroundColor: couleur,
+    borderWidth: epaisseur, fill: false, tension: 0.3,
+    pointRadius: 0, pointHitRadius: 8, spanGaps: true
+  };
+}
+
+function initCharts() {
+  chart24h = new Chart(document.getElementById('chart-24h').getContext('2d'), {
     type: 'line',
     data: {
       labels: [],
       datasets: [
-        {
-          label: 'Mondial (Princeton)',
-          data: [],
-          borderColor: '#6C63FF',
-          backgroundColor: 'rgba(108, 99, 255, 0.1)',
-          borderWidth: 2,
-          fill: false,
-          tension: 0.3,
-          pointRadius: 0,
-          pointHitRadius: 8
-        },
-        {
-          label: 'Ma machine (local)',
-          data: [],
-          borderColor: '#00E5FF',
-          backgroundColor: 'rgba(0, 229, 255, 0.1)',
-          borderWidth: 1.5,
-          fill: false,
-          tension: 0.3,
-          pointRadius: 0,
-          pointHitRadius: 8
-        },
-        {
-          label: 'NIST Beacon',   // ANU retiree (payante) : sa courbe porte NIST
-          data: [],
-          borderColor: '#00CC66',
-          backgroundColor: 'rgba(0, 204, 102, 0.1)',
-          borderWidth: 1.5,
-          fill: false,
-          tension: 0.3,
-          pointRadius: 0,
-          pointHitRadius: 8
-        },
-        {
-          label: 'Combine (Stouffer)',
-          data: [],
-          borderColor: '#CC44FF',
-          backgroundColor: 'rgba(204, 68, 255, 0.1)',
-          borderWidth: 2,
-          fill: false,
-          tension: 0.3,
-          pointRadius: 0,
-          pointHitRadius: 8,
-          hidden: true  // off by default
-        }
+        courbe('Réunies', '#F5F5F2', 2),
+        courbe('Noosféérique', '#4EC9C6', 1.2),
+        courbe('QCI', '#C9A24D', 1.2),
+        courbe('Cet appareil', '#8FA3B8', 1.2),
+        courbe('NIST', '#9C8FB8', 1.2)
       ]
     },
     options: {
@@ -64,90 +34,72 @@ function initCharts() {
       animation: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false }, // we use our own toggles
+        legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(10, 10, 26, 0.95)',
-          titleColor: '#e8e8f0',
-          bodyColor: '#8888aa',
-          borderColor: 'rgba(108, 99, 255, 0.3)',
+          backgroundColor: 'rgba(21, 26, 36, 0.96)',
+          titleColor: 'rgba(255,255,255,0.9)',
+          bodyColor: 'rgba(255,255,255,0.7)',
+          borderColor: 'rgba(255,255,255,0.15)',
           borderWidth: 1,
-          padding: 12,
-          titleFont: { family: 'Inter', weight: '600' },
-          bodyFont: { family: 'Inter' },
-          filter: (item) => item.dataset.hidden !== true
+          padding: 10,
+          titleFont: { family: POLICE, weight: '500' },
+          bodyFont: { family: POLICE },
+          callbacks: { label: c => `${c.dataset.label} : ${c.parsed.y == null ? '--' : c.parsed.y.toFixed(2).replace('.', ',')}` }
         }
       },
       scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#555570', font: { size: 10, family: 'Inter' }, maxTicksLimit: 12 }
-        },
+        x: { grid: { display: false }, ticks: { ...GRAD_TICKS, maxTicksLimit: 8, maxRotation: 0 } },
         y: {
-          min: -3.5,
-          max: 3.5,
+          min: -4, max: 4,
           grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: {
-            color: '#555570',
-            font: { size: 10, family: 'Inter' },
-            callback: v => v.toFixed(1)
-          }
+          ticks: { ...GRAD_TICKS, callback: v => String(v).replace('-', '−') }
         }
       }
     },
     plugins: [{
-      id: 'zBands',
+      // Ligne du zéro pleine, lignes pointillées à ±1,96 (limite du hasard ordinaire)
+      id: 'seuils',
       beforeDraw(chart) {
-        const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
-        const bands = [
-          { from: -1, to: 1, color: 'rgba(0, 204, 102, 0.04)' },
-          { from: 1, to: 1.5, color: 'rgba(204, 204, 0, 0.04)' },
-          { from: -1.5, to: -1, color: 'rgba(204, 204, 0, 0.04)' },
-          { from: 1.5, to: 2, color: 'rgba(255, 136, 0, 0.04)' },
-          { from: -2, to: -1.5, color: 'rgba(255, 136, 0, 0.04)' },
-          { from: 2, to: 3.5, color: 'rgba(255, 34, 0, 0.04)' },
-          { from: -3.5, to: -2, color: 'rgba(255, 34, 0, 0.04)' },
-        ];
+        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+        const trace = (v, couleur, tirets) => {
+          const py = y.getPixelForValue(v);
+          ctx.save();
+          ctx.strokeStyle = couleur; ctx.lineWidth = 1; ctx.setLineDash(tirets);
+          ctx.beginPath(); ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
+          ctx.restore();
+        };
+        trace(0, 'rgba(255,255,255,0.25)', []);
+        trace(1.96, 'rgba(255,255,255,0.22)', [4, 4]);
+        trace(-1.96, 'rgba(255,255,255,0.22)', [4, 4]);
         ctx.save();
-        for (const band of bands) {
-          const yTop = y.getPixelForValue(band.to);
-          const yBottom = y.getPixelForValue(band.from);
-          ctx.fillStyle = band.color;
-          ctx.fillRect(left, Math.min(yTop, yBottom), right - left, Math.abs(yBottom - yTop));
-        }
-        const yZero = y.getPixelForValue(0);
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(left, yZero);
-        ctx.lineTo(right, yZero);
-        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = `10px ${POLICE}`; ctx.textAlign = 'right';
+        ctx.fillText('+1,96', right - 4, y.getPixelForValue(1.96) - 4);
+        ctx.fillText('−1,96', right - 4, y.getPixelForValue(-1.96) + 12);
         ctx.restore();
       }
     }]
   });
 
-  // Wire up curve toggles
-  document.querySelectorAll('.curve-toggle input').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const idx = parseInt(cb.dataset.curve);
-      chart24h.data.datasets[idx].hidden = !cb.checked;
+  // Légende cliquable : masque ou montre une courbe
+  document.querySelectorAll('#legende button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.curve);
+      const visible = chart24h.isDatasetVisible(i);
+      chart24h.setDatasetVisibility(i, !visible);
+      btn.classList.toggle('off', visible);
       chart24h.update();
     });
   });
 
-  // --- Distribution bar chart ---
-  const ctxDist = document.getElementById('chart-distribution').getContext('2d');
-  chartDistribution = new Chart(ctxDist, {
+  // Distribution des 1000 derniers octets de cet appareil, 16 colonnes
+  chartDistribution = new Chart(document.getElementById('chart-distribution').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: Array.from({ length: 32 }, (_, i) => (i * 8).toString()),
+      labels: Array.from({ length: 16 }, (_, i) => `${i * 16}`),
       datasets: [{
-        label: 'Distribution octets (bins x8)',
-        data: new Array(32).fill(0),
-        backgroundColor: 'rgba(108, 99, 255, 0.5)',
-        borderColor: 'rgba(108, 99, 255, 0.8)',
-        borderWidth: 1,
+        data: new Array(16).fill(0),
+        backgroundColor: 'rgba(245,245,242,0.55)',
+        borderWidth: 0,
         borderRadius: 2
       }]
     },
@@ -155,31 +107,33 @@ function initCharts() {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#555570', font: { size: 9, family: 'Inter' }, maxTicksLimit: 8 }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#555570', font: { size: 9, family: 'Inter' } }
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(21, 26, 36, 0.96)', bodyFont: { family: POLICE },
+          titleFont: { family: POLICE },
+          callbacks: {
+            title: items => `Octets de ${items[0].label} à ${parseInt(items[0].label) + 15}`,
+            label: c => `${c.parsed.y} tirages`
+          }
         }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { ...GRAD_TICKS, font: { size: 9, family: POLICE } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { ...GRAD_TICKS, font: { size: 9, family: POLICE } } }
       }
     }
   });
 }
 
-// Add a data point to all 4 curves at once (la 3e courbe est NIST depuis le retrait d'ANU)
-function addChartPoint(time, zGCP, zLocal, zQRNG, zCombined) {
+// Ajoute un point à toutes les courbes (null = pas de valeur)
+function addChartPoint(time, z) {
   const label = new Date(time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   chart24h.data.labels.push(label);
-  chart24h.data.datasets[0].data.push(zGCP);
-  chart24h.data.datasets[1].data.push(zLocal);
-  chart24h.data.datasets[2].data.push(zQRNG);
-  chart24h.data.datasets[3].data.push(zCombined);
+  const ordre = ['combined', 'cicada', 'qci', 'local', 'nist'];
+  ordre.forEach((k, i) => chart24h.data.datasets[i].data.push(z[k] ?? null));
 
-  // Keep max 1440 points (24h)
+  // 1440 points au plus (2 h à un point toutes les 5 s)
   if (chart24h.data.labels.length > 1440) {
     chart24h.data.labels.shift();
     chart24h.data.datasets.forEach(ds => ds.data.shift());
@@ -187,9 +141,10 @@ function addChartPoint(time, zGCP, zLocal, zQRNG, zCombined) {
   chart24h.update();
 }
 
+// bytes : les 1000 derniers octets de cet appareil
 function updateDistribution(bytes) {
-  const bins = new Array(32).fill(0);
-  for (const b of bytes) bins[Math.floor(b / 8)]++;
+  const bins = new Array(16).fill(0);
+  for (const b of bytes) bins[b >> 4]++;
   chartDistribution.data.datasets[0].data = bins;
   chartDistribution.update();
 }

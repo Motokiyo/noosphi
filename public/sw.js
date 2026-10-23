@@ -2,7 +2,7 @@
 // Enables offline caching and home screen install
 // Note: requires HTTPS to activate (won't work on plain HTTP)
 
-const CACHE_NAME = 'noosphi-v32';
+const CACHE_NAME = 'noosphi-v33';
 const ASSETS_TO_CACHE = [
   '/experience.html',
   '/css/experience.css',
@@ -17,6 +17,7 @@ const ASSETS_TO_CACHE = [
   '/js/midi-patch.js',
   '/js/seance.js',
   '/js/rapport.js',
+  '/js/guide.js',
   '/public.html',
   '/js/public.js',
   '/js/zindex.js',
@@ -53,7 +54,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // API calls: always network, never cache
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) {
+  // Le film (/media/) : lu par morceaux par le lecteur, jamais mis en cache ici
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/') || url.pathname.startsWith('/media/')) {
     return;
   }
 

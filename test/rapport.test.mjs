@@ -122,3 +122,22 @@ test('lecture d un z et nom de fichier', () => {
   assert.match(verdict(3.4), /fort/);
   assert.match(nomFichier({ name: 'Concert / essai', startTime: new Date(2026, 9, 23, 20, 5).getTime() }), /^noosfeerique-2026-10-23-20h05-Concert-essai$/);
 });
+
+test('les trois mesures : quantique (Cicada, QCI au temoin), graine (telephones + ordi), melange (salle)', () => {
+  const { session, brutes, r } = seanceConcert();
+  const rap = calculerRapport(session);
+  proche(rap.quantique.z, stouffer(brutes.cicada));          // QCI est au temoin : hors de la mesure quantique
+  assert.equal(rap.quantique.n, brutes.cicada.length);
+  proche(rap.graine.z, stouffer([...brutes.telephones, ...brutes.local]));
+  proche(rap.zSalle, r.zSalle);
+  const html = versRapportHTML(session, '1.6.0');
+  assert.ok(html.indexOf('1. Mesure quantique') < html.indexOf('2. Mesure graine'));
+  assert.ok(html.includes("Mesure principale, décidée d'avance"));
+});
+
+test('QCI passe dans la mesure quantique quand il est dans la salle (evenement mondial)', () => {
+  const s = createSeance();
+  for (let sec = 0; sec < 5; sec++) s.tick(sec * 1000, { salle: { qci: 0.5 + sec / 10 }, temoinActif: ['nist'], brut: { cicada: 1 + sec / 10, qci: 0.5 + sec / 10 } });
+  const rap = calculerRapport({ name: 'Mondial', startTime: 0, endTime: 5000, duration: 5, secondes: s.lignes, temoinChoisi: ['nist'] });
+  assert.equal(rap.quantique.n, 10);
+});

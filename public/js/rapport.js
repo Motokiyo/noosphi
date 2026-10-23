@@ -57,6 +57,13 @@ function cumul(lignes, valeursDe) {
 }
 
 const valeursTemoin = l => TEMOIN.map(c => l.temoin?.[c]);
+// Les trois mesures, dans l'ordre decide d'avance (la premiere est la principale) :
+// 1. quantique : Noosfeerique (Cicada), et QCI seulement s'il etait dans la salle
+//    (il reste au temoin, sauf evenement mondial) ;
+// 2. graine : les generateurs calcules, telephones et ordinateurs ;
+// 3. le melange : tout ce qui jouait ici (la salle).
+const valeursQuantique = l => [l.brut?.cicada, (l.temoinActif || TEMOIN).includes('qci') ? null : l.brut?.qci];
+const valeursGraine = l => [l.brut?.telephones, l.brut?.local];
 const valeursCommun = l => SOURCES_RAPPORT.map(c => l.brut?.[c]);
 
 export function calculerRapport(session) {
@@ -79,6 +86,8 @@ export function calculerRapport(session) {
       max: nTel.length ? Math.max(...nTel) : null,
       moyenne: nTel.length ? nTel.reduce((a, b) => a + b, 0) / nTel.length : null,
     },
+    quantique: stats(lignes.flatMap(valeursQuantique)),
+    graine: stats(lignes.flatMap(valeursGraine)),
     salle: stats(lignes.map(l => l.zSalle)),
     zSalle: lignes.length ? stoufferSalle(lignes) : session.zSalle ?? null,
     temoin: stats(lignes.flatMap(valeursTemoin)),
@@ -86,6 +95,7 @@ export function calculerRapport(session) {
     commun: stats(lignes.flatMap(valeursCommun)),
     joue: stats(lignes.map(l => l.zJoue)),
     courbes: {
+      quantique: cumul(lignes, valeursQuantique),
       salle: cumul(lignes, l => [l.zSalle]),
       temoin: cumul(lignes, valeursTemoin),
       commun: cumul(lignes, valeursCommun),
@@ -119,9 +129,11 @@ function ligneTableau(nom, st, { classe = '', unite = 'valeurs', stouffer: avecZ
 
 // Le tableau seul : sert dans le rapport et dans la fiche de la seance (app)
 export function tableauRapport(r) {
-  const tete = `<thead><tr><th></th><th>z de la séance</th><th>p</th><th>lecture</th><th>z moyen</th><th>min</th><th>max</th><th>mesures</th></tr></thead>`;
+  const tete = `<thead><tr><th>Mesure principale, décidée d'avance : la n° 1</th><th>z de la séance</th><th>p</th><th>lecture</th><th>z moyen</th><th>min</th><th>max</th><th>mesures</th></tr></thead>`;
   const groupes = [
-    ligneTableau('La salle (ce qui jouait ici)', r.salle, { classe: 'groupe', unite: 's' }),
+    ligneTableau('1. Mesure quantique (' + (r.sources.qci.n && r.quantique.n > r.sources.cicada.n ? 'Noosféérique, QCI' : 'Noosféérique') + ')', r.quantique, { classe: 'groupe principale' }),
+    ligneTableau('2. Mesure graine (téléphones, ordinateurs)', r.graine, { classe: 'groupe' }),
+    ligneTableau('3. Le mélange (ce qui jouait ici)', r.salle, { classe: 'groupe', unite: 's' }),
     ligneTableau('Le témoin distant (' + (r.temoinChoisi.length ? r.temoinChoisi.map(c => NOMS_RAPPORT[c]).join(', ') : 'aucun') + ')', r.temoin, { classe: 'groupe' }),
     ligneTableau('Le z commun (tous les générateurs)', r.commun, { classe: 'groupe commun' }),
   ];
@@ -143,7 +155,8 @@ export function telephonesTexte(r) {
 // Courbe SVG : la maree (z cumule) de la salle, du temoin et du commun
 function courbeSVG(r) {
   const series = [
-    { cle: 'salle', nom: 'salle', couleur: '#4EC9C6' },
+    { cle: 'quantique', nom: 'quantique', couleur: '#4EC9C6' },
+    { cle: 'salle', nom: 'mélange', couleur: '#7d8796' },
     { cle: 'temoin', nom: 'témoin', couleur: '#8C9AB0' },
     { cle: 'commun', nom: 'commun', couleur: '#C9A24D' },
   ].filter(s => r.courbes[s.cle].length > 1);
@@ -215,6 +228,7 @@ h2 { font-size: 15px; margin: 28px 0 10px; color: var(--cyan); font-weight: 600;
 .rapport-table .groupe { background:var(--groupe); }
 .rapport-table .groupe th { font-weight:600; }
 .rapport-table .commun .z { color:var(--or); font-weight:600; }
+.rapport-table .principale th, .rapport-table .principale .z { color:var(--cyan); }
 .rapport-table .z { font-weight:600; }
 .rapport-table .verdict { text-align:left; color:var(--doux); white-space:normal; }
 .rapport-table .vide td { text-align:left; color:var(--doux); }
@@ -239,7 +253,9 @@ figcaption .note { flex-basis:100%; }
   <div><b>Fin</b><span>${heure(r.fin)}</span></div>
   <div><b>Durée</b><span>${dureeTexte(r.duree)}</span></div>
   <div><b>Secondes mesurées</b><span>${r.secondesMesurees}${r.pauses ? ` (pause ${dureeTexte(r.pauses)})` : ''}</span></div>
-  <div><b>z de la salle</b><span>${nb(r.zSalle) || '--'}</span></div>
+  <div><b>1. Mesure quantique</b><span>${nb(r.quantique.z) || '--'}</span></div>
+  <div><b>2. Mesure graine</b><span>${nb(r.graine.z) || '--'}</span></div>
+  <div><b>3. Le mélange</b><span>${nb(r.zSalle) || '--'}</span></div>
   <div><b>z commun</b><span>${nb(r.commun.z) || '--'}</span></div>
 </div>
 ${r.regle ? `<h2>Règle</h2><p class="texte">${echappe(r.regle)}</p>` : ''}
@@ -253,7 +269,8 @@ ${r.commentaire ? `<h2>Commentaire</h2><p class="texte">${echappe(r.commentaire)
 <p class="methode">Méthode des œufs de Princeton : chaque générateur donne 200 bits, z = (somme − 100) / √50.
 Le z de la séance est le Stouffer de toutes les valeurs : leur somme divisée par la racine de leur nombre. Sous le pur hasard, il suit une loi normale quelle que soit la durée.
 Chaque valeur ne compte qu'une fois : une valeur identique à la précédente d'une même source est écartée (NIST ne change qu'une fois par minute).
-La salle reprend ce qui jouait ici, seconde par seconde ; le témoin, les sources lointaines (QCI, NIST) ; le z commun réunit les cinq générateurs, chacun pour lui seul (les téléphones sans cet ordi, pour ne rien compter deux fois).
+Trois mesures, dans un ordre fixé avant la séance : 1. la mesure quantique (Noosféérique, dont chaque bit naît d'un événement quantique, et QCI s'il était dans la salle) ; 2. la mesure graine (téléphones et ordinateurs, dont les nombres sont calculés à partir d'une graine physique) ; 3. le mélange, ce qui jouait ici seconde par seconde. La première est la mesure principale : la décider d'avance évite de choisir après coup celle qui arrange.
+Le témoin, ce sont les sources lointaines (QCI, NIST), sans personne autour. Le z commun réunit les cinq générateurs, chacun pour lui seul (les téléphones sans cet ordi, pour ne rien compter deux fois).
 Le z joué vers MainStage reprend souvent la même valeur d'une seconde à l'autre : il n'a donc ni z de séance ni p, seulement sa moyenne et ses bornes.
 Le z moyen est la simple moyenne des valeurs ; il dit dans quel sens penchait la séance, le z de la séance dit si ce penchant dépasse le hasard.</p>
 <h2>Les données</h2>
