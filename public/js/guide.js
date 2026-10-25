@@ -217,6 +217,7 @@ const P = {
   sources: '<polyline points="6 9 12 15 18 9"/>',
   copier: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   partager: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 20h1M20 14h1"/>',
   pause: '<rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/>',
   arreter: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   fermer: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
@@ -262,6 +263,7 @@ const VOLETS = {
     ${ligneBouton('sources', 'Les sources de la séance', 'Ouvre les cases : à gauche la salle (ce qu\u2019on écoute ici), à droite le témoin. Une source cochée d\u2019un côté quitte l\u2019autre.')}
     ${ligneBouton('copier', 'Copier le code', 'En séance collective, pour l\u2019envoyer.')}
     ${ligneBouton('partager', 'Partager', 'Le code par message (Signal, WhatsApp, Telegram).')}
+    ${ligneBouton('qr', 'QR code', 'Ouvre le QR de la séance dans une autre fenêtre, à projeter ou à montrer.')}
     <p>En bas :</p>
     ${ligneBouton('pause', 'Pause', 'Les secondes en pause ne comptent pas.')}
     ${ligneBouton('arreter', 'Arrêter', 'Termine la séance et ouvre sa fiche.')}

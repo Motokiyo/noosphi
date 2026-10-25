@@ -1512,6 +1512,7 @@ const sessionParticipants = document.getElementById('session-participants');
 const btnSessionAudio = document.getElementById('btn-session-audio');
 const btnCopyCode = document.getElementById('btn-copy-code');
 const btnShareCode = document.getElementById('btn-share-code');
+const btnQrCode = document.getElementById('btn-qr-code');
 
 let sessionActive = false;
 let sessionPaused = false;
@@ -1771,6 +1772,14 @@ if (btnShareCode) {
     } else {
       navigator.clipboard.writeText(`${text}\n${window.location.href}`).then(() => flashCopied(btnShareCode));
     }
+  });
+}
+
+// QR code de la seance collective, dans une autre fenetre (a projeter ou a montrer)
+if (btnQrCode) {
+  btnQrCode.addEventListener('click', () => {
+    if (!currentCollectiveCode) return;
+    window.open(`qr.html?code=${encodeURIComponent(currentCollectiveCode)}`, '_blank', 'noopener');
   });
 }
 
@@ -2405,6 +2414,7 @@ function onCollectiveSessionStart({ code, name, statusText }) {
   collectiveStatus.classList.remove('hidden');
   btnCopyCode.classList.remove('hidden');
   btnShareCode.classList.remove('hidden');
+  btnQrCode.classList.remove('hidden');
   sessionRecName.textContent = `${name} (${code})`;
   sessionSetup.classList.add('hidden');
   sessionRecording.classList.remove('hidden');
@@ -2489,6 +2499,7 @@ btnStopSession.addEventListener('click', () => {
     collectiveStatus.classList.add('hidden');
     btnCopyCode.classList.add('hidden');
     btnShareCode.classList.add('hidden');
+  btnQrCode.classList.add('hidden');
   }
 });
 
