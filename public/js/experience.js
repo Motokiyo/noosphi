@@ -9,7 +9,7 @@ import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.5';
+const APP_VERSION = '1.7.6';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -927,12 +927,19 @@ function etatDe(cle) {
   return etatSource(cle, { dernierOk: dernierOk[cle] ?? null, debut: DEBUT_PAGE });
 }
 
-// z de cet ordinateur selon les cases : son generateur, QCI, les deux ou rien
-function hostJeuZ() {
+// Generateurs de cet ordinateur selon les cases : le sien, QCI, Cicada.
+// En session collective, chacun part au serveur comme une voix a part entiere,
+// a egalite avec chaque telephone (avant le 25/10/2026, ils etaient fondus en
+// une seule voix, et la Cicada pesait deux fois moins qu'un telephone).
+function hostJeuZs() {
   const z = [];
   if (jeuSources.local && localReady) z.push(currentZ);
   if (jeuSources.qci && apiZScores.qci != null && isFinite(apiZScores.qci)) z.push(apiZScores.qci);
   if (jeuSources.cicada && cicadaZ != null) z.push(cicadaZ);
+  return z;
+}
+function hostJeuZ() {
+  const z = hostJeuZs();
   return z.length ? z.reduce((a, b) => a + b, 0) / Math.sqrt(z.length) : null;
 }
 
@@ -2462,7 +2469,7 @@ if (socket) {
     if (sessionActive && isCollective) {
       // Avec l'U1 virtuel, cet ordi envoie ce que ses cases cochent (ou rien)
       const z = MIDI_ON ? hostJeuZ() : (localReady ? currentZ : null);
-      if (z != null) socket.emit('collective:z', { z });
+      if (z != null) socket.emit('collective:z', MIDI_ON ? { z, zs: hostJeuZs() } : { z });
     }
   }, 1000);
 }

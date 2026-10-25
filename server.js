@@ -430,6 +430,14 @@ const collectiveSessions = new Map();
 // d'un telephone ne compte qu'une fois. Le z-update ci-dessous, recalcule a
 // chaque message avec la derniere valeur de chacun, peut reutiliser une meme
 // valeur dans deux lectures successives, ce qui gonflerait la coherence.
+// Les tirages d'un participant : un telephone envoie son z, l'ordi de la regie
+// la liste de ses generateurs (le sien, Cicada, QCI). Chaque generateur compte
+// pour une voix, a egalite (Stouffer a plat).
+function tirages(p) {
+  const zs = Array.isArray(p.zs) ? p.zs.filter(v => typeof v === 'number' && isFinite(v)).slice(0, 4) : [];
+  return zs.length ? zs : [p.z];
+}
+
 function startFreshTick(code) {
   return setInterval(() => {
     const session = collectiveSessions.get(code);
@@ -438,11 +446,12 @@ function startFreshTick(code) {
     if (!frais.length) return;
     frais.forEach(([, p]) => { p.fresh = false; });
     const stouffer = l => (l.length ? l.reduce((a, b) => a + b, 0) / Math.sqrt(l.length) : null);
-    const z = stouffer(frais.map(([, p]) => p.z));
+    const voix = frais.flatMap(([, p]) => tirages(p));
+    const z = stouffer(voix);
     // Les telephones seuls, sans l'hote (cet ordi) : pour le rapport de seance,
     // ou chaque generateur compte pour lui seul
     const tel = frais.filter(([id]) => id !== session.host).map(([, p]) => p.z);
-    io.to(code).emit('collective:z-fresh', { z, n: frais.length, telephones: telephonesActifs(session), zTelephones: stouffer(tel), nTelephonesFrais: tel.length });
+    io.to(code).emit('collective:z-fresh', { z, n: voix.length, telephones: telephonesActifs(session), zTelephones: stouffer(tel), nTelephonesFrais: tel.length });
   }, 1000);
 }
 
@@ -487,18 +496,18 @@ io.on('connection', (socket) => {
     io.to(code).emit('collective:update', getCollectiveState(code));
   });
 
-  socket.on('collective:z', ({ z }) => {
+  socket.on('collective:z', ({ z, zs }) => {
     if (!currentRoom) return;
     const session = collectiveSessions.get(currentRoom);
     if (!session) return;
     const p = session.participants.get(socket.id);
-    if (p && z != null && isFinite(z)) { p.z = z; p.t = Date.now(); p.fresh = true; }
+    if (p && z != null && isFinite(z)) { p.z = z; p.zs = Array.isArray(zs) ? zs : null; p.t = Date.now(); p.fresh = true; }
     // Seuls les z recus depuis moins de 3 s comptent : un telephone en veille
     // garderait sinon une valeur figee, qui fausse le z collectif.
     const now = Date.now();
     const allZ = [...session.participants.values()]
       .filter(p => p.t && now - p.t < 3000)
-      .map(p => p.z).filter(v => v != null && isFinite(v));
+      .flatMap(p => tirages(p)).filter(v => v != null && isFinite(v));
     const collectiveZ = allZ.length > 0 ? allZ.reduce((a, b) => a + b, 0) / Math.sqrt(allZ.length) : 0;
     io.to(currentRoom).emit('collective:z-update', {
       collectiveZ,
