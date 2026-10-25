@@ -16,15 +16,15 @@ export const ECHELLE = [
 export const niveau = z => ECHELLE.find(e => Math.abs(z) < e.borne);
 
 // Le film (version courte), chapitre par chapitre (minutage du montage)
-export const FILM = { src: '/media/noosfeerique-film.mp4', affiche: '/media/noosfeerique-film.jpg', duree: '7 min' };
+export const FILM = { src: '/media/noosfeerique-film-v2.mp4', affiche: '/media/noosfeerique-film.jpg', duree: '7 min' };
 export const CHAPITRES = [
   { t: 0, nom: 'Pile ou face' },
-  { t: 85, nom: 'Le z et la forêt' },
-  { t: 141, nom: 'Princeton et les œufs' },
-  { t: 303, nom: 'La sphère et les feuilles' },
-  { t: 341, nom: 'Le portique, le z de la séance' },
-  { t: 372, nom: 'Le témoin' },
-  { t: 385, nom: 'La noosphère' },
+  { t: 96, nom: 'Le z et la forêt' },
+  { t: 152, nom: 'Princeton et les œufs' },
+  { t: 314, nom: 'La sphère et les feuilles' },
+  { t: 352, nom: 'Le portique, le z de la séance' },
+  { t: 383, nom: 'Le témoin' },
+  { t: 396, nom: 'La noosphère' },
 ];
 const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
@@ -78,10 +78,10 @@ export function diametreSphere(W, H) {
   const frac = Math.tan(Math.asin(s)) / (t * Math.min(a, 1));
   return frac * (a >= 1 ? H : W);
 }
-// Dans le film, la sphere finale (6:42 a la fin) fait 80,2 % de la hauteur de
+// Dans le film, la sphere finale (6:53 a la fin) fait 80,2 % de la hauteur de
 // l'image et sa sphere est centree (mesure sur l'image 1920 × 1080 : 866 px).
 const SPHERE_FILM = 866 / 1080;
-const T_FINALE = 398;   // le zoom vers la vraie taille commence ici (telephone en hauteur)
+const T_FINALE = 409;   // le zoom vers la vraie taille commence ici (telephone en hauteur)
 
 export function ouvrirFilm(debut = 0) {
   document.querySelector('.film')?.remove();
@@ -268,7 +268,7 @@ const VOLETS = {
     ${ligneBouton('pause', 'Pause', 'Les secondes en pause ne comptent pas.')}
     ${ligneBouton('arreter', 'Arrêter', 'Termine la séance et ouvre sa fiche.')}
     ${ligneBouton('fermer', 'La croix', 'Revenir à la sphère : l\u2019enregistrement continue, la pastille rouge en haut y ramène.')}
-    ${lienFilm(341, 'Le portique et le témoin · 1 min', 'Ce que fait une séance, dans le film')}
+    ${lienFilm(352, 'Le portique et le témoin · 1 min', 'Ce que fait une séance, dans le film')}
     <h2>Après</h2>
     <p>La fiche de la séance s'ouvre avec ses chiffres. Le bouton Rapport en fait une page à garder ou imprimer, Données donne les secondes. Le navigateur garde 50 séances : téléchargez celles qui comptent.</p>
     <h2>Ce que dit le rapport</h2>
