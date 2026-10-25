@@ -50,7 +50,7 @@ export function ouvrirAccueil({ onCode } = {}) {
   o.innerHTML = `
     <div class="accueil-corps">
       <h1>La sphère respire avec le hasard.</h1>
-      <p>Des générateurs tirent à pile ou face chaque seconde, ici et au loin. Noosféérique écoute si notre attention commune les fait pencher.</p>
+      <p>Des générateurs tirent à pile ou face chaque seconde, ici et au loin. Noosféériques écoute si notre attention commune les fait pencher.</p>
       <div class="accueil-choix">
         <button type="button" class="accueil-film"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>Voir le film · ${FILM.duree}</button>
         <button type="button" class="accueil-entrer">Entrer</button>
@@ -236,9 +236,9 @@ const VOLETS = {
     <h2>La vague et la marée</h2>
     <p>Le chiffre sous la sphère est la vague : le z de l'instant, qui bouge sans cesse. Pendant une séance, il devient la marée : le z cumulé depuis le début. Seule la marée peut révéler une tendance.</p>
     <h2>Ici et le témoin</h2>
-    <p>La salle écoute ce qui est ici : vos téléphones, cet appareil et la clé quantique Noosféérique. Le témoin écoute des sources lointaines (QCI aux États-Unis, la balise NIST). Si la salle s'écarte et pas le témoin, la séance devient intéressante.</p>
+    <p>La salle écoute ce qui est ici : vos téléphones, cet appareil et la clé quantique Noosféériques. Le témoin écoute des sources lointaines (QCI aux États-Unis, la balise NIST). Si la salle s'écarte et pas le témoin, la séance devient intéressante.</p>
     <h2>D'où vient le hasard</h2>
-    <p>Noosféérique (Cicada) et QCI sont quantiques : chaque bit naît d'un événement imprévisible par nature. Les téléphones et les ordinateurs tirent leurs nombres d'un calcul, nourri par une graine physique. Chaque personne présente compte, et les rapports séparent les deux : la mesure quantique d'abord, la mesure graine ensuite, puis le mélange.</p>
+    <p>Noosféériques (Cicada) et QCI sont quantiques : chaque bit naît d'un événement imprévisible par nature. Les téléphones et les ordinateurs tirent leurs nombres d'un calcul, nourri par une graine physique. Chaque personne présente compte, et les rapports séparent les deux : la mesure quantique d'abord, la mesure graine ensuite, puis le mélange.</p>
     <h2>Le film, chapitre par chapitre</h2>
     <div class="guide-chapitres">${CHAPITRES.map(c => `<button type="button" data-t="${c.t}"><span>${mmss(c.t)}</span>${c.nom}</button>`).join('')}</div>`,
   utiliser: () => `
@@ -253,7 +253,7 @@ const VOLETS = {
     ${ligneBouton('historique', 'Historique', 'Les dernières 24 heures, source par source.')}
     ${ligneBouton('son', 'Son', 'Allumer, régler le volume. Un clic sur la sphère aussi.')}
     <h2>En bas à gauche</h2>
-    ${ligneBouton('points', 'Les quatre points', 'Cet appareil, NIST, QCI, Noosféérique. Plein : la source répond et on l\u2019écoute. Cerclé : elle répond sans être écoutée. Éteint : elle ne répond pas.')}`,
+    ${ligneBouton('points', 'Les quatre points', 'Cet appareil, NIST, QCI, Noosféériques. Plein : la source répond et on l\u2019écoute. Cerclé : elle répond sans être écoutée. Éteint : elle ne répond pas.')}`,
   seances: () => `
     <h2>Seul ou ensemble</h2>
     <p>Une séance solo écoute cet appareil. Une séance collective donne un code et un QR : chaque téléphone qui le scanne rejoint la salle et tire ses propres pièces.</p>
@@ -273,7 +273,7 @@ const VOLETS = {
     <p>La fiche de la séance s'ouvre avec ses chiffres. Le bouton Rapport en fait une page à garder ou imprimer, Données donne les secondes. Le navigateur garde 50 séances : téléchargez celles qui comptent.</p>
     <h2>Ce que dit le rapport</h2>
     <p>Trois mesures de la salle, dans un ordre fixé d'avance (la première compte le plus) :</p>
-    <p>1. <b>La mesure quantique</b> : Noosféérique, la clé quantique Cicada, ici.<br>
+    <p>1. <b>La mesure quantique</b> : Noosféériques, la clé quantique Cicada, ici.<br>
     2. <b>La mesure graine</b> : les téléphones et les ordinateurs, dont les nombres sont calculés.<br>
     3. <b>Le mélange</b> : tout ce qui jouait ici, seconde par seconde.</p>
     <p>Et à part, <b>le témoin</b> : QCI (quantique, aux États-Unis) et la balise NIST. Ils donnent un z <b>hors de la salle</b>, pendant les mêmes secondes, sans personne autour. Si la salle s'écarte et que le témoin reste ordinaire, l'écart vient bien d'ici.</p>

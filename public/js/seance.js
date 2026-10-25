@@ -21,7 +21,7 @@
    ============================================================ */
 
 export const TEMOIN = ['qci', 'nist'];
-export const NOMS = { nist: 'NIST', qci: 'QCI', local: 'cet appareil', cicada: 'Noosféérique', telephones: 'téléphones' };
+export const NOMS = { nist: 'NIST', qci: 'QCI', local: 'cet appareil', cicada: 'Noosféériques', telephones: 'téléphones' };
 
 // La couleur du temoin : une brume bleutee, distincte des pastilles de la salle
 // (violet, cyan, orange, vert, or, rose) et de la charte
@@ -59,10 +59,10 @@ export function basculer({ salle, temoin }, cote, cle) {
 // `patience` echecs d'affilee ; au demarrage a froid, « en attente de la cle ».
 // etat : ce que dit le serveur quand il repond « off » (« reservee », « injoignable »…)
 export function etatCicada({ vue = false, echecs = 0, etat = null } = {}, patience = 3) {
-  if (vue && echecs < patience) return { disponible: true, titre: 'Noosféérique · chaque seconde' };
-  if (etat === 'reservee') return { disponible: false, titre: 'Noosféérique · réservée' };
-  if (!vue && echecs < 10) return { disponible: false, titre: 'Noosféérique · en attente de la clé' };
-  return { disponible: false, titre: 'Noosféérique · indisponible' };
+  if (vue && echecs < patience) return { disponible: true, titre: 'Noosféériques · chaque seconde' };
+  if (etat === 'reservee') return { disponible: false, titre: 'Noosféériques · réservée' };
+  if (!vue && echecs < 10) return { disponible: false, titre: 'Noosféériques · en attente de la clé' };
+  return { disponible: false, titre: 'Noosféériques · indisponible' };
 }
 
 const fini = z => z != null && isFinite(z);
@@ -70,7 +70,7 @@ const fini = z => z != null && isFinite(z);
 // Les generateurs du rapport, chacun pour lui seul. Ils sont independants :
 // leur Stouffer commun (le z commun) ne compte aucun tirage deux fois.
 export const SOURCES_RAPPORT = ['telephones', 'local', 'cicada', 'qci', 'nist'];
-export const NOMS_RAPPORT = { telephones: 'Téléphones', local: 'Cet ordi', cicada: 'Noosféérique (Cicada)', qci: 'QCI', nist: 'NIST' };
+export const NOMS_RAPPORT = { telephones: 'Téléphones', local: 'Cet ordi', cicada: 'Noosféériques (Cicada)', qci: 'QCI', nist: 'NIST' };
 
 // ---- Les sources de l'ecoute (page principale) ----
 // Plusieurs sources se cochent ensemble ; le z affiche est le Stouffer des

@@ -579,7 +579,7 @@ function reglagesButtons() {
     e.preventDefault();
     let recu;
     try { recu = JSON.parse(e.clipboardData.getData('text')); } catch {}
-    if (!recu || recu.noosfeerique !== 1 || !recu.reglages) { note.textContent = 'Ce ne sont pas des réglages Noosfeerique.'; return; }
+    if (!recu || recu.noosfeerique !== 1 || !recu.reglages) { note.textContent = 'Ce ne sont pas des réglages Noosfeeriques.'; return; }
     const ici = { outputId: settings.outputId, enabled: settings.enabled };
     Object.entries(recu.reglages).forEach(([k, v]) => {
       if (!CLES_REGLAGES.includes(k)) return;

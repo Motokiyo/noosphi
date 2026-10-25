@@ -131,7 +131,7 @@ function ligneTableau(nom, st, { classe = '', unite = 'valeurs', stouffer: avecZ
 export function tableauRapport(r) {
   const tete = `<thead><tr><th>Mesure principale, décidée d'avance : la n° 1</th><th>z de la séance</th><th>p</th><th>lecture</th><th>z moyen</th><th>min</th><th>max</th><th>mesures</th></tr></thead>`;
   const groupes = [
-    ligneTableau('1. Mesure quantique (' + (r.sources.qci.n && r.quantique.n > r.sources.cicada.n ? 'Noosféérique, QCI' : 'Noosféérique') + ')', r.quantique, { classe: 'groupe principale' }),
+    ligneTableau('1. Mesure quantique (' + (r.sources.qci.n && r.quantique.n > r.sources.cicada.n ? 'Noosféériques, QCI' : 'Noosféériques') + ')', r.quantique, { classe: 'groupe principale' }),
     ligneTableau('2. Mesure graine (téléphones, ordinateurs)', r.graine, { classe: 'groupe' }),
     ligneTableau('3. Le mélange (ce qui jouait ici)', r.salle, { classe: 'groupe', unite: 's' }),
     ligneTableau('Le témoin distant (' + (r.temoinChoisi.length ? r.temoinChoisi.map(c => NOMS_RAPPORT[c]).join(', ') : 'aucun') + ')', r.temoin, { classe: 'groupe' }),
@@ -247,7 +247,7 @@ figcaption .note { flex-basis:100%; }
 .boutons button { font: inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--cyan); background:transparent; color:var(--cyan); cursor:pointer; }
 </style></head><body><main>
 <h1>${echappe(r.nom)}</h1>
-<p class="sous">${date} · Noosféérique, U1 virtuel${r.version ? ' · version ' + echappe(r.version) : ''}</p>
+<p class="sous">${date} · Noosféériques, U1 virtuel${r.version ? ' · version ' + echappe(r.version) : ''}</p>
 <div class="meta">
   <div><b>Début</b><span>${heure(r.debut)}</span></div>
   <div><b>Fin</b><span>${heure(r.fin)}</span></div>
@@ -269,7 +269,7 @@ ${r.commentaire ? `<h2>Commentaire</h2><p class="texte">${echappe(r.commentaire)
 <p class="methode">Méthode des œufs de Princeton : chaque générateur donne 200 bits, z = (somme − 100) / √50.
 Le z de la séance est le Stouffer de toutes les valeurs : leur somme divisée par la racine de leur nombre. Sous le pur hasard, il suit une loi normale quelle que soit la durée.
 Chaque valeur ne compte qu'une fois : une valeur identique à la précédente d'une même source est écartée (NIST ne change qu'une fois par minute).
-Trois mesures, dans un ordre fixé avant la séance : 1. la mesure quantique (Noosféérique, dont chaque bit naît d'un événement quantique, et QCI s'il était dans la salle) ; 2. la mesure graine (téléphones et ordinateurs, dont les nombres sont calculés à partir d'une graine physique) ; 3. le mélange, ce qui jouait ici seconde par seconde. La première est la mesure principale : la décider d'avance évite de choisir après coup celle qui arrange.
+Trois mesures, dans un ordre fixé avant la séance : 1. la mesure quantique (Noosféériques, dont chaque bit naît d'un événement quantique, et QCI s'il était dans la salle) ; 2. la mesure graine (téléphones et ordinateurs, dont les nombres sont calculés à partir d'une graine physique) ; 3. le mélange, ce qui jouait ici seconde par seconde. La première est la mesure principale : la décider d'avance évite de choisir après coup celle qui arrange.
 Le témoin, ce sont les sources lointaines (QCI, NIST), sans personne autour. Le z commun réunit les cinq générateurs, chacun pour lui seul (les téléphones sans cet ordi, pour ne rien compter deux fois).
 Le z joué vers MainStage reprend souvent la même valeur d'une seconde à l'autre : il n'a donc ni z de séance ni p, seulement sa moyenne et ses bornes.
 Le z moyen est la simple moyenne des valeurs ; il dit dans quel sens penchait la séance, le z de la séance dit si ce penchant dépasse le hasard.</p>

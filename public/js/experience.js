@@ -949,7 +949,7 @@ function texteZJoue() {
   if (isCollective && jeuSources.telephones) parts.push(`${telephonesActifs} téléphone${telephonesActifs > 1 ? 's' : ''}`);
   if (jeuSources.local) parts.push('cet ordi');
   if (jeuSources.qci) parts.push(apiZScores.qci != null ? 'QCI' : 'QCI (muet)');
-  if (jeuSources.cicada) parts.push(cicadaZ != null ? 'Noosféérique' : 'Noosféérique (muette)');
+  if (jeuSources.cicada) parts.push(cicadaZ != null ? 'Noosféériques' : 'Noosféériques (muette)');
   return 'z joué : ' + (parts.length ? parts.join(' + ') : 'aucune source');
 }
 
@@ -1176,11 +1176,11 @@ const COLORS = {
   qci: '#C9A24D',
   cicada: '#FF5FA2',
 };
-const SOURCE_LABELS = { combined: 'Combine', local: 'Local', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
+const SOURCE_LABELS = { combined: 'Combine', local: 'Local', nist: 'NIST', qci: 'QCI', cicada: 'Noosféériques' };
 // Used for graph-overlay source dots (excludes 'combined' which has no API slot)
 const SOURCE_META = [
   { key: 'local', color: '#00E5FF', label: 'Local' },
-  { key: 'cicada', color: '#FF5FA2', label: 'Noosféérique' },
+  { key: 'cicada', color: '#FF5FA2', label: 'Noosféériques' },
   { key: 'nist',  color: '#00CC66', label: 'NIST' },
   { key: 'qci',   color: '#C9A24D', label: 'QCI' },
 ];
@@ -1573,7 +1573,7 @@ function salleCoche(key) {
 // cercle = elle repond mais n'est pas ecoutee, eteint = elle ne repond pas.
 // (Jusqu'au 23/10/2026 ils ne disaient que « repond », d'ou des points
 // allumes meme quand tout etait decoche.)
-const POINTS = [['local', 'Cet appareil'], ['nist', 'NIST'], ['qci', 'QCI'], ['cicada', 'Noosféérique']];
+const POINTS = [['local', 'Cet appareil'], ['nist', 'NIST'], ['qci', 'QCI'], ['cicada', 'Noosféériques']];
 function majPoints() {
   POINTS.forEach(([cle, nom], i) => {
     const d = sourceDots[i];
@@ -1766,9 +1766,9 @@ if (btnCopyCode) {
 if (btnShareCode) {
   btnShareCode.addEventListener('click', () => {
     if (!currentCollectiveCode) return;
-    const text = `Rejoins ma session Noosfeerique !\nCode : ${currentCollectiveCode}`;
+    const text = `Rejoins ma session Noosfeeriques !\nCode : ${currentCollectiveCode}`;
     if (navigator.share) {
-      navigator.share({ title: 'Noosfeerique — Session collective', text, url: window.location.href });
+      navigator.share({ title: 'Noosfeeriques — Session collective', text, url: window.location.href });
     } else {
       navigator.clipboard.writeText(`${text}\n${window.location.href}`).then(() => flashCopied(btnShareCode));
     }
@@ -2271,7 +2271,7 @@ function openSessionDetail(id) {
   const DETAIL_SOURCES = [
     { key: 'z', label: 'Combine', color: '#CC44FF' },
     { key: 'local', label: 'Local', color: '#00E5FF' },
-    { key: 'cicada', label: 'Noosféérique', color: '#FF5FA2' },
+    { key: 'cicada', label: 'Noosféériques', color: '#FF5FA2' },
     { key: 'nist', label: 'NIST', color: '#00CC66' },
     { key: 'qci', label: 'QCI', color: '#C9A24D' },
     ...(aDes('gcp') ? [{ key: 'gcp', label: 'Princeton · collecte arrêtée le 03/04/2026', color: '#6C63FF' }] : []),

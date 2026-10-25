@@ -1,5 +1,5 @@
-// Noosféérique · Chart.js (historique en direct + distribution de cet appareil)
-// Courbes : 0 réunies, 1 Noosféérique, 2 QCI, 3 cet appareil, 4 NIST
+// Noosféériques · Chart.js (historique en direct + distribution de cet appareil)
+// Courbes : 0 réunies, 1 Noosféériques, 2 QCI, 3 cet appareil, 4 NIST
 
 let chart24h = null;
 let chartDistribution = null;
@@ -22,7 +22,7 @@ function initCharts() {
       labels: [],
       datasets: [
         courbe('Réunies', '#F5F5F2', 2),
-        courbe('Noosféérique', '#4EC9C6', 1.2),
+        courbe('Noosféériques', '#4EC9C6', 1.2),
         courbe('QCI', '#C9A24D', 1.2),
         courbe('Cet appareil', '#8FA3B8', 1.2),
         courbe('NIST', '#9C8FB8', 1.2)

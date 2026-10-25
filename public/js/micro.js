@@ -1,4 +1,4 @@
-// Noosféérique · le micro comme générateur (banc d'essai du dashboard)
+// Noosféériques · le micro comme générateur (banc d'essai du dashboard)
 //
 // On n'écoute pas le son : on lit le souffle électronique du micro.
 // 1. Les traitements du navigateur sont coupés (anti-écho, réduction de bruit,

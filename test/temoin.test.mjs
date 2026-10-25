@@ -10,20 +10,20 @@ test('le temoin, ce sont QCI et NIST (Princeton arrete, ANU retiree)', () => {
 test('Noosfeerique au demarrage a froid : un premier « off » ne conclut rien', () => {
   const e = etatCicada({ vue: false, echecs: 1, etat: 'en attente' });
   assert.equal(e.disponible, false);
-  assert.equal(e.titre, 'Noosféérique · en attente de la clé');
+  assert.equal(e.titre, 'Noosféériques · en attente de la clé');
 });
 
 test('Noosfeerique disponible des la premiere valeur, et un echec isole ne l eteint pas', () => {
   assert.equal(etatCicada({ vue: true, echecs: 0 }).disponible, true);
   assert.equal(etatCicada({ vue: true, echecs: 2 }).disponible, true);
-  assert.equal(etatCicada({ vue: true, echecs: 0 }).titre, 'Noosféérique · chaque seconde');
+  assert.equal(etatCicada({ vue: true, echecs: 0 }).titre, 'Noosféériques · chaque seconde');
 });
 
 test('Noosfeerique indisponible ou reservee : grisee, avec la raison au survol', () => {
-  assert.deepEqual(etatCicada({ vue: true, echecs: 3, etat: 'injoignable' }), { disponible: false, titre: 'Noosféérique · indisponible' });
-  assert.deepEqual(etatCicada({ vue: true, echecs: 5, etat: 'reservee' }), { disponible: false, titre: 'Noosféérique · réservée' });
-  assert.equal(etatCicada({ vue: false, echecs: 12 }).titre, 'Noosféérique · indisponible');
-  assert.equal(etatCicada({ vue: false, echecs: 2, etat: 'reservee' }).titre, 'Noosféérique · réservée');
+  assert.deepEqual(etatCicada({ vue: true, echecs: 3, etat: 'injoignable' }), { disponible: false, titre: 'Noosféériques · indisponible' });
+  assert.deepEqual(etatCicada({ vue: true, echecs: 5, etat: 'reservee' }), { disponible: false, titre: 'Noosféériques · réservée' });
+  assert.equal(etatCicada({ vue: false, echecs: 12 }).titre, 'Noosféériques · indisponible');
+  assert.equal(etatCicada({ vue: false, echecs: 2, etat: 'reservee' }).titre, 'Noosféériques · réservée');
 });
 
 test('Noosfeerique se rallume seule quand la cle revient', () => {

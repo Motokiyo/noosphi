@@ -1,12 +1,12 @@
-// Noosféérique · Dashboard : logique de la page
+// Noosféériques · Dashboard : logique de la page
 //
-// Sources : Noosféérique (clé Cicada), cet appareil (tirage fait ICI, dans le navigateur),
+// Sources : Noosféériques (clé Cicada), cet appareil (tirage fait ICI, dans le navigateur),
 // QCI, NIST Beacon (une pulsation par minute). Princeton : collecte arrêtée le 03/04/2026.
 // ANU : retirée.
 
 const state = { zLocal: null, zNIST: null, zQCI: null, zCicada: null, zCombined: null };
 const SOURCES = ['cicada', 'local', 'qci', 'nist'];
-const NOMS = { local: 'Cet appareil', nist: 'NIST', qci: 'QCI', cicada: 'Noosféérique' };
+const NOMS = { local: 'Cet appareil', nist: 'NIST', qci: 'QCI', cicada: 'Noosféériques' };
 const CLE_Z = { local: 'zLocal', nist: 'zNIST', qci: 'zQCI', cicada: 'zCicada' };
 
 const fini = v => v != null && isFinite(v);
