@@ -224,7 +224,20 @@ export function versJSON(seance, version) {
     valeurs_par_source_temoin: seance.parSource || {},
     calcul: 'Stouffer : somme des z / racine(nombre). Salle : un z par seconde. Témoin : chaque valeur fraîche une fois.',
     version_app: version,
+    ...(seance.midi ? { midi: seance.midi } : {}),
   }, null, 2);
+}
+
+// Les reglages de la musique pour la fiche : ceux de la fin, et ce qui a
+// change depuis le debut. null hors de la page du concert (?midi).
+export function reglagesMidi(debut, fin) {
+  if (!fin) return null;
+  const { page, ...reglages } = fin;
+  const changes = debut
+    ? Object.keys(reglages).filter(k => JSON.stringify(debut[k]) !== JSON.stringify(reglages[k]))
+      .map(cle => ({ cle, debut: debut[cle] ?? null, fin: reglages[cle] }))
+    : [];
+  return { page, reglages, changes };
 }
 
 // Texte du resume : « la salle : z = … · le témoin : z = … »

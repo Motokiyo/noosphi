@@ -269,6 +269,18 @@ export function midiSessionCode(code) {
   if (code) link.href = `qr.html?code=${encodeURIComponent(code)}`;
 }
 
+// Appele par experience.js au debut et a la fin d'un enregistrement : les
+// reglages de la musique, pour la fiche de seance. Seulement sur la page
+// du concert (?midi) ; la sortie MIDI choisie n'y figure pas.
+export function midiReglages() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has('midi')) return null;
+  const { outputId, ...reglages } = settings;
+  let gammeApp = null;
+  try { gammeApp = localStorage.getItem('noosphi_scale'); } catch {}
+  return { page: params.has('concert') ? 'concert' : 'midi', ...reglages, gammeApp, gammePatch: gammePatch ? gammePatch.nom : null };
+}
+
 // Appele par experience.js : ce qui fait jouer l'U1 virtuel en ce moment
 export function midiZJoue(texte) {
   if (panel) panel.querySelector('[data-z-joue]').textContent = texte;

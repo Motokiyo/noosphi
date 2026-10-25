@@ -181,6 +181,41 @@ function courbeSVG(r) {
   </svg><figcaption>${legende}<span class="note">z de la séance cumulé seconde après seconde ; au-delà des pointillés (±1,96), moins d’une chance sur 20.</span></figcaption></figure>`;
 }
 
+// Les reglages de la musique (page du concert, ?midi) : ce qui faisait
+// jouer MainStage pendant la seance, en mots
+const GAMMES = { free: 'libre', pentatonic: 'pentatonique', major: 'majeure', minor: 'mineure', dorian: 'dorienne', chromatic: 'chromatique' };
+const NOMS_REGLAGES = {
+  nappeHaut: 'Nappe, joue au-dessus de +', nappeBas: 'Nappe, joue au-dessous de −',
+  jeuHaut: 'Lead, joue au-dessus de +', jeuBas: 'Lead, joue au-dessous de −',
+  engagement: 'Durée d’une scène (s)', accord: 'Accords dès ±', seuil: 'Seuil de mouvement',
+  traits: 'Traits rapides', patchAuto: 'Changement de patch par le z', gamme: 'Gamme', gammeApp: 'Gamme de l’app',
+};
+const zone = (haut, bas) => (haut === bas ? `±${nb(haut, 1)}` : `+${nb(haut, 1)} / −${nb(bas, 1)}`);
+const ouiNon = v => (v === 'oui' ? 'oui' : 'non');
+
+export function reglagesMidiHTML(midi) {
+  if (!midi || !midi.reglages) return '';
+  const g = midi.reglages;
+  const gamme = g.gamme === 'u1' ? 'La majeur (U1)' : g.gamme === 'chromatic' ? 'chromatique' : `celle de l’app (${GAMMES[g.gammeApp] || 'libre'})`;
+  const lignes = [
+    ['Page', midi.page === 'concert' ? 'concert' : 'MIDI'],
+    ['Nappe : joue au-delà de', zone(g.nappeHaut, g.nappeBas)],
+    ['Lead : joue au-delà de', zone(g.jeuHaut, g.jeuBas)],
+    ['Durée d’une scène', `${g.engagement} s`],
+    ['Accords dès', `±${nb(g.accord, 1)} (palier fort ±${nb(g.accord + 0.5, 1)})`],
+    ['Seuil de mouvement', nb(g.seuil, 1)],
+    ['Traits rapides', ouiNon(g.traits)],
+    ['Changement de patch par le z', g.patchAuto === 'oui' ? `oui (poussée ${nb(g.patchPousse, 1)} en ${g.patchFenetre} s, ${g.patchMin} min au moins)` : 'non'],
+    ['Gamme', gamme + (g.gammePatch ? ` ; gamme du dernier patch : ${echappe(g.gammePatch)}` : '')],
+    ['Force lead / accords / nappe', `${g.velLeadMin}–${g.velLeadMax} / ${g.velAccordsMin}–${g.velAccordsMax} / ${g.velNappeMin}–${g.velNappeMax}`],
+    ['Canaux lead / accords / nappe', `${g.channel} / ${g.channelHarmony} / ${g.channelBack}`],
+  ];
+  const change = c => `${echappe(NOMS_REGLAGES[c.cle] || c.cle)} : ${echappe(JSON.stringify(c.debut))} → ${echappe(JSON.stringify(c.fin))}`;
+  return `<h2>La musique (réglages MIDI)</h2>
+<div class="defile"><table class="rapport-table"><tbody>${lignes.map(([k, v]) => `<tr><th>${k}</th><td class="verdict">${v}</td></tr>`).join('')}</tbody></table></div>
+${midi.changes && midi.changes.length ? `<p class="methode">Changés pendant la séance : ${midi.changes.map(change).join(' ; ')}.</p>` : '<p class="methode">Réglages inchangés du début à la fin de la séance.</p>'}`;
+}
+
 // La fiche JSON : celle de l'export d'avant, plus tous les chiffres du rapport
 export function ficheJSON(session, version) {
   const { courbes, ...r } = calculerRapport(session);
@@ -264,6 +299,7 @@ ${r.regle ? `<h2>Règle</h2><p class="texte">${echappe(r.regle)}</p>` : ''}
 <p>${telephonesTexte(r)}</p>
 <h2>La marée</h2>
 ${courbeSVG(r)}
+${reglagesMidiHTML(session.midi)}
 ${r.commentaire ? `<h2>Commentaire</h2><p class="texte">${echappe(r.commentaire)}</p>` : ''}
 <h2>Méthode</h2>
 <p class="methode">Méthode des œufs de Princeton : chaque générateur donne 200 bits, z = (somme − 100) / √50.

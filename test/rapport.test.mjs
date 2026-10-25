@@ -141,3 +141,29 @@ test('QCI passe dans la mesure quantique quand il est dans la salle (evenement m
   const rap = calculerRapport({ name: 'Mondial', startTime: 0, endTime: 5000, duration: 5, secondes: s.lignes, temoinChoisi: ['nist'] });
   assert.equal(rap.quantique.n, 10);
 });
+
+// Reglages de la musique : dans la fiche et le rapport, seulement depuis la page du concert
+test('reglages MIDI : fiche JSON et rapport, changements notes', async () => {
+  const { reglagesMidi } = await import('../public/js/seance.js');
+  const { reglagesMidiHTML } = await import('../public/js/rapport.js');
+  const base = { page: 'concert', nappeHaut: 0.8, nappeBas: 0.8, jeuHaut: 1.2, jeuBas: 1.2, engagement: 20, accord: 2.8, seuil: 1,
+    traits: 'oui', patchAuto: 'oui', patchPousse: 0.5, patchFenetre: 5, patchMin: 3, gamme: 'app', gammeApp: 'pentatonic', gammePatch: null,
+    velLeadMin: 30, velLeadMax: 100, velAccordsMin: 50, velAccordsMax: 100, velNappeMin: 50, velNappeMax: 70, channel: 1, channelHarmony: 2, channelBack: 3 };
+  assert.equal(reglagesMidi(null, null), null);
+  const m = reglagesMidi({ ...base, accord: 2.5 }, base);
+  assert.equal(m.page, 'concert');
+  assert.equal(m.reglages.accord, 2.8);
+  assert.equal('page' in m.reglages, false);
+  assert.deepEqual(m.changes, [{ cle: 'accord', debut: 2.5, fin: 2.8 }]);
+  const html = reglagesMidiHTML(m);
+  assert.match(html, /La musique \(réglages MIDI\)/);
+  assert.match(html, /±2,8 \(palier fort ±3,3\)/);
+  assert.match(html, /Accords dès ± : 2\.5 → 2\.8/);
+  assert.equal(reglagesMidiHTML(null), '');
+  const t0 = 1761200000000;
+  const session = { name: 'Concert', startTime: t0, endTime: t0 + 1000, duration: 1, secondes: [], midi: m };
+  assert.deepEqual(JSON.parse(ficheJSON(session, '1.7.6')).midi, m);
+  assert.match(versRapportHTML(session, '1.7.6'), /Changés pendant la séance/);
+  const sansMidi = JSON.parse(ficheJSON({ ...session, midi: null }, '1.7.6'));
+  assert.equal('midi' in sansMidi, false);
+});

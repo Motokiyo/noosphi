@@ -4,12 +4,12 @@
    ============================================================ */
 
 import * as THREE from 'three';
-import { midiZ, midiSessionCode, midiZJoue } from './midi.js';
+import { midiZ, midiSessionCode, midiZJoue, midiReglages } from './midi.js';
 import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
-import { createSeance, zAffiche, versCSV, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
+import { createSeance, zAffiche, versCSV, reglagesMidi, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.6';
+const APP_VERSION = '1.7.7';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization
@@ -1523,6 +1523,7 @@ let collectiveZ = null;
 let collectiveFreshZ = null;   // z collectif ou chaque tirage compte une fois (pour le MIDI)
 let zTelephonesSeuls = null;   // le meme, sans cet ordi : les telephones pour eux seuls (rapport)
 let sessionStartTime = null;
+let midiDebut = null;   // reglages de la musique au debut de l'enregistrement (page du concert)
 let sessionTimerInterval = null;
 let sessionData = [];   // { t, z, sources }
 let seance = null;      // z de la seance (la maree) et son temoin, une valeur par seconde
@@ -1886,6 +1887,7 @@ if (btnStartSession) {
 
   sessionActive = true;
   sessionStartTime = Date.now();
+  midiDebut = midiReglages();
   debutSeance();
   requestWakeLock();
   updateSessionBtnState();
@@ -1924,6 +1926,7 @@ if (btnStopSession) {
     temoinChoisi: temoinActif(), parSource: r.parSource || {},
     secondes: seance ? seance.lignes : [],   // une ligne par seconde, pour l'export
     version: APP_VERSION,
+    midi: reglagesMidi(midiDebut, midiReglages()),
     data: sessionData,
     comment: '',
   };
@@ -2422,6 +2425,7 @@ function onCollectiveSessionStart({ code, name, statusText }) {
   sessionActive = true;
   requestWakeLock();   // un telephone en veille ne tire plus aucun z : on garde l'ecran allume
   sessionStartTime = Date.now();
+  midiDebut = midiReglages();
   debutSeance();
   sessionTimerInterval = setInterval(() => {
     sessionRecTimer.textContent = formatTimer(Math.floor((Date.now() - sessionStartTime) / 1000));

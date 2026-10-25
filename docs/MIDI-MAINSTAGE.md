@@ -276,3 +276,10 @@ Par défaut : Local + Téléphones. La courbe « Combine » est le z joué. En s
 Les réglages du panneau sont propres à chaque adresse (page d'essai du MacBook, page en ligne). Pour les reporter : « Copier mes réglages » d'un côté, « Coller mes réglages » puis Cmd+V de l'autre. La sortie MIDI se choisit à la main dans chaque fenêtre.
 
 Les sessions enregistrées restent dans le navigateur qui les a faites (50 au plus), aucune copie sur le serveur.
+
+## Lire les réglages du vieux Mac à distance (25/10/2026)
+
+- Accès : ssh par clé, sur le réseau local (macOS 10.12.6), adresse et compte dans le STATE.md du projet (vault). Pas de mot de passe à taper.
+- Le lanceur ouvre Chrome avec un profil à part : `~/Library/Application Support/U1-virtuel-Chrome` (le profil `Google/Chrome/Default` n'a pas les réglages du concert).
+- Les réglages sont dans le localStorage, clé `noosphi_midi`, dans `Default/Local Storage/leveldb/*.ldb`. Ces fichiers sont compressés (snappy) : `strings` n'y trouve rien. Les copier, puis décompresser les blocs (petit décodeur snappy en Python, sans dépendance) et chercher `jeuHaut`.
+- Depuis la branche `feat/export-reglages-midi`, la fiche de séance les garde : ce détour ne servira plus que pour les séances d'avant.
