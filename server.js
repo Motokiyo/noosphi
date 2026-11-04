@@ -64,9 +64,10 @@ app.post('/api/mesure-micro', express.json({ limit: '4kb' }), (req, res) => {
     fs.mkdirSync(DOSSIER_MESURES, { recursive: true });
     if (mesureTotal === null) mesureTotal = fs.readdirSync(DOSSIER_MESURES).reduce((t, f) => t + fs.statSync(path.join(DOSSIER_MESURES, f)).size, 0);
     const taille = fs.existsSync(fichier) ? fs.statSync(fichier).size : 0;
-    if (taille + ligne.length > MESURE_FICHIER_MAX || mesureTotal + ligne.length > MESURE_TOTAL_MAX) return res.status(507).end();
+    const octets = Buffer.byteLength(ligne);         // des octets, pas des caractères (accents, emojis)
+    if (taille + octets > MESURE_FICHIER_MAX || mesureTotal + octets > MESURE_TOTAL_MAX) return res.status(507).end();
     fs.appendFileSync(fichier, ligne);
-    mesureTotal += ligne.length;
+    mesureTotal += octets;
   } catch { return res.status(500).end(); }
   res.status(204).end();
 });
