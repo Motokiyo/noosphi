@@ -46,7 +46,8 @@
       border: 1px solid rgba(255, 255, 255, .15); background: transparent;
       color: var(--text-strong); font: inherit; text-align: center; letter-spacing: .1em; text-transform: uppercase;
     }
-    .panel button {
+    .panel .micro-avis { font-size: 12px; opacity: 0.5; margin-top: 14px; line-height: 1.4; }
+  .panel button {
       width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(var(--glow), .5);
       background: transparent; color: rgba(var(--glow), .9); font: inherit; cursor: pointer;
     }
@@ -89,7 +90,8 @@
     <h1>NOOSFEERIQUES</h1>
     <p>Entrez le code de la séance</p>
     <input id="code" type="text" maxlength="9" placeholder="NOOS-ABCD" autocomplete="off" autocapitalize="characters">
-    <button id="btn-join" type="button">Rejoindre</button>
+    <button id="btn-join" type="button">Participer</button>
+    <p class="micro-avis">Votre téléphone participe par son micro : on lit seulement son souffle électronique, aucun son n’est enregistré ni envoyé.</p>
   </div>
 
   <div class="notice" id="notice" aria-live="polite">
@@ -101,6 +103,7 @@
   <div class="status" id="status"></div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="js/micro.js"></script>
   <script type="module" src="js/public.js"></script>
 </body>
 </html>

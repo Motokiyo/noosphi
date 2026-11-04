@@ -35,9 +35,9 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 // par seconde, dans mesures/micro-<essai>.jsonl, hors de public/.
 const DOSSIER_MESURES = path.join(__dirname, 'mesures');
 // Adresse publique : plafonds pour qu'elle ne puisse pas remplir le disque
-const MESURE_FICHIER_MAX = 20 * 1024 * 1024;     // 20 Mo par essai (~10 h pour 5 appareils)
-const MESURE_TOTAL_MAX = 200 * 1024 * 1024;      // 200 Mo pour tout le dossier
-const MESURE_PAR_IP = 20;                         // lignes par seconde et par adresse (téléphones derrière une box)
+const MESURE_FICHIER_MAX = 300 * 1024 * 1024;    // 300 Mo par essai (~6 h de concert à 30 téléphones)
+const MESURE_TOTAL_MAX = 1024 * 1024 * 1024;     // 1 Go pour tout le dossier
+const MESURE_PAR_IP = 80;                         // lignes par seconde et par adresse (toute une salle derrière un même wifi)
 const mesureIp = new Map();
 let mesureTotal = null;                           // octets du dossier, lus une fois au premier appel
 const nombre = v => (typeof v === 'number' && Number.isFinite(v) ? v : null);

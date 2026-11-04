@@ -63,6 +63,52 @@ async function keepAwake() {
   } catch {}
 }
 
+// Le micro comme générateur (micro.js) : chaque seconde, ses tirages de 200 bits
+// réunis par Stouffer. Il s'ouvre au toucher sur « Participer » (l'iPhone l'exige).
+// Micro refusé, ou 5 secondes sans aucun tirage : la graine prend le relais.
+// ?graine=1 dans l'adresse : pas de micro, comme avant.
+const AVEC_MICRO = !new URLSearchParams(location.search).has('graine') && !!window.NoosMicro && !!navigator.mediaDevices?.getUserMedia;
+let extracteur = null, couperMicro = null, secondesVides = 0, source = 'graine';
+const APPAREIL = Math.random().toString(36).slice(2, 8);
+
+async function ouvrirLeMicro() {
+  if (!AVEC_MICRO || extracteur) return;
+  try {
+    extracteur = NoosMicro.createExtracteur();
+    couperMicro = await NoosMicro.ouvrirMicro(extracteur);
+    source = 'micro';
+  } catch { extracteur = null; source = 'graine'; }
+}
+
+// Le z de cette seconde, et de quoi il vient. null : seconde creuse du micro
+function zDeLaSeconde() {
+  if (source !== 'micro') return { z: eggZ(), zs: null, c: null };
+  const zs = extracteur.tirer(TRIALS), c = extracteur.controle();
+  if (!zs.length) {
+    if (++secondesVides >= 5) {           // micro muet : la graine prend le relais
+      couperMicro?.(); couperMicro = null; extracteur = null; source = 'graine';
+      setStatus('Micro silencieux : le hasard du téléphone prend le relais');
+    }
+    return { z: null, zs, c };
+  }
+  secondesVides = 0;
+  return { z: zs.reduce((a, b) => a + b, 0) / Math.sqrt(zs.length), zs, c };
+}
+
+// Mesure son contre z, pour vérifier que le son de la salle n'abîme pas le z :
+// des chiffres seulement (niveau, bits bruts, z du micro, z témoin de la graine)
+function envoyerMesure(z, zs, c) {
+  if (!code) return;
+  const ua = navigator.userAgent;
+  fetch('/api/mesure-micro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+    body: JSON.stringify({
+      essai: 'concert-' + code.toLowerCase(), appareil: APPAREIL, t: Date.now(),
+      type: /iPhone|iPad/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'autre',
+      navigateur: source, micro: couperMicro?.entree?.nom || null, khz: couperMicro?.entree?.khz || null,
+      zs: zs || [], zMicro: source === 'micro' ? z : null, zTemoin: eggZ(), ...(c || {}),
+    }) }).catch(() => {});
+}
+
 function join(c) {
   code = c.trim().toUpperCase();
   if (!/^NOOS-[A-Z0-9]{4}$/.test(code)) { setStatus('Code invalide', false); return; }
@@ -75,7 +121,7 @@ socket.on('collective:joined', () => {
   joinPanel.classList.add('hidden');
   document.body.classList.add('connected');
   keepAwake();
-  setStatus(`Vous participez · ${code} · gardez cette page ouverte`);
+  setStatus(`Vous participez${source === 'micro' ? ' par le micro' : ''} · ${code} · gardez cette page ouverte`);
   // Rappel une seule fois, pas a chaque reconnexion
   if (!noticeShown) {
     noticeShown = true;
@@ -116,7 +162,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 setInterval(() => {
-  if (joined && socket.connected) socket.emit('collective:z', { z: eggZ() });
+  if (!joined || !socket.connected) return;
+  const avant = source;
+  const { z, zs, c } = zDeLaSeconde();
+  if (avant === 'micro') envoyerMesure(z, zs, c);
+  if (z != null) socket.emit('collective:z', { z });
 }, 1000);
 
 // Plein ecran au premier toucher : la barre du navigateur disparait (Android ;
@@ -130,8 +180,11 @@ document.addEventListener('click', e => {
   document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
 });
 
-document.getElementById('btn-join').addEventListener('click', () => join(codeInput.value));
-codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') join(codeInput.value); });
+// Avec le micro, il faut un toucher : le code du QR est prérempli, on touche « Participer »
+const participer = async () => { await ouvrirLeMicro(); join(codeInput.value); };
+document.getElementById('btn-join').addEventListener('click', participer);
+codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') participer(); });
 
 const fromUrl = new URLSearchParams(location.search).get('code');
-if (fromUrl) { codeInput.value = fromUrl; join(fromUrl); }
+if (!AVEC_MICRO) document.querySelector('.micro-avis')?.remove();
+if (fromUrl) { codeInput.value = fromUrl; if (!AVEC_MICRO) join(fromUrl); }
