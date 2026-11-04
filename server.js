@@ -34,13 +34,40 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 // chaque seconde leurs chiffres de contrôle du micro (jamais de son). Une ligne JSON
 // par seconde, dans mesures/micro-<essai>.jsonl, hors de public/.
 const DOSSIER_MESURES = path.join(__dirname, 'mesures');
+// Adresse publique : plafonds pour qu'elle ne puisse pas remplir le disque
+const MESURE_FICHIER_MAX = 20 * 1024 * 1024;     // 20 Mo par essai (~10 h pour 5 appareils)
+const MESURE_TOTAL_MAX = 200 * 1024 * 1024;      // 200 Mo pour tout le dossier
+const MESURE_PAR_IP = 20;                         // lignes par seconde et par adresse (téléphones derrière une box)
+const mesureIp = new Map();
+let mesureTotal = null;                           // octets du dossier, lus une fois au premier appel
+const nombre = v => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const court = v => (typeof v === 'string' ? v.slice(0, 60) : null);
 app.post('/api/mesure-micro', express.json({ limit: '4kb' }), (req, res) => {
   const m = req.body || {};
   if (typeof m.essai !== 'string' || !/^[a-z0-9-]{3,30}$/.test(m.essai)) return res.status(400).end();
-  const ligne = JSON.stringify({ recu: Date.now(), ...m }) + '\n';
-  fs.mkdir(DOSSIER_MESURES, { recursive: true }, () => {
-    fs.appendFile(path.join(DOSSIER_MESURES, `micro-${m.essai}.jsonl`), ligne, () => {});
-  });
+  const seconde = Math.floor(Date.now() / 1000), ip = req.ip;
+  const compte = mesureIp.get(ip);
+  if (compte && compte.s === seconde) { if (++compte.n > MESURE_PAR_IP) return res.status(429).end(); }
+  else mesureIp.set(ip, { s: seconde, n: 1 });
+  if (mesureIp.size > 1000) for (const [k, v] of mesureIp) if (v.s < seconde) mesureIp.delete(k);
+  // Seulement les champs attendus
+  const ligne = JSON.stringify({
+    recu: Date.now(), essai: m.essai, appareil: court(m.appareil), t: nombre(m.t),
+    type: court(m.type), navigateur: court(m.navigateur), micro: court(m.micro), khz: nombre(m.khz),
+    zs: Array.isArray(m.zs) ? m.zs.slice(0, 10).map(nombre) : [], zMicro: nombre(m.zMicro), zTemoin: nombre(m.zTemoin),
+    partUns: nombre(m.partUns), echantillons: nombre(m.echantillons), partSilence: nombre(m.partSilence),
+    bitsUtiles: nombre(m.bitsUtiles), resolution: nombre(m.resolution), niveauDb: nombre(m.niveauDb),
+    partVoisinsEgaux: nombre(m.partVoisinsEgaux), brutTotal: nombre(m.brutTotal),
+  }) + '\n';
+  const fichier = path.join(DOSSIER_MESURES, `micro-${m.essai}.jsonl`);
+  try {
+    fs.mkdirSync(DOSSIER_MESURES, { recursive: true });
+    if (mesureTotal === null) mesureTotal = fs.readdirSync(DOSSIER_MESURES).reduce((t, f) => t + fs.statSync(path.join(DOSSIER_MESURES, f)).size, 0);
+    const taille = fs.existsSync(fichier) ? fs.statSync(fichier).size : 0;
+    if (taille + ligne.length > MESURE_FICHIER_MAX || mesureTotal + ligne.length > MESURE_TOTAL_MAX) return res.status(507).end();
+    fs.appendFileSync(fichier, ligne);
+    mesureTotal += ligne.length;
+  } catch { return res.status(500).end(); }
   res.status(204).end();
 });
 
