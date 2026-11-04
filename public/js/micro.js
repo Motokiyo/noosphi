@@ -25,6 +25,10 @@
     let utiles = [];             // bits après toilette, pas encore tirés
     let derniers = [];           // les `garde` derniers bits utiles (histogramme)
     let brutUns = 0, brutTotal = 0, silence = 0, utilesSeconde = 0, resolution = null;
+    // Pour la mesure son contre z : niveau du son (somme des carrés) et bits bruts
+    // voisins identiques (un son qui « colle » d'un échantillon au suivant se voit là,
+    // et la toilette de von Neumann ne corrige pas cette dépendance)
+    let carres = 0, nCarres = 0, voisinsEgaux = 0, voisinsTotal = 0, precedent = -1;
     const entiers = new Int32Array(8192);
 
     // echantillons : nombres entre -1 et 1 (Float32Array du navigateur).
@@ -40,7 +44,8 @@
     function paquet(echantillons) {
       const n = echantillons.length;
       let tous = 0;
-      for (let i = 0; i < n; i++) { entiers[i] = Math.round(echantillons[i] * 8388608); tous |= entiers[i]; }
+      for (let i = 0; i < n; i++) { entiers[i] = Math.round(echantillons[i] * 8388608); tous |= entiers[i]; carres += echantillons[i] * echantillons[i]; }
+      nCarres += n;
       if (tous === 0) { silence += n; return; }          // silence numerique : rien a tirer
       // Le bit le plus fin ou le souffle domine : le premier, en partant du plus fin,
       // qui soit equilibre (entre 25 et 75 % de 1). Un bit plus fin mais tres penche
@@ -58,6 +63,8 @@
       for (let i = 0; i < n; i++) {
         const b = (entiers[i] >> decalage) & 1;
         brutUns += b; brutTotal++;
+        if (precedent >= 0) { voisinsTotal++; if (b === precedent) voisinsEgaux++; }
+        precedent = b;
         if (enAttente < 0) { enAttente = b; continue; }
         if (enAttente !== b) {
           const u = enAttente ^ (alterne++ & 1);
@@ -95,8 +102,12 @@
     // Les chiffres de controle de la seconde ecoulee, puis remise a zero
     function controle() {
       const tout = brutTotal + silence;
-      const c = { partUns: brutTotal ? brutUns / brutTotal : null, echantillons: tout, partSilence: tout ? silence / tout : null, bitsUtiles: utilesSeconde, resolution };
+      const c = { partUns: brutTotal ? brutUns / brutTotal : null, echantillons: tout, partSilence: tout ? silence / tout : null, bitsUtiles: utilesSeconde, resolution,
+        niveauDb: nCarres && carres > 0 ? 10 * Math.log10(carres / nCarres) : null,   // dBFS (0 = plein pot)
+        partVoisinsEgaux: voisinsTotal ? voisinsEgaux / voisinsTotal : null,           // attendu 0,5
+        brutTotal };
       brutUns = 0; brutTotal = 0; silence = 0; utilesSeconde = 0;
+      carres = 0; nCarres = 0; voisinsEgaux = 0; voisinsTotal = 0;
       return c;
     }
 

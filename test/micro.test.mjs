@@ -71,3 +71,15 @@ test('un bit fin tres penche (residu de calcul) est evite au profit du bit du so
   assert.ok(c.bitsUtiles > 10000);
   assert.equal(c.resolution, 21);
 });
+
+test('controle : niveau du son en dBFS et part de bits bruts voisins identiques', () => {
+  const x = createExtracteur(), rnd = hasard(11);
+  x.ajouter(souffle(20000, rnd));
+  const c = x.controle();
+  assert.ok(c.niveauDb < -60 && c.niveauDb > -90, 'niveau : ' + c.niveauDb);
+  assert.ok(c.partVoisinsEgaux > 0.47 && c.partVoisinsEgaux < 0.53, 'voisins : ' + c.partVoisinsEgaux);
+  // une sinusoide forte : niveau proche de -3 dBFS
+  const y = createExtracteur();
+  y.ajouter(Float32Array.from({ length: 48000 }, (_, i) => Math.sin(i * 0.0577) + (rnd() - 0.5) / 4e6));
+  assert.ok(Math.abs(y.controle().niveauDb + 3) < 0.2);
+});

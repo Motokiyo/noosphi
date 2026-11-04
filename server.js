@@ -30,6 +30,20 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 
 app.get('/index.html', (req, res) => res.redirect(301, '/dashboard'));   // ancienne adresse du dashboard
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
+// Mesure son contre z : les appareils ouverts sur /dashboard?mesure=<essai> envoient
+// chaque seconde leurs chiffres de contrôle du micro (jamais de son). Une ligne JSON
+// par seconde, dans mesures/micro-<essai>.jsonl, hors de public/.
+const DOSSIER_MESURES = path.join(__dirname, 'mesures');
+app.post('/api/mesure-micro', express.json({ limit: '4kb' }), (req, res) => {
+  const m = req.body || {};
+  if (typeof m.essai !== 'string' || !/^[a-z0-9-]{3,30}$/.test(m.essai)) return res.status(400).end();
+  const ligne = JSON.stringify({ recu: Date.now(), ...m }) + '\n';
+  fs.mkdir(DOSSIER_MESURES, { recursive: true }, () => {
+    fs.appendFile(path.join(DOSSIER_MESURES, `micro-${m.essai}.jsonl`), ligne, () => {});
+  });
+  res.status(204).end();
+});
+
 // === HELPERS ===
 
 function parseGCPData(text) {

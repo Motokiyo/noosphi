@@ -208,7 +208,9 @@ function initChoixLocal() {
       try {
         await brancherMicro(null);
         modeLocal = 'micro';
-        diag.textContent = 'Le micro sert seulement à lire son souffle électronique : rien n’est enregistré ni envoyé.';
+        diag.textContent = MESURE
+          ? `Mesure « ${MESURE} » : chaque seconde, des chiffres (jamais le son) partent au serveur.`
+          : 'Le micro sert seulement à lire son souffle électronique : rien n’est enregistré ni envoyé.';
       } catch (e) {
         extracteur = null;
         diag.textContent = 'Micro refusé ou indisponible : on reste sur la graine.';
@@ -250,12 +252,46 @@ async function brancherMicro(id) {
   liste.hidden = micros.length < 2;
 }
 
+// Mesure son contre z (?mesure=<nom-de-l-essai>) : chaque seconde de micro, l'appareil
+// envoie au serveur ses chiffres de contrôle, le z du micro et celui d'un témoin
+// tiré au même instant de la graine du navigateur. Jamais de son : des nombres.
+const MESURE = (() => {
+  const t = new URLSearchParams(location.search).get('mesure');
+  return t && /^[a-z0-9-]{3,30}$/.test(t) ? t : null;
+})();
+const APPAREIL = Math.random().toString(36).slice(2, 8);
+function zGraine() {
+  const octets = new Uint8Array(250);
+  crypto.getRandomValues(octets);
+  let zSomme = 0;
+  for (let t = 0; t < ESSAIS; t++) {
+    let piles = 0;
+    for (let i = 0; i < 25; i++) { let b = octets[t * 25 + i]; while (b) { piles += b & 1; b >>= 1; } }
+    zSomme += (piles - 100) / SQRT_50;
+  }
+  return zSomme / Math.sqrt(ESSAIS);
+}
+function envoyerMesure(zs, c) {
+  if (!MESURE) return;
+  const ua = navigator.userAgent;
+  const ligne = {
+    essai: MESURE, appareil: APPAREIL, t: Date.now(),
+    type: /iPhone|iPad/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Mac/.test(ua) ? 'mac' : 'autre',
+    navigateur: /CriOS|Chrome/.test(ua) ? 'chrome' : /Firefox|FxiOS/.test(ua) ? 'firefox' : /Safari/.test(ua) ? 'safari' : 'autre',
+    micro: couperMicro?.entree?.nom || null, khz: couperMicro?.entree?.khz || null,
+    zs, zMicro: zs.length ? zs.reduce((a, b) => a + b, 0) / Math.sqrt(zs.length) : null,
+    zTemoin: zGraine(), ...c,
+  };
+  fetch('/api/mesure-micro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ligne), keepalive: true }).catch(() => {});
+}
+
 // Une seconde de micro : jusqu'à 10 tirages de 200 bits, réunis par Stouffer
 function tirerMicro() {
   const zs = extracteur.tirer(ESSAIS);
   const c = extracteur.controle();
+  envoyerMesure(zs, c);
   const pct = c.partUns == null ? '--' : fmt(100 * c.partUns, 1) + ' %';
-  document.getElementById('diag-local').textContent =
+  document.getElementById('diag-local').textContent = (MESURE ? `Mesure « ${MESURE} » · appareil ${APPAREIL} · ${c.niveauDb == null ? '--' : Math.round(c.niveauDb)} dBFS · ` : '') +
     `Bits bruts : ${pct} de 1 (attendu 50 %) · ${c.bitsUtiles} bits utiles par seconde · ${zs.length} tirage${zs.length > 1 ? 's' : ''}` +
     (c.resolution ? ` · ${c.resolution} bits` : c.echantillons ? '' : ' · aucun son reçu') +
     (c.partSilence > 0.01 ? ` · silence numérique ${Math.round(100 * c.partSilence)} %` : '') +
