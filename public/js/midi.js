@@ -230,8 +230,31 @@ const GROUPS = {
 // l'un, 127 / 0 alternes pour l'autre.
 const patchValeur = { suivant: 0, precedent: 0 };
 function sendPatch(sens) {
+  const at = couperAncienPatch();
   patchValeur[sens] = sens === 'suivant' ? 127 : (patchValeur[sens] ? 0 : 127);
-  send([0xB0 | (CANAL_PATCH - 1), CC_PATCH[sens], patchValeur[sens]]);
+  send([0xB0 | (CANAL_PATCH - 1), CC_PATCH[sens], patchValeur[sens]], at + 30);
+}
+
+// Couper l'ancien patch avant d'en changer (08/11/2026, demande d'Alexandre).
+// Le Scripter « Percus 7 temps » joue sa grille tant qu'il croit une note tenue ;
+// si le patch change avant le relachement, MainStage envoie ce relachement au
+// nouveau patch et la boucle de l'ancien ne s'arrete jamais. Un « All Notes Off »
+// ne suffit pas : le script le laisse passer sans vider ses notes tenues.
+// Donc, sur chaque canal de l'app : relachement de toutes les notes (0 a 127),
+// pedale levee, All Notes Off (123), All Sound Off (120). Le tout juste APRES le
+// dernier message deja programme (Chrome ne sait pas les annuler) : la coupure
+// arrive forcement en dernier dans l'ancien patch, au pire une seconde plus tard.
+// Renvoie l'heure de la coupure ; le changement de patch part 30 ms apres.
+function couperAncienPatch() {
+  const at = afterScheduled();
+  [...new Set(allChannels())].forEach(ch => {
+    const c = ch - 1;
+    for (let n = 0; n < 128; n++) send([0x80 | c, n, 0], at);
+    send([0xB0 | c, 64, 0], at);
+    send([0xB0 | c, 123, 0], at);
+    send([0xB0 | c, 120, 0], at);
+  });
+  return at;
 }
 
 function sendExpressionValue(v, at, group) {

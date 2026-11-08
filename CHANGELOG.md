@@ -1,5 +1,9 @@
 # Changelog — Noosfeerique
 
+## [1.7.8] — 08/11/2026
+
+- Changement de patch : l'ancien patch est coupé avant (relâchement des 128 notes, CC 64, 123 et 120 sur les trois canaux, juste après le dernier message programmé), puis CC 102 / 103 30 ms après. Corrige la boucle des percussions des scientifiques qui continuait dans le patch suivant. Service worker v45
+
 ## [1.3.0] — non publiée (branche feat/midi-voix-passages)
 
 - Silence choisi : zone de silence entre −bas et +haut sur la cohérence signée de la dernière minute, deux réglages indépendants (1,5 et 1,5 par défaut, 0 et 0 = joue toujours). L'ancien seuil d'envie est repris pour les deux bords

@@ -283,3 +283,10 @@ Les sessions enregistrées restent dans le navigateur qui les a faites (50 au pl
 - Le lanceur ouvre Chrome avec un profil à part : `~/Library/Application Support/U1-virtuel-Chrome` (le profil `Google/Chrome/Default` n'a pas les réglages du concert).
 - Les réglages sont dans le localStorage, clé `noosphi_midi`, dans `Default/Local Storage/leveldb/*.ldb`. Ces fichiers sont compressés (snappy) : `strings` n'y trouve rien. Les copier, puis décompresser les blocs (petit décodeur snappy en Python, sans dépendance) et chercher `jeuHaut`.
 - Depuis la branche `feat/export-reglages-midi`, la fiche de séance les garde : ce détour ne servira plus que pour les séances d'avant.
+
+
+## Couper l'ancien patch au changement (08/11/2026, v1.7.8)
+
+Avant chaque changement de patch (par le z ou par les boutons « Tester »), l'app envoie sur ses trois canaux le relâchement des 128 notes, pédale levée, All Notes Off (CC 123) et All Sound Off (CC 120), puis, 30 ms plus tard, le CC 102 ou 103. Le tout part juste après le dernier message déjà programmé, parce que Chrome ne sait pas annuler un message daté : la coupure arrive forcément en dernier dans l'ancien patch, au pire une seconde plus tard.
+
+Pourquoi : le Scripter « Percus 7 temps » (patch « Les scientifiques ») joue sa grille tant qu'il croit une note tenue. Quand le patch changeait avant le relâchement, MainStage envoyait ce relâchement au nouveau patch, et la boucle de l'ancien ne s'arrêtait jamais (constaté par Alexandre le 08/11/2026). Un All Notes Off seul ne suffit pas : le script le laisse passer sans vider ses notes tenues. Limite : un changement de patch fait à la main au clavier ne passe pas par l'app et n'est pas couvert.
