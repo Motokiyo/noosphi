@@ -1,5 +1,9 @@
 # Changelog — Noosfeerique
 
+## U1 corrigé v2 — 08/11/2026
+
+- `u1-corrige.html` refaite : le pont Thétys v4 recopié en JavaScript (`js/pont-moteur.js`), journal identique au pont en C ligne à ligne (test `pont-moteur.test.mjs` ; vérifié aussi sur 1 140 409 lignes). Tableau de bord : état du pont, courbe brute, recousue et filtrée, recalages CC 123, famille de l'atlas sur 10 min et mesures, part de la machine. Interrupteur pour jouer vers MainStage (quatre couches sur quatre canaux), réglages en jeu du pont, journal CSV au format du pont. Conseils de réglage passés à Res L, Gain 1/2, Note 1, Event 0, Rate 1/4. Service worker v47
+
 ## [1.3.0] — non publiée (branche feat/midi-voix-passages)
 
 - Silence choisi : zone de silence entre −bas et +haut sur la cohérence signée de la dernière minute, deux réglages indépendants (1,5 et 1,5 par défaut, 0 et 0 = joue toujours). L'ancien seuil d'envie est repris pour les deux bords

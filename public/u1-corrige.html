@@ -3,204 +3,312 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>U1 corrigé</title>
+<title>U1 corrigé · Thétys</title>
 <style>
-  /* U1 corrigé : lit le U1 en MIDI, recoud ses sauts de rattrapage, rejoue une mélodie fidèle vers MainStage. */
-  :root { --fond: #0B0E14; --texte: rgba(255,255,255,.9); --doux: rgba(255,255,255,.55); --cyan: #4EC9C6; --or: #C9A24D; --orange: #E8901A; --carte: #141925; }
+  /* U1 corrigé (v2, 08/11/2026) : le pont Thétys v4 dans une page. Lit le U1 en MIDI, montre ce que fait
+     la plante et ce que fait la machine, et peut jouer vers MainStage à la place du pont du Terminal. */
+  :root { --fond: #0B0E14; --texte: rgba(255,255,255,.9); --doux: rgba(255,255,255,.55); --cyan: #4EC9C6; --or: #C9A24D; --orange: #E8901A; --rouge: #E5534B; --vert: #6FBF73; --carte: #141925; }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 16px; background: var(--fond); color: var(--texte); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
-  h1 { font-weight: 500; font-size: 22px; margin: 0 0 4px; color: var(--cyan); }
-  .sous { color: var(--doux); margin: 0 0 14px; max-width: 60em; }
-  .grille { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; }
-  @media (max-width: 760px) { .grille { grid-template-columns: minmax(0, 1fr); } }
-  .carte { background: var(--carte); border: 1px solid #263044; border-radius: 10px; padding: 12px 14px; }
-  .ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 7px 0; }
-  select, input[type=number] { background: #1d2433; color: var(--texte); border: 1px solid #36405a; border-radius: 5px; padding: 3px 5px; font: inherit; max-width: 170px; }
-  input[type=number] { width: 70px; }
+  body { margin: 0; padding: 14px; background: var(--fond); color: var(--texte); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+  h1 { font-weight: 500; font-size: 22px; margin: 0 0 2px; color: var(--cyan); }
+  h2 { font-weight: 500; font-size: 15px; margin: 0 0 8px; color: var(--or); text-transform: uppercase; letter-spacing: .06em; }
+  .sous { color: var(--doux); margin: 0 0 12px; max-width: 70em; }
+  .grille { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .grille { grid-template-columns: minmax(0, 1fr); } }
+  .carte { background: var(--carte); border: 1px solid #263044; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
+  select, input[type=number] { background: #1d2433; color: var(--texte); border: 1px solid #36405a; border-radius: 5px; padding: 3px 5px; font: inherit; max-width: 180px; }
+  input[type=number] { width: 72px; }
   button { font: inherit; border: 1px solid var(--cyan); background: transparent; color: var(--cyan); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
   button.on { background: var(--cyan); color: var(--fond); }
-  .boutons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .mode { display: flex; gap: 0; margin: 8px 0; }
-  .mode button { border-radius: 0; flex: 1; }
-  .mode button:first-child { border-radius: 7px 0 0 7px; }
-  .mode button:last-child { border-radius: 0 7px 7px 0; }
-  canvas { display: block; width: 100%; height: 340px; background: #0f1420; border-radius: 8px; }
+  button.joue.on { background: var(--orange); border-color: var(--orange); }
+  .boutons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  canvas { display: block; width: 100%; height: 300px; background: #0f1420; border-radius: 8px; }
   .legende { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--doux); font-size: 13px; margin-top: 6px; }
   .legende i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
-  .etat { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--or); margin-top: 8px; min-height: 1.4em; }
-  .compteurs { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--doux); }
-  small { color: var(--doux); }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  small, .doux { color: var(--doux); }
+  #etat { font-size: 30px; font-weight: 600; letter-spacing: .04em; }
+  #etat-txt { color: var(--doux); }
+  .bandeau { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+  .chiffres { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+  .chiffre { background: #10151f; border-radius: 7px; padding: 6px 9px; }
+  .chiffre b { display: block; font-size: 20px; font-weight: 500; }
+  .chiffre span { color: var(--doux); font-size: 12px; }
+  .alerte { color: var(--orange); }
+  .grave { color: var(--rouge); }
+  #famille { font-size: 22px; color: var(--cyan); }
+  #messages { max-height: 160px; overflow: auto; white-space: pre-wrap; color: var(--doux); }
+  .conseil { color: var(--or); }
+  details summary { cursor: pointer; color: var(--doux); }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
 </style>
 </head>
 <body>
-<h1>U1 corrigé</h1>
-<p class="sous">Réglages du U1 conseillés : Event Filter et Sample Rate au minimum, Gain 1/4, Res L, Note 1, Scale 12. La page recoud les sauts de rattrapage du U1, applique un seuil identique vers le haut et vers le bas, et donne aux notes une force tirée de la vitesse de la plante.</p>
+<h1>U1 corrigé · Thétys</h1>
+<p class="sous">Le pont Thétys v4 dans une page : même calcul, note pour note (vérifié sur 1,1 million de lignes de journal). <span class="conseil">Réglages du U1 retenus aux séances 7 et 8 : Res L, Gain 1/2, Note 1, Event 0, Rate 1/4.</span> Gain au maximum écarté (36 recalages par minute, la moitié des notes collées aux bords).</p>
 
 <div class="grille">
+<div>
   <div class="carte">
+    <h2>Branchements</h2>
     <div class="ligne"><span>Entrée (le U1)</span><select id="entree"></select></div>
     <div class="ligne"><span>Sortie (MainStage)</span><select id="sortie"></select></div>
-    <div class="mode" role="group" aria-label="Mode">
-      <button id="mode-origine">U1 d'origine</button><button id="mode-corrige" class="on">U1 corrigé</button>
-    </div>
-    <div class="ligne"><span>Sensibilité (crans)</span><input type="number" id="sensibilite" min="1" max="12" step="1" value="3"></div>
-    <div class="ligne"><span>Pas (degrés)</span><input type="number" id="pas" min="1" max="12" step="1" value="2"></div>
-    <div class="ligne"><span>Gamme</span><select id="gamme"><option value="libre">Libre (12)</option><option value="majeur">Majeure</option><option value="penta">Pentatonique</option></select></div>
-    <div class="ligne"><span>Note de départ</span><input type="number" id="centre" min="24" max="96" value="60"></div>
-    <div class="ligne"><span>Canal</span><input type="number" id="canal" min="1" max="16" value="1"></div>
-    <div class="boutons">
-      <button id="activer">Activer le MIDI</button>
-      <button id="panique">Panique</button>
-      <button id="csv">Enregistrer la courbe (CSV)</button>
-    </div>
-    <div class="etat" id="etat">MIDI en pause</div>
-    <div class="compteurs" id="compteurs"></div>
+    <div class="boutons"><button id="activer">Activer le MIDI</button><button id="panique">Panique</button></div>
+    <div class="mono doux" id="branche" style="margin-top:6px">MIDI en pause</div>
   </div>
 
   <div class="carte">
-    <canvas id="courbe" width="1000" height="340" aria-label="Courbe de la plante"></canvas>
-    <div class="legende">
-      <span><i style="background:#5b6478"></i>notes brutes du U1 (repliées dans sa fenêtre)</span>
-      <span><i style="background:var(--cyan)"></i>courbe recousue : le mouvement réel de la plante</span>
-      <span><i style="background:var(--orange)"></i>saut de rattrapage effacé</span>
-      <span><i style="background:var(--or)"></i>note jouée vers MainStage</span>
-    </div>
-    <small>Les trois dernières minutes. Un « cran » est l'unité du U1 : un tiers de son échelle interne.</small>
+    <h2>Jouer vers MainStage</h2>
+    <div class="boutons"><button id="jouer" class="joue">Ne joue pas (tableau de bord seul)</button></div>
+    <div class="ligne"><span>Ce qui part</span><select id="quoi"><option value="pont">Le pont (recousu, filtré)</option><option value="origine">Le U1 tel quel</option></select></div>
+    <div class="ligne"><span>Canal « Thétys »</span><input type="number" id="c0" min="1" max="15" value="1"></div>
+    <div class="ligne"><span>Canal « arrivées »</span><input type="number" id="c1" min="1" max="15" value="2"></div>
+    <div class="ligne"><span>Canal « sommets »</span><input type="number" id="c2" min="1" max="15" value="3"></div>
+    <div class="ligne"><span>Canal « geste »</span><input type="number" id="c3" min="1" max="15" value="4"></div>
+    <small>Une page ne peut pas créer d'entrées MIDI comme le pont : ses quatre couches partent sur quatre canaux de la sortie choisie. Les patchs doivent écouter cette sortie et ces canaux. <b>Ne pas jouer en même temps que le pont du Terminal</b> : les notes sortiraient en double.</small>
+  </div>
+
+  <div class="carte">
+    <h2>Réglages du pont</h2>
+    <div class="ligne"><span>Zone morte (crans)</span><select id="zone"><option value="0">0 (aucun filtre)</option><option value="1" selected>±1 (défaut)</option><option value="2">±2</option><option value="3">±3</option></select></div>
+    <div class="ligne"><span>Tenue d'une arrivée (s)</span><input type="number" id="tenue" min="2" max="30" step="2" value="6"></div>
+    <div class="ligne"><span>Amplification du geste</span><input type="number" id="ampli" min="0.1" max="50" step="0.1" value="1"></div>
+    <div class="ligne"><span>Fenêtre du geste (s)</span><input type="number" id="fenetre" min="5" max="300" step="5" value="30"></div>
+    <div class="ligne"><label><input type="checkbox" id="couches" checked> Couches (arrivées, sommets)</label></div>
+    <div class="ligne"><label><input type="checkbox" id="geste" checked> Geste</label></div>
+    <div class="ligne"><label><input type="checkbox" id="nuit"> Concert tardif (pas d'heures calmes 00:00-09:30)</label></div>
+    <div class="boutons"><button id="recaler">Recaler le La</button><button id="csv">Journal (CSV du pont)</button></div>
+    <small>Les réglages s'appliquent tout de suite, comme les commandes du Terminal (z, +, -, a, w, c, g, l).</small>
   </div>
 </div>
 
-<script>
-(function () {
-  "use strict";
-  // ---------- Réglages ----------
-  var BORD_HAUT = 96, BORD_BAS = 48, SAUT_MIN = 8;   // fenêtre du U1 d'Alexandre : notes ~44 à 99
-  var GAMMES = { libre: [0,1,2,3,4,5,6,7,8,9,10,11], majeur: [0,2,4,5,7,9,11], penta: [0,2,4,7,9] };
-  var $ = function (id) { return document.getElementById(id); };
-  var reglage = function (id) { return parseInt($(id).value, 10); };
-  var mode = "corrige", acces = null, entree = null, sortie = null, actif = false;
+<div>
+  <div class="carte">
+    <div class="bandeau"><span id="etat">EN ATTENTE</span><span id="etat-txt">Activer le MIDI, puis le pont écoute 60 s avant de caler le La.</span></div>
+    <div class="chiffres" id="chiffres"></div>
+  </div>
 
-  // ---------- État de la correction ----------
-  var precedente = null, decalage = 0, niveauRef = null, degre = 0, noteJouee = null;
-  var derniereT = null, dernierNiveau = null, vitesse = 0;
-  var points = [], sauts = 0, notesSortie = 0, journal = ["temps_ms,note_u1,niveau_recousu,saut,note_sortie,velocite"];
-  var t0 = performance.now();
+  <div class="carte">
+    <canvas id="courbe" width="1000" height="300" aria-label="Courbe de la plante"></canvas>
+    <div class="legende">
+      <span><i style="background:#5b6478"></i>notes brutes du U1</span>
+      <span><i style="background:var(--cyan)"></i>niveau recousu</span>
+      <span><i style="background:#fff"></i>niveau filtré (zone morte)</span>
+      <span><i style="background:var(--or)"></i>note jouée</span>
+      <span><i style="background:var(--orange)"></i>recentrage du U1</span>
+      <span><i style="background:var(--rouge)"></i>CC 123 du U1 (il se recale)</span>
+    </div>
+    <small>Les trois dernières minutes. Un cran est l'unité du U1.</small>
+  </div>
 
-  function envoyer(octets) { if (sortie) sortie.send(octets); }
-  function canal() { return Math.max(1, Math.min(16, reglage("canal"))) - 1; }
-  function vers(degreRel) {
-    // degré de gamme relatif -> note MIDI, autour de la note de départ, repliée dans 36..96
-    var g = GAMMES[$("gamme").value], n = g.length;
-    var oct = Math.floor(degreRel / n), r = ((degreRel % n) + n) % n;
-    var base = reglage("centre"), note = base + oct * 12 + g[r];
-    while (note > 96) note -= 12; while (note < 36) note += 12;
-    return note;
-  }
+  <div class="carte">
+    <h2>Ce que fait Thétys (10 dernières minutes)</h2>
+    <div><span id="famille">—</span> <span id="famille-txt" class="doux"></span></div>
+    <div class="chiffres" id="mesures"></div>
+    <details style="margin-top:8px"><summary>Les six familles de l'atlas (08/11/2026)</summary><div class="doux" style="margin-top:6px">
+      <b>A torrent</b> : ruissellement continu, plus de 200 notes/min, petit ambitus (plante assoiffée).<br>
+      <b>B trille</b> : trois notes voisines en boucle ; la moitié des résistances tombent ici, suspect d'être la machine.<br>
+      <b>C presque immobile</b> : quelques notes isolées, longs silences ; le plus proche du repos de l'appareil.<br>
+      <b>D petit balancement qui monte</b> : va-et-vient constant en montant doucement.<br>
+      <b>E marche lente à gestes</b> : marche chromatique, petites courses de 5 crans.<br>
+      <b>F phrasé ample</b> : le plus chanté, phrases de 2 à 3 notes, grand ambitus, beaucoup de gestes.<br>
+      Une famille se lit sur 10 minutes et à partir de 10 notes ; ce sont des zones d'un continu, pas des cases nettes.</div></details>
+  </div>
 
-  // Une note arrive du U1
-  function surNoteU1(n, t) {
-    var saut = false;
-    if (precedente !== null) {
-      var d = n - precedente;
-      // rattrapage : départ collé au bord de la fenêtre et grand saut vers l'intérieur
-      if (Math.abs(d) >= SAUT_MIN && ((d < 0 && precedente >= BORD_HAUT) || (d > 0 && precedente <= BORD_BAS))) { decalage -= d; saut = true; sauts++; }
-    }
-    precedente = n;
-    var niveau = n + decalage;
-    if (dernierNiveau !== null && derniereT !== null) {
-      var dt = Math.max(0.05, (t - derniereT) / 1000);
-      vitesse = 0.6 * vitesse + 0.4 * Math.abs(niveau - dernierNiveau) / dt;
-    }
-    dernierNiveau = niveau; derniereT = t;
-    var sortieNote = null, vel = null;
-    if (niveauRef === null) niveauRef = niveau;
-    var s = Math.max(1, reglage("sensibilite")), ecart = niveau - niveauRef;
-    if (Math.abs(ecart) >= s) {                       // seuil identique vers le haut et vers le bas
-      var k = Math.trunc(ecart / s);
-      niveauRef += k * s; degre += k * reglage("pas");
-      sortieNote = vers(degre);
-      vel = Math.max(30, Math.min(127, Math.round(40 + vitesse * 18)));
-      if (mode === "corrige") jouer(sortieNote, vel, t);
-    }
-    points.push({ t: t, brut: n, niveau: niveau, saut: saut, jouee: sortieNote });
-    while (points.length && t - points[0].t > 180000) points.shift();
-    journal.push([Math.round(t - t0), n, niveau, saut ? 1 : 0, sortieNote === null ? "" : sortieNote, vel === null ? "" : vel].join(","));
-    majCompteurs();
-  }
+  <div class="carte">
+    <h2>Messages du pont</h2>
+    <div id="messages" class="mono"></div>
+  </div>
+</div>
+</div>
 
-  function jouer(note, vel, t) {
-    if (noteJouee !== null) envoyer([0x80 | canal(), noteJouee, 0]);
-    envoyer([0x90 | canal(), note, vel]);
-    envoyer([0xB0 | canal(), 20, Math.max(0, Math.min(127, Math.round(vitesse * 20)))]);   // CC 20 : vitesse de la plante
-    noteJouee = note; notesSortie++;
-  }
+<script type="module">
+import { creerPont } from './js/pont-moteur.js';
+const $ = id => document.getElementById(id);
+const T0 = performance.now(), EPOCH0 = Date.now() / 1000;
+const ts = ms => (ms - T0) / 1000;   // secondes depuis l'ouverture de la page
+let acces = null, entree = null, sortie = null, actif = false, joue = false, quoi = 'pont';
+const JOURNAL = ['temps_ms,source,canal,type,d1,d2,epoch,heure,niveau,decalage,ancre,note_jouee,etat,niveau_filtre'];
+const msgs = [];
+function message(t) { msgs.unshift(t); if (msgs.length > 200) msgs.pop(); $('messages').textContent = msgs.join('\n'); }
 
-  function panique() {
-    if (noteJouee !== null) envoyer([0x80 | canal(), noteJouee, 0]);
-    noteJouee = null;
-    for (var c = 0; c < 16; c++) envoyer([0xB0 | c, 123, 0]);
-  }
-
-  function surMessage(ev) {
-    var d = ev.data, st = d[0] & 0xF0;
-    if (mode === "origine" && actif) envoyer(Array.prototype.slice.call(d));      // passe tel quel
-    if (st === 0x90 && d[2] > 0) surNoteU1(d[1], ev.timeStamp || performance.now());
-  }
-
-  // ---------- MIDI ----------
-  function remplir() {
-    var e = $("entree"), s = $("sortie"); e.innerHTML = ""; s.innerHTML = "";
-    acces.inputs.forEach(function (p) { var o = document.createElement("option"); o.value = p.id; o.textContent = p.name; if (/USB|1x1|Uno|MIDISPORT/i.test(p.name)) o.selected = true; e.appendChild(o); });
-    acces.outputs.forEach(function (p) { var o = document.createElement("option"); o.value = p.id; o.textContent = p.name; if (/IAC|Bus/i.test(p.name)) o.selected = true; s.appendChild(o); });
-    brancher();
-  }
-  function brancher() {
-    if (entree) entree.onmidimessage = null;
-    entree = acces.inputs.get($("entree").value) || null;
-    sortie = acces.outputs.get($("sortie").value) || null;
-    if (entree) entree.onmidimessage = surMessage;
-    $("etat").textContent = actif ? ("Écoute « " + (entree ? entree.name : "?") + " » → « " + (sortie ? sortie.name : "?") + " »") : "MIDI en pause";
-  }
-  $("activer").addEventListener("click", function () {
-    if (actif) { actif = false; panique(); if (entree) entree.onmidimessage = null; $("activer").textContent = "Activer le MIDI"; $("activer").classList.remove("on"); $("etat").textContent = "MIDI en pause"; return; }
-    if (!navigator.requestMIDIAccess) { $("etat").textContent = "Ce navigateur ne sait pas faire de MIDI : ouvrir dans Chrome."; return; }
-    navigator.requestMIDIAccess({ sysex: false }).then(function (a) {
-      acces = a; actif = true; a.onstatechange = remplir; remplir();
-      $("activer").textContent = "MIDI actif"; $("activer").classList.add("on");
-    }, function () { $("etat").textContent = "Accès MIDI refusé par Chrome."; });
+// ---------- le pont ----------
+const canalDe = c => Math.max(1, Math.min(15, parseInt($('c' + c).value, 10) || (c + 1))) - 1;
+function versMainStage(couche, b) {
+  if (!joue || quoi !== 'pont' || !sortie) return;
+  let st = b[0];
+  if ((st & 0x0F) === 0) st |= canalDe(couche);   // le pont écrit en canal 1 ; le CC 20 du ROUGE garde son canal 16
+  sortie.send([st, b[1], b[2]]);
+  if ((st & 0xF0) === 0x90) vu.joue.push({ t: performance.now(), couche, note: b[1] });
+}
+let pont = null;
+function nouveauPont() {
+  pont = creerPont({
+    t0: EPOCH0, debut: 0, sortie: versMainStage, journal: l => JOURNAL.push(l), message,
+    zone: +$('zone').value, tenue: +$('tenue').value, amplification: +$('ampli').value, fenetre: +$('fenetre').value,
+    couches: $('couches').checked, geste: $('geste').checked, nuit: $('nuit').checked,
   });
-  $("entree").addEventListener("change", brancher); $("sortie").addEventListener("change", brancher);
-  $("panique").addEventListener("click", panique);
-  function choisirMode(m) { panique(); mode = m; $("mode-origine").classList.toggle("on", m === "origine"); $("mode-corrige").classList.toggle("on", m === "corrige"); }
-  $("mode-origine").addEventListener("click", function () { choisirMode("origine"); });
-  $("mode-corrige").addEventListener("click", function () { choisirMode("corrige"); });
-  $("csv").addEventListener("click", function () {
-    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([journal.join("\n")], { type: "text/csv" }));
-    a.download = "u1-corrige-" + new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-") + ".csv"; a.click();
-  });
-  window.addEventListener("pagehide", panique);
-  function majCompteurs() { $("compteurs").textContent = "notes du U1 : " + (journal.length - 1) + " · sauts recousus : " + sauts + " · notes jouées : " + notesSortie; }
+}
+nouveauPont();
+setInterval(() => pont.tic(ts(performance.now())), 250);
 
-  // ---------- Courbe ----------
-  var cv = $("courbe"), cx = cv.getContext("2d");
-  function dessiner() {
-    requestAnimationFrame(dessiner);
-    var s = window.devicePixelRatio || 1, W = cv.width = cv.clientWidth * s, H = cv.height = 340 * s, m = 10 * s;
-    cx.clearRect(0, 0, W, H);
-    var now = performance.now(), x = function (t) { return m + (1 - (now - t) / 180000) * (W - 2 * m); };
-    if (!points.length) { cx.fillStyle = "rgba(255,255,255,.4)"; cx.font = (14 * s) + "px -apple-system, sans-serif"; cx.fillText("En attente des notes du U1…", 20 * s, 30 * s); return; }
-    var lo = Infinity, hi = -Infinity; points.forEach(function (p) { lo = Math.min(lo, p.niveau, p.brut); hi = Math.max(hi, p.niveau, p.brut); });
-    lo -= 4; hi += 4; var y = function (v) { return H - m - (v - lo) / (hi - lo) * (H - 2 * m); };
-    cx.strokeStyle = "#5b6478"; cx.lineWidth = 1.5 * s; cx.beginPath(); points.forEach(function (p, i) { if (i === 0 || p.saut) cx.moveTo(x(p.t), y(p.brut)); else cx.lineTo(x(p.t), y(p.brut)); }); cx.stroke();
-    cx.strokeStyle = "#4EC9C6"; cx.lineWidth = 2.5 * s; cx.beginPath(); points.forEach(function (p, i) { if (i === 0) cx.moveTo(x(p.t), y(p.niveau)); else cx.lineTo(x(p.t), y(p.niveau)); }); cx.stroke();
-    points.forEach(function (p) {
-      if (p.saut) { cx.strokeStyle = "#E8901A"; cx.lineWidth = 2 * s; cx.beginPath(); cx.moveTo(x(p.t), m); cx.lineTo(x(p.t), H - m); cx.stroke(); }
-      if (p.jouee !== null) { cx.fillStyle = "#C9A24D"; cx.beginPath(); cx.arc(x(p.t), y(p.niveau), 3.5 * s, 0, Math.PI * 2); cx.fill(); }
-    });
-  }
+// ---------- ce que voit la page ----------
+const vu = { brut: [], cc: [], rec: [], joue: [] };   // { t (ms), ... }
+let derniereNote = null, niveauPrec = null;
+function surMessage(ev) {
+  const d = ev.data, st = d[0] & 0xF0, now = performance.now(), t = ts(now);
+  if (joue && quoi === 'origine' && sortie) sortie.send(Array.from(d));
+  if (st === 0x90 && d[2] > 0) vu.brut.push({ t: now, note: d[1] });
+  if (st === 0xB0 && d[1] === 123) vu.cc.push(now);
+  const avant = pont.etat().stats.recentrages;
+  pont.evenement(t, entree ? entree.name : 'U1', (d[0] & 0x0F) + 1, st, d[1] ?? 0, st === 0x80 ? 0 : (d[2] ?? 0));
+  const e = pont.etat();
+  if (e.stats.recentrages > avant) vu.rec.push(now);
+  if (st === 0x90 && d[2] > 0) { vu.brut[vu.brut.length - 1].niveau = e.niveau; vu.brut[vu.brut.length - 1].filtre = e.filtre; }
+  if (!joue || quoi !== 'pont') { if (st === 0x90 && d[2] > 0 && e.touche !== derniereNote && e.touche >= 0 && e.etat === 'JOUE') vu.joue.push({ t: now, couche: 0, note: e.touche }); }
+  derniereNote = e.touche;
+}
+setInterval(() => { const lim = performance.now() - 660000; for (const k of ['brut', 'joue']) while (vu[k].length && vu[k][0].t < lim) vu[k].shift(); for (const k of ['cc', 'rec']) while (vu[k].length && vu[k][0] < lim) vu[k].shift(); }, 5000);
+
+// ---------- MIDI ----------
+function remplir() {
+  const e = $('entree'), s = $('sortie'), ve = e.value, vs = s.value; e.innerHTML = ''; s.innerHTML = '';
+  acces.inputs.forEach(p => { if (/Thétys/.test(p.name)) return; const o = new Option(p.name, p.id); if (p.id === ve || (!ve && /USB|1x1|Uno|MIDISPORT/i.test(p.name))) o.selected = true; e.add(o); });
+  acces.outputs.forEach(p => { const o = new Option(p.name, p.id); if (p.id === vs || (!vs && /IAC|Bus/i.test(p.name))) o.selected = true; s.add(o); });
+  brancher();
+}
+function brancher() {
+  if (entree) entree.onmidimessage = null;
+  entree = acces.inputs.get($('entree').value) || null;
+  sortie = acces.outputs.get($('sortie').value) || null;
+  if (entree) entree.onmidimessage = surMessage;
+  pont.absent(!entree || entree.state === 'disconnected');
+  $('branche').textContent = actif ? `écoute « ${entree ? entree.name : 'aucune entrée'} »${joue ? ' → « ' + (sortie ? sortie.name : '?') + ' »' : ''}` : 'MIDI en pause';
+}
+$('activer').onclick = async () => {
+  if (actif) { actif = false; arreterJeu(); if (entree) entree.onmidimessage = null; $('activer').textContent = 'Activer le MIDI'; $('activer').classList.remove('on'); $('branche').textContent = 'MIDI en pause'; return; }
+  if (!navigator.requestMIDIAccess) { $('branche').textContent = 'Ce navigateur ne sait pas faire de MIDI : ouvrir dans Chrome.'; return; }
+  try { acces = await navigator.requestMIDIAccess({ sysex: false }); } catch { $('branche').textContent = 'Accès MIDI refusé par Chrome.'; return; }
+  actif = true; acces.onstatechange = remplir; nouveauPont(); remplir();
+  message('MIDI actif. Le pont écoute 60 s avant de caler le La.');
+  $('activer').textContent = 'MIDI actif'; $('activer').classList.add('on');
+};
+$('entree').onchange = brancher; $('sortie').onchange = () => { arreterJeu(); brancher(); };
+function arreterJeu() { if (joue && sortie) { pont.arret(); for (let c = 0; c < 16; c++) sortie.send([0xB0 | c, 123, 0]); } }
+$('panique').onclick = () => { if (sortie) { pont.arret(); for (let c = 0; c < 16; c++) { sortie.send([0xB0 | c, 123, 0]); sortie.send([0xB0 | c, 120, 0]); } } message('Panique : tout coupé.'); };
+function majJouer() { const b = $('jouer'); b.classList.toggle('on', joue); b.textContent = joue ? 'JOUE vers MainStage (cliquer pour arrêter)' : 'Ne joue pas (tableau de bord seul)'; if (acces) brancher(); }
+$('jouer').onclick = () => { if (joue) { arreterJeu(); joue = false; } else { joue = true; message('La page joue vers MainStage (' + ($('quoi').value === 'pont' ? 'le pont' : 'le U1 tel quel') + ').'); } majJouer(); };
+$('quoi').onchange = () => { arreterJeu(); quoi = $('quoi').value; };
+for (let c = 0; c < 4; c++) $('c' + c).onchange = arreterJeu;
+window.addEventListener('pagehide', () => arreterJeu());
+
+// ---------- réglages en jeu ----------
+$('zone').onchange = () => { pont.regler('zone', +$('zone').value); message('Zone morte : ±' + $('zone').value + ' (le niveau repart de la prochaine note, le geste se réchauffe 2 min).'); };
+$('tenue').onchange = () => { pont.regler('tenue', +$('tenue').value); message('Arrivée = note tenue ' + $('tenue').value + ' s.'); };
+$('ampli').onchange = () => { pont.regler('amplification', +$('ampli').value); message('Geste : amplification ' + (+$('ampli').value).toFixed(2) + '.'); };
+$('fenetre').onchange = () => { pont.regler('fenetre', +$('fenetre').value); message('Geste : fenêtre ' + $('fenetre').value + ' s.'); };
+$('couches').onchange = () => { pont.regler('couches', $('couches').checked); message('Couches ' + ($('couches').checked ? 'actives' : 'coupées') + '.'); };
+$('geste').onchange = () => { pont.regler('geste', $('geste').checked); message('Geste ' + ($('geste').checked ? 'actif' : 'coupé') + '.'); };
+$('nuit').onchange = () => { pont.regler('nuit', $('nuit').checked); message($('nuit').checked ? 'Concert tardif : pas d\'heures calmes.' : 'Heures calmes actives (00:00-09:30).'); };
+$('recaler').onclick = () => pont.recaler(ts(performance.now()));
+$('csv').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JOURNAL.join('\n') + '\n'], { type: 'text/csv' }));
+  const d = new Date(EPOCH0 * 1000), p = n => String(n).padStart(2, '0');
+  a.download = `pont-page-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.csv`; a.click();
+};
+
+// ---------- ce que fait Thétys : mesures et famille de l'atlas ----------
+// mêmes mesures que docs/thetys-oui-non/atlas/fenetres.py, sur les notes brutes du U1
+function mesures(v, ts) {
+  const d = v.slice(1).map((x, i) => x - v[i]);
+  let cy = 0; for (let i = 0; i < v.length - 3; i++) if (v[i] === v[i + 3] && new Set([v[i], v[i + 1], v[i + 2]]).size === 3) cy++;
+  cy = cy / Math.max(v.length - 3, 1) * 100;
+  let ret = 0; for (let i = 0; i < d.length - 1; i++) if (d[i] * d[i + 1] < 0) ret++;
+  ret = ret / Math.max(d.length - 1, 1) * 100;
+  let g = 0, i = 0;
+  while (i < d.length) { let j = i, tot = 0; const s = Math.sign(d[i]); while (j < d.length && d[j] !== 0 && Math.sign(d[j]) === s && Math.abs(d[j]) <= 3) { tot += Math.abs(d[j]); j++; } if (tot >= 5 && j > i) g++; i = Math.max(j, i + 1); }
+  const gaps = ts.slice(1).map((x, k) => x - ts[k]); const ph = [1]; for (const x of gaps) { if (x <= 3) ph[ph.length - 1]++; else ph.push(1); }
+  const net = d.filter(x => Math.abs(x) < 10).reduce((a, b) => a + b, 0);
+  const sv = [...v].sort((a, b) => a - b), p10 = sv[Math.floor(sv.length / 10)], p90 = sv[Math.floor(sv.length * 9 / 10)];
+  return { boucles: cy, retours: ret, gestes: g, gestes100: g / Math.max(v.length, 1) * 100, phrase: ph.reduce((a, b) => a + b, 0) / ph.length,
+    silence_max: gaps.length ? Math.max(...gaps) : 600, net, etendue_coeur: p90 - p10, bords: v.filter(x => x <= 48 || x >= 95).length / v.length * 100, sauts: d.filter(x => Math.abs(x) >= 10).length };
+}
+const ATLAS = { mu: [3.100348, 56.172836, 58.815286, 3.555748, 2.053656, 3.114221, 14.798319, 2.107558], sd: [1.305519, 17.651636, 11.916542, 2.609469, 2.470484, 0.962298, 7.080782, 0.890081],
+  centres: [[-0.54773, -0.56426, -0.4218, 0.74739, -0.55962, 0.48544, -0.18336, -0.00814], [1.27663, 1.60963, 0.58045, -1.19378, 0.80846, -0.89364, -0.45939, -0.55567], [-0.61311, -0.07259, 1.00155, -0.38019, -0.57287, 0.58984, -0.07054, 0.49775], [1.78257, 1.23635, 0.44035, -1.07684, 2.04295, -1.84361, 0.69817, 0.26671], [-0.76568, 0.06661, 0.45967, -0.21533, -0.59862, 0.73371, -0.9248, -1.10486], [-0.11492, -1.30646, -1.63393, 1.2298, -0.33065, 0.11033, 1.10872, 1.02367]],
+  noms: [['E', 'marche lente à gestes'], ['B', 'trille (suspect : la machine)'], ['D', 'petit balancement qui monte'], ['A', 'torrent'], ['C', 'presque immobile (proche du repos de l\'appareil)'], ['F', 'phrasé ample, le plus chanté']] };
+function famille(m, notesMin) {
+  const x = [Math.log(notesMin + 0.1), m.boucles, m.retours, m.gestes100, Math.log(m.phrase), Math.log(m.silence_max + 1), m.etendue_coeur, Math.log(Math.abs(m.net) + 1)].map((v, k) => (v - ATLAS.mu[k]) / ATLAS.sd[k]);
+  const dist = ATLAS.centres.map(c => Math.sqrt(c.reduce((a, cv, k) => a + (cv - x[k]) ** 2, 0)));
+  const k = dist.indexOf(Math.min(...dist)); const tri = [...dist].sort((a, b) => a - b);
+  return { lettre: ATLAS.noms[k][0], nom: ATLAS.noms[k][1], net: tri[1] - tri[0] };
+}
+const chiffre = (val, txt, cls = '') => `<div class="chiffre ${cls}"><b>${val}</b><span>${txt}</span></div>`;
+const TEXTE = { ECOUTE: 'Le pont écoute avant de caler le La (60 s), sans jouer.', JOUE: 'Elle joue : chaque note vient d\'une mesure de la plante.', CALME: 'Elle ne bouge pas assez pour jouer : silence respecté.', ROUGE: 'Le U1 ne suit plus (il se recale sans note). Vérifier le contact de la pince sur la feuille.' };
+const COULEUR = { ECOUTE: 'var(--doux)', JOUE: 'var(--vert)', CALME: 'var(--cyan)', ROUGE: 'var(--rouge)' };
+function majTableau() {
+  const e = pont.etat(), now = performance.now();
+  const calme = e.heures_calmes(ts(now));
+  $('etat').textContent = actif ? (calme && e.etat === 'JOUE' ? 'HEURES CALMES' : e.etat) : 'EN ATTENTE'; $('etat').style.color = actif ? COULEUR[e.etat] : 'var(--doux)';
+  $('etat-txt').textContent = !actif ? 'Activer le MIDI, puis le pont écoute 60 s avant de caler le La.' : calme ? 'Aucune note de 00:00 à 09:30 (cocher « Concert tardif » pour jouer).' : TEXTE[e.etat];
+  const min1 = now - 60000, min10 = now - 600000;
+  const n1 = vu.brut.filter(p => p.t > min1).length, cc10 = vu.cc.filter(t => t > min10).length, rec10 = vu.rec.filter(t => t > min10).length;
+  const der = vu.brut.length ? Math.round((now - vu.brut[vu.brut.length - 1].t) / 1000) : null;
+  $('chiffres').innerHTML = [
+    chiffre(n1, 'notes du U1, dernière minute'),
+    chiffre(der == null ? '—' : der + ' s', 'depuis la dernière note'),
+    chiffre(e.ancre_ok ? e.ancre.toFixed(1) : '—', 'niveau calé sur La 4'),
+    chiffre(e.touche >= 0 ? nomNote(e.touche) : '—', 'touche tenue (« Thétys »)'),
+    chiffre(e.geste.toFixed(2), 'geste (1 = geste ordinaire)', Math.abs(e.geste) >= 1 ? 'alerte' : ''),
+    chiffre((cc10 / 10).toFixed(1), 'recalages CC 123 par minute', cc10 / 10 > 1.5 ? 'grave' : cc10 / 10 > 0.5 ? 'alerte' : ''),
+    chiffre(e.stats.notes_jouees, 'notes jouées depuis l\'ouverture'),
+    chiffre(e.stats.arrivees + ' · ' + e.stats.sommets, 'arrivées · sommets'),
+  ].join('');
+  const fen = vu.brut.filter(p => p.t > min10);
+  if (fen.length >= 10) {
+    const duree = Math.max(1, Math.min(10, (now - fen[0].t) / 60000));   // minutes réellement écoutées, 10 au plus
+    const m = mesures(fen.map(p => p.note), fen.map(p => p.t / 1000)), nm = fen.length / duree;
+    let rouges = 0; for (let k = 0; k < 10; k++) { const a = now - 600000 + k * 60000, b = a + 60000; if (vu.cc.some(t => t >= a && t < b) && !fen.some(p => p.t >= a && p.t < b)) rouges++; }
+    const machine = rouges >= 2 ? 'minutes de recalages sans note' : cc10 >= 10 ? 'rafales de recalages' : null;   // critères de l'atlas (fenetres.py)
+    if (machine) { $('famille').textContent = 'machine'; $('famille-txt').textContent = machine + ' : ce n\'est pas elle qu\'on lit.'; }
+    else { const fa = famille(m, nm); $('famille').textContent = fa.lettre + ' · ' + fa.nom; $('famille-txt').textContent = fa.net < 0.3 ? '(entre deux familles)' : ''; }
+    $('mesures').innerHTML = [
+      chiffre(nm.toFixed(1), 'notes par minute'),
+      chiffre(m.boucles.toFixed(0) + ' %', 'boucles de 3 notes', m.boucles > 75 ? 'alerte' : ''),
+      chiffre(m.retours.toFixed(0) + ' %', 'retours de sens'),
+      chiffre(m.gestes + ' (' + m.gestes100.toFixed(1) + '/100)', 'gestes (courses de 5 crans)'),
+      chiffre(m.phrase.toFixed(1), 'notes par phrase'),
+      chiffre(Math.round(m.silence_max) + ' s', 'plus long silence'),
+      chiffre(m.etendue_coeur, 'étendue (crans, cœur)'),
+      chiffre(m.bords.toFixed(0) + ' %', 'notes collées aux bords', m.bords > 20 ? 'grave' : m.bords > 8 ? 'alerte' : ''),
+      chiffre(rec10, 'recentrages recousus (10 min)'),
+    ].join('');
+  } else { $('famille').textContent = '—'; $('famille-txt').textContent = 'il faut au moins 10 notes sur 10 minutes'; $('mesures').innerHTML = ''; }
+}
+const NOMS = ['Do', 'Do#', 'Ré', 'Ré#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+const nomNote = n => NOMS[n % 12] + (Math.floor(n / 12) - 1);
+setInterval(majTableau, 1000); majTableau();
+
+// ---------- courbe ----------
+const cv = $('courbe'), cx = cv.getContext('2d');
+function dessiner() {
   requestAnimationFrame(dessiner);
-  window.__u1corrige = { surNoteU1: surNoteU1 };   // pour les essais hors ligne
-})();
+  const s = window.devicePixelRatio || 1, W = cv.width = cv.clientWidth * s, H = cv.height = 300 * s, m = 10 * s;
+  cx.clearRect(0, 0, W, H);
+  const now = performance.now(), x = t => m + (1 - (now - t) / 180000) * (W - 2 * m), lim = now - 180000;
+  const pts = vu.brut.filter(p => p.t > lim);
+  if (!pts.length) { cx.fillStyle = 'rgba(255,255,255,.4)'; cx.font = (14 * s) + 'px -apple-system, sans-serif'; cx.fillText('En attente des notes du U1…', 20 * s, 30 * s); return; }
+  let lo = Infinity, hi = -Infinity; pts.forEach(p => { for (const v of [p.brut ?? p.note, p.niveau, p.filtre]) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+  lo -= 4; hi += 4; const y = v => H - m - (v - lo) / (hi - lo) * (H - 2 * m);
+  const trace = (cle, coul, ep) => { cx.strokeStyle = coul; cx.lineWidth = ep * s; cx.beginPath(); let premier = true; pts.forEach(p => { const v = p[cle]; if (v == null) return; if (premier) { cx.moveTo(x(p.t), y(v)); premier = false; } else cx.lineTo(x(p.t), y(v)); }); cx.stroke(); };
+  trace('note', '#5b6478', 1.5); trace('niveau', '#4EC9C6', 2.5); trace('filtre', 'rgba(255,255,255,.85)', 1.5);
+  cx.lineWidth = 2 * s;
+  vu.rec.filter(t => t > lim).forEach(t => { cx.strokeStyle = '#E8901A'; cx.beginPath(); cx.moveTo(x(t), m); cx.lineTo(x(t), H - m); cx.stroke(); });
+  vu.cc.filter(t => t > lim).forEach(t => { cx.fillStyle = '#E5534B'; cx.fillRect(x(t) - 1.5 * s, m, 3 * s, 8 * s); });
+  vu.joue.filter(p => p.t > lim && p.couche === 0).forEach(p => { const b = pts.reduce((a, q) => Math.abs(q.t - p.t) < Math.abs(a.t - p.t) ? q : a, pts[0]); cx.fillStyle = '#C9A24D'; cx.beginPath(); cx.arc(x(p.t), y(b.filtre ?? b.niveau ?? b.note), 3.2 * s, 0, Math.PI * 2); cx.fill(); });
+}
+requestAnimationFrame(dessiner);
+window.__u1corrige = { pont: () => pont, surMessage, vu };   // pour les essais hors ligne
 </script>
 </body>
 </html>
