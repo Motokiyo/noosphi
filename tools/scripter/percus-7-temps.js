@@ -85,17 +85,30 @@ function choisir(k) {
 		return { note: liste[i].pitch, velocity: liste[i].velocity };
 }
 
+// 08/11/2026 : notes tenues gérées proprement. Avant, une note recue deux fois
+// sans relachement entre les deux etait notee deux fois, et un relachement n'en
+// retirait qu'une : la boucle restait accrochee pour toujours, meme apres un
+// changement de patch. Desormais une hauteur n'est notee qu'une fois, son
+// relachement la retire entierement, et All Notes Off (123), All Sound Off
+// (120) ou une Note On de force 0 vident aussi. Le U1 virtuel envoie ces arrets
+// juste avant chaque changement de patch.
+function oublier(pitch) {
+		for (var i = tenues.length - 1; i >= 0; i--) if (tenues[i].pitch === pitch) tenues.splice(i, 1);
+}
 function HandleMIDI(event) {
-		if (event instanceof NoteOn) {
+		if (event instanceof NoteOn && event.velocity > 0) {
+				oublier(event.pitch);
 				tenues.push({ pitch: event.pitch, velocity: event.velocity });
-		} else if (event instanceof NoteOff) {
-				for (var i = tenues.length - 1; i >= 0; i--) {
-						if (tenues[i].pitch === event.pitch) { tenues.splice(i, 1); break; }
-				}
+		} else if (event instanceof NoteOff || event instanceof NoteOn) {
+				oublier(event.pitch);
 		} else {
+				if (event instanceof ControlChange && (event.number === 123 || event.number === 120)) tenues = [];
 				event.send();
 		}
 }
+
+// Appele par MainStage quand le script est relance ou que le lecteur s'arrete
+function Reset() { tenues = []; }
 
 function ProcessMIDI() {
 		if (!tenues.length) return;
