@@ -87,6 +87,7 @@
   <div class="carte">
     <div class="bandeau"><span id="etat">EN ATTENTE</span><span id="etat-txt">Activer le MIDI, puis le pont écoute 60 s avant de caler le La.</span></div>
     <div class="chiffres" id="chiffres"></div>
+    <div style="margin-top:8px">Clavier des mots : <b id="mots">pas de signal</b> <span class="doux mono" id="mots-hist"></span></div>
   </div>
 
   <div class="carte">
@@ -171,6 +172,26 @@ function surMessage(ev) {
 }
 setInterval(() => { const lim = performance.now() - 660000; for (const k of ['brut', 'joue']) while (vu[k].length && vu[k][0].t < lim) vu[k].shift(); for (const k of ['cc', 'rec']) while (vu[k].length && vu[k][0] < lim) vu[k].shift(); }, 5000);
 
+// ---------- Clavier des mots (08/11/2026) ----------
+// Le patch « Clavier des mots » du concert du Concile joue à son ouverture un fichier MIDI (Annonces Concile/
+// clavier-des-mots-ouvert.mid) : CC 105 = 127 canal 16 à chaque temps, sur le bus Retour Noos. Battements = patch
+// ouvert ; plus de battement depuis 8 s = fermé. Noté au journal (#,patch,epoch,clavier-des-mots,ouvert|ferme)
+// et gardé dans le navigateur, même si la page se ferme.
+const MOTS = { ouvert: false, dernier: 0, hist: JSON.parse(localStorage.getItem('u1-clavier-des-mots') || '[]') };
+function noteMots(etat) {
+  const ep = Date.now() / 1000; MOTS.ouvert = etat === 'ouvert';
+  MOTS.hist.push([ep, etat]); localStorage.setItem('u1-clavier-des-mots', JSON.stringify(MOTS.hist.slice(-500)));
+  JOURNAL.push(`#,patch,${ep.toFixed(3)},clavier-des-mots,${etat}`);
+  message(new Date().toTimeString().slice(0, 8) + '  Clavier des mots ' + (etat === 'ouvert' ? 'OUVERT' : 'fermé') + '.');
+}
+function surAnnonce(ev) { const d = ev.data; if (d.length >= 3 && d[0] === 0xBF && d[1] === 105) { if (!MOTS.ouvert) noteMots('ouvert'); MOTS.dernier = performance.now(); } }
+setInterval(() => {
+  if (MOTS.ouvert && performance.now() - MOTS.dernier > 8000) noteMots('ferme');
+  const h = MOTS.hist.slice(-6).map(([e, x]) => new Date(e * 1000).toTimeString().slice(0, 5) + (x === 'ouvert' ? ' ouvert' : ' fermé')).join(' · ');
+  $('mots').textContent = MOTS.ouvert ? 'OUVERT' : (MOTS.hist.length ? 'fermé' : 'pas de signal'); $('mots').style.color = MOTS.ouvert ? 'var(--vert)' : 'var(--doux)';
+  $('mots-hist').textContent = h;
+}, 1000);
+
 // ---------- MIDI ----------
 function remplir() {
   const e = $('entree'), s = $('sortie'), ve = e.value, vs = s.value; e.innerHTML = ''; s.innerHTML = '';
@@ -182,7 +203,8 @@ function brancher() {
   if (entree) entree.onmidimessage = null;
   entree = acces.inputs.get($('entree').value) || null;
   sortie = acces.outputs.get($('sortie').value) || null;
-  if (entree) entree.onmidimessage = surMessage;
+  acces.inputs.forEach(p => { if (p !== entree) p.onmidimessage = surAnnonce; });   // les autres entrées : seule l'annonce du Clavier des mots compte
+  if (entree) entree.onmidimessage = e => { surAnnonce(e); surMessage(e); };
   pont.absent(!entree || entree.state === 'disconnected');
   $('branche').textContent = actif ? `écoute « ${entree ? entree.name : 'aucune entrée'} »${joue ? ' → « ' + (sortie ? sortie.name : '?') + ' »' : ''}` : 'MIDI en pause';
 }
