@@ -9,7 +9,7 @@ import { ouvrirGuide, ouvrirAccueil, accueilDejaVu, niveau } from './guide.js';
 import { versRapportHTML, ficheJSON, tableauRapport, telephonesTexte, calculerRapport, nomFichier } from './rapport.js';
 import { createSeance, zAffiche, versCSV, reglagesMidi, texteResume, texteParSource, etatCicada, choixInitial, basculer, titreTemoin, TEMOIN, TEMOIN_COULEUR, createCombinaison, etatSource, SALLE_CLES, SALLE_DEFAUT } from './seance.js';
 
-const APP_VERSION = '1.7.8';
+const APP_VERSION = '1.7.7';
 
 // ---- Constants ----
 const Z_MAX = 3;               // z-score ceiling for visual/audio normalization

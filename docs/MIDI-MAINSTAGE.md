@@ -283,6 +283,7 @@ Les sessions enregistrées restent dans le navigateur qui les a faites (50 au pl
 - Le lanceur ouvre Chrome avec un profil à part : `~/Library/Application Support/U1-virtuel-Chrome` (le profil `Google/Chrome/Default` n'a pas les réglages du concert).
 - Les réglages sont dans le localStorage, clé `noosphi_midi`, dans `Default/Local Storage/leveldb/*.ldb`. Ces fichiers sont compressés (snappy) : `strings` n'y trouve rien. Les copier, puis décompresser les blocs (petit décodeur snappy en Python, sans dépendance) et chercher `jeuHaut`.
 - Depuis la branche `feat/export-reglages-midi`, la fiche de séance les garde : ce détour ne servira plus que pour les séances d'avant.
+<<<<<<< HEAD
 
 
 ## Couper l'ancien patch au changement (08/11/2026, v1.7.8)
@@ -292,3 +293,5 @@ Avant chaque changement de patch (par le z ou par les boutons « Tester »), l'a
 Pourquoi : le Scripter « Percus 7 temps » (patch « Les scientifiques ») joue sa grille tant qu'il croit une note tenue. Quand le patch changeait avant le relâchement, MainStage envoyait ce relâchement au nouveau patch, et la boucle de l'ancien ne s'arrêtait jamais (constaté par Alexandre le 08/11/2026). Un All Notes Off seul ne suffit pas : le script le laisse passer sans vider ses notes tenues. Limite : un changement de patch fait à la main au clavier ne passe pas par l'app et n'est pas couvert.
 
 **Et dans les Scripter (08/11/2026).** La coupure seule ne suffisait pas : `percus-7-temps.js` et `arpege-phases.js` notaient une même note deux fois si elle arrivait deux fois sans relâchement entre les deux, et un relâchement n'en retirait qu'une. La grille restait accrochée pour toujours. Corrigé dans les deux scripts : une hauteur n'est notée qu'une fois, son relâchement la retire entièrement, All Notes Off (123), All Sound Off (120) ou une Note On de force 0 vident la liste, et `Reset()` aussi. Vérifié dans une simulation du Scripter sous Node (ancien script : une note reste accrochée ; nouveau : aucune). À recoller dans chaque Scripter concerné (« Open Script in Editor », tout remplacer, « Run Script », enregistrer le concert). Copies d'avant au vieux Mac : `~/Music/Scripts-MainStage/*.avant-0811.js`.
+=======
+>>>>>>> parent of f6eaadb (fix(midi): couper l'ancien patch avant d'en changer (relâchement des 128 notes, CC 64/123/120), la boucle des scientifiques ne continue plus dans le patch suivant ; v1.7.8, cache v45)
